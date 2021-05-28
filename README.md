@@ -14,7 +14,15 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 IN THE SOFTWARE.
 
-## Initial Updates
+## Updates
+
+### 1.0.0 Release
+
+- Converted to community owned project
+- Fixed Binance & other exchanges not taking correctly saved memo
+- Added Binance memo to settings and switched order between HBD => HIVE to HIVE => HBD
+
+### Before
 
 - [2017/12/09 - 0.2.0 Release Notes](https://hive.blog/vessel/@jesta/vessel-0-2-0-interact-with-steem-securely-from-any-website)
 - [2017/11/29 - 0.0.9 Release Notes](https://hive.blog/vessel/@jesta/vessel-009-witness-voting-improved-delegation-controls-auths-and-customjson-ops)

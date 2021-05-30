@@ -309,11 +309,14 @@ export function refreshAccountData(accounts: Array) {
 export function transfer(wif, params) {
   return (dispatch: () => void) => {
     var { from, to, amount, memo } = params;
-    // amount = amount.replace("HIVE", "STEEM");
-    // amount = amount.replace("HBD", "SBD");
     dispatch({
       type: ACCOUNT_TRANSFER_STARTED
     });
+    if (hive.config.get('address_prefix') === 'TST') {
+      //if testnet
+      amount = amount.replace("HIVE", "TESTS");
+      amount = amount.replace("HBD", "TBD");
+    }
     hive.broadcast.transfer(wif, from, to, amount, memo, (err, result) => {
       if (err) {
         dispatch({

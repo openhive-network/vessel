@@ -21,14 +21,13 @@ import ServerStatus from './containers/ServerStatus';
 import * as HiveActions from './actions/hive';
 
 class Routes extends Component {
-
   isURL(str) {
-    var pattern = new RegExp('^(https?:\\/\\/)?'+ // protocol
-    '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.?)+[a-z]{2,}|'+ // domain name
-    '((\\d{1,3}\\.){3}\\d{1,3}))'+ // OR ip (v4) address
-    '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
-    '(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
-    '(\\#[-a-z\\d_]*)?$','i'); // fragment locator
+    const pattern = new RegExp('^(https?:\\/\\/)?' // protocol
+    + '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.?)+[a-z]{2,}|' // domain name
+    + '((\\d{1,3}\\.){3}\\d{1,3}))' // OR ip (v4) address
+    + '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' // port and path
+    + '(\\?[;&a-z\\d%_.~+=-]*)?' // query string
+    + '(\\#[-a-z\\d_]*)?$', 'i'); // fragment locator
     return pattern.test(str);
   }
 
@@ -36,38 +35,42 @@ class Routes extends Component {
     if (url && this.isURL(url)) {
       // If it's a valid URL, set
       hive.api.setOptions({ url });
+      hive.api.getConfig((err, result) => {
+        hive.config.set('chain_id', result.HIVE_CHAIN_ID);
+        hive.config.set('address_prefix', result.HIVE_ADDRESS_PREFIX);
+      });
     } else {
       // Otherwise set to the api.hive.blog node
       hive.api.setOptions({ url: 'https://api.hive.blog' });
     }
-    hive.config.set('rebranded_api','true');
-    hive.broadcast.updateOperations(); // Necessary to update the already loaded operations
     // Force a refresh immediately after change
     this.props.actions.refreshGlobalProps();
   }
 
   componentWillMount() {
     if (this.props.preferences && this.props.preferences.hived_node) {
-      this.changeNode(this.props.preferences.hived_node)
+      this.changeNode(this.props.preferences.hived_node);
     }
   }
+
   componentWillReceiveProps(nextProps) {
-    const nextNode = nextProps.preferences.hived_node
-    const thisNode = this.props.preferences.hived_node
+    const nextNode = nextProps.preferences.hived_node;
+    const thisNode = this.props.preferences.hived_node;
     if (nextNode !== thisNode) {
-      this.changeNode(nextNode)
+      this.changeNode(nextNode);
     }
   }
+
   render() {
-    var parse = require('url-parse');
-    const parsed = parse(window.location.href, true)
+    const parse = require('url-parse');
+    const parsed = parse(window.location.href, true);
     if (parsed && parsed.query && parsed.query.action && parsed.query.action === 'promptOperation') {
       return (
         <App>
           <DecryptPrompt />
           <PromptOperation query={parsed.query} />
         </App>
-      )
+      );
     }
     return (
       <App>
@@ -79,11 +82,10 @@ class Routes extends Component {
             path="/"
             render={
               (props) => {
-                if(this.props.keys.isUser) {
+                if (this.props.keys.isUser) {
                   return <TransactionsPage />;
-                } else {
-                  return <WelcomePage />;
                 }
+                return <WelcomePage />;
               }
             }
           />

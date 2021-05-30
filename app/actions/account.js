@@ -96,9 +96,12 @@ export const ACCOUNT_CONTACTS_REMOVE = "ACCOUNT_CONTACTS_REMOVE";
 
 export function claimRewardBalance(wif: string, params: object) {
   return (dispatch: () => void) => {
-    const { account, reward_hive, reward_hbd, reward_vests } = params;
-    // let reward_hive = reward_hive.replace("HIVE", "STEEM");
-    // let reward_hbd = reward_hbd.replace("HBD", "SBD");
+    let { account, reward_hive, reward_hbd, reward_vests } = params;
+    if (hive.config.get('address_prefix') === 'TST') {
+      //if testnet
+      reward_hive = reward_hive.replace("HIVE", "TESTS");
+      reward_hbd = reward_hbd.replace("HBD", "TBD");
+    }
     const ops = [
       [
         "claim_reward_balance",
@@ -309,11 +312,14 @@ export function refreshAccountData(accounts: Array) {
 export function transfer(wif, params) {
   return (dispatch: () => void) => {
     var { from, to, amount, memo } = params;
-    // amount = amount.replace("HIVE", "STEEM");
-    // amount = amount.replace("HBD", "SBD");
     dispatch({
       type: ACCOUNT_TRANSFER_STARTED
     });
+    if (hive.config.get('address_prefix') === 'TST') {
+      //if testnet
+      amount = amount.replace("HIVE", "TESTS");
+      amount = amount.replace("HBD", "TBD");
+    }
     hive.broadcast.transfer(wif, from, to, amount, memo, (err, result) => {
       if (err) {
         dispatch({
@@ -339,11 +345,14 @@ export function transferCompleted() {
 export function transferFromSavings(wif, params) {
   return (dispatch: () => void) => {
     var { from, requestId, to, amount, memo } = params;
-    // amount = amount.replace("HIVE", "STEEM");
-    // amount = amount.replace("HBD", "SBD");
     dispatch({
       type: ACCOUNT_TRANSFER_FROM_SAVINGS_STARTED
     });
+    if (hive.config.get('address_prefix') === 'TST') {
+      //if testnet
+      amount = amount.replace("HIVE", "TESTS");
+      amount = amount.replace("HBD", "TBD");
+    }
     hive.broadcast.transferFromSavings(
       wif,
       from,
@@ -377,8 +386,11 @@ export function transferFromSavingsCompleted() {
 export function transferToSavings(wif, params) {
   return (dispatch: () => void) => {
     var { from, to, amount, memo } = params;
-    // amount = amount.replace("HIVE", "STEEM");
-    // amount = amount.replace("HBD", "SBD");
+    if (hive.config.get('address_prefix') === 'TST') {
+      //if testnet
+      amount = amount.replace("HIVE", "TESTS");
+      amount = amount.replace("HBD", "TBD");
+    }
     dispatch({
       type: ACCOUNT_TRANSFER_TO_SAVINGS_STARTED
     });
@@ -604,8 +616,12 @@ export function cancelWithdrawVesting(wif, params) {
 
 export function powerUp(wif, params) {
   return (dispatch: () => void) => {
-    const { from_account, to_account, hiveAmount } = params;
-    const hiveFormat = [hiveAmount, "STEEM"].join(" ");
+    let { from_account, to_account, hiveAmount } = params;
+    let hiveFormat = [hiveAmount, "HIVE"].join(" ");
+    if (hive.config.get('address_prefix') === 'TST') {
+      //if testnet
+      hiveFormat = hiveFormat.replace("HIVE", "TESTS");
+    }
     dispatch({
       type: ACCOUNT_POWER_UP_STARTED
     });

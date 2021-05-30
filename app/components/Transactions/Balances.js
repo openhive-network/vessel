@@ -61,6 +61,7 @@ export default class PendingReward extends Component {
         shortFormat: true,
         shortFormatMinValue: 1000
       };
+      let network = this.props.hive.props.network || "Hive";
       display = (
         <Segment basic>
           <Header>
@@ -69,15 +70,15 @@ export default class PendingReward extends Component {
           <Segment>
             <Statistic.Group size="tiny" widths="four">
               <Statistic>
-                <Statistic.Label>HBD</Statistic.Label>
+                <Statistic.Label>{network === "Hive" ? "HBD" : "TBD"}</Statistic.Label>
                 <Statistic.Value>{<NumericLabel params={numberFormat}>{totals.HBD}</NumericLabel>}</Statistic.Value>
               </Statistic>
               <Statistic>
-                <Statistic.Label>HIVE</Statistic.Label>
+                <Statistic.Label>{network === "Hive" ? "HIVE" : "TESTS"}</Statistic.Label>
                 <Statistic.Value>{<NumericLabel params={numberFormat}>{totals.HIVE}</NumericLabel>}</Statistic.Value>
               </Statistic>
               <Statistic>
-                <Statistic.Label>HP</Statistic.Label>
+                <Statistic.Label>{network === "Hive" ? "HP" : "TP"}</Statistic.Label>
                 <Statistic.Value>{<NumericLabel params={numberFormat}>{totals.HP}</NumericLabel>}</Statistic.Value>
               </Statistic>
               <Statistic>
@@ -111,19 +112,19 @@ export default class PendingReward extends Component {
                   Name
                 </Table.HeaderCell>
                 <Table.HeaderCell textAlign="right">
-                  HBD
+                  {network === "Hive" ? "HBD" : "TBD"}
                 </Table.HeaderCell>
                 <Table.HeaderCell textAlign="right">
-                  HIVE
+                  {network === "Hive" ? "HIVE" : "TESTS"}
                 </Table.HeaderCell>
                 <Table.HeaderCell textAlign="right">
-                  HBD
+                  {network === "Hive" ? "HBD" : "TBD"}
                 </Table.HeaderCell>
                 <Table.HeaderCell textAlign="right">
-                  HIVE
+                  {network === "Hive" ? "HIVE" : "TESTS"}
                 </Table.HeaderCell>
                 <Table.HeaderCell textAlign="right">
-                  HP
+                  {network === "Hive" ? "HP" : "TP"}
                 </Table.HeaderCell>
                 <Table.HeaderCell textAlign="right">
                   VESTS

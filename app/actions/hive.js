@@ -16,11 +16,10 @@ export function refreshGlobalProps() {
       } else {
         if(results.virtual_supply.search('HIVE') >= 0){
           results.network = "Hive";
-        // } else if(results.virtual_supply.search('STEEM') >= 0){
-        //   results.network = "Steem";
-
+        } else if(results.virtual_supply.search('TESTS') >= 0){
+          results.network = "Hive Testnet";
         } else {
-          results.network = "Hive";
+          results.network = "Unknown";
         }
 
         dispatch({

@@ -9,7 +9,7 @@ import * as HiveActions from "../actions/hive";
 import * as PreferencesActions from "../actions/preferences";
 
 const srcHive = require("../img/hive.png");
-const srcSteem = require("../img/steem.png");
+const srcTestnet = require("../img/testnet.png");
 
 class MenuBar extends Component {
   state = {
@@ -49,7 +49,7 @@ class MenuBar extends Component {
           <img
             alt="Vessel"
             className="ui tiny image"
-            src={network === "Hive" ? srcHive : srcSteem}
+            src={network === "Hive" ? srcHive : srcTestnet}
             style={{
               width: "50px",
               height: "50px",
@@ -92,13 +92,13 @@ class MenuBar extends Component {
           <div>
             <span style={{ lineHeight: "1.5em" }}>Chain:</span>
             <br />
-            <span style={{ fontWeight: 700 }} className="hivered">
+            <span style={{ fontWeight: 700 }} className={network === "Hive" ? "hivered" : "hivetestnetpink"}>
               {network}
             </span>
             <hr />
             <span style={{ lineHeight: "1.5em" }}>Height:</span>
             <br />
-            <span style={{ fontWeight: 700 }} className="hivered">
+            <span style={{ fontWeight: 700 }} className={network === "Hive" ? "hivered" : "hivetestnetpink"}>
               {height}
             </span>
           </div>

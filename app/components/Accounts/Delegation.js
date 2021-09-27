@@ -75,7 +75,7 @@ export default class AccountsProxy extends Component {
     let { delegator, delegatee, id } = props.value.delegatee;
     delegatee = delegatee.toLowerCase().replace('@', '');
     const permissions = this.props.keys.permissions;
-    this.setState({undelegateError: false})
+    this.setState({ undelegateError: false })
     this.props.actions.useKey('setDelegateVestingShares', { delegator, delegatee, vestingShares: 0.000000 }, permissions[delegator])
   }
   handleVestingSharesEdit = (e, props) => {
@@ -299,7 +299,9 @@ export default class AccountsProxy extends Component {
               <Header.Subheader>
                 <strong>
                   <NumericLabel params={numberFormat}>{vests}</NumericLabel>
-                </strong> VESTS
+                </strong>
+                {' '}
+                VESTS
               </Header.Subheader>
             </Header>
           </Table.Cell>
@@ -318,8 +320,7 @@ export default class AccountsProxy extends Component {
                   <NumericLabel params={numberFormat}>{delegatedAmount}</NumericLabel>
                 ) : (
                   0
-                )
-              }
+                )}
               <Header.Subheader>
                 VESTS
               </Header.Subheader>
@@ -343,42 +344,41 @@ export default class AccountsProxy extends Component {
                     </Table.Row>
                   </Table.Header>
                   <Table.Body>
-                  {delegatees.map((delegatee) => {
-                    const vests = parseFloat(delegatee.vesting_shares.split(" ")[0])
-                    return (
-                      <Table.Row key={delegatee.id}>
-                        <Table.Cell>
-                          <AccountName name={delegatee.delegatee} />
-                        </Table.Cell>
-                        <Table.Cell>
-                          <NumericLabel params={numberFormat}>{vests}</NumericLabel>
-                        </Table.Cell>
-                        <Table.Cell>
-                          <Button.Group>
-                            <Button
-                              color="black"
-                              size="small"
-                              icon="pencil"
-                              value={{ delegatee }}
-                              onClick={this.handleVestingSharesEdit}
-                            />
-                            <Button
-                              color="orange"
-                              size="small"
-                              icon="trash"
-                              value={{ delegatee }}
-                              onClick={this.handleVestingSharesRemove}
-                            />
-                          </Button.Group>
-                        </Table.Cell>
-                      </Table.Row>
-                    )
-                  })}
+                    {delegatees.map((delegatee) => {
+                      const vests = parseFloat(delegatee.vesting_shares.split(" ")[0])
+                      return (
+                        <Table.Row key={delegatee.id}>
+                          <Table.Cell>
+                            <AccountName name={delegatee.delegatee} />
+                          </Table.Cell>
+                          <Table.Cell>
+                            <NumericLabel params={numberFormat}>{vests}</NumericLabel>
+                          </Table.Cell>
+                          <Table.Cell>
+                            <Button.Group>
+                              <Button
+                                color="black"
+                                size="small"
+                                icon="pencil"
+                                value={{ delegatee }}
+                                onClick={this.handleVestingSharesEdit}
+                              />
+                              <Button
+                                color="orange"
+                                size="small"
+                                icon="trash"
+                                value={{ delegatee }}
+                                onClick={this.handleVestingSharesRemove}
+                              />
+                            </Button.Group>
+                          </Table.Cell>
+                        </Table.Row>
+                      )
+                    })}
                   </Table.Body>
                 </Table>
               )
-              : 'No active delegations'
-            }
+              : 'No active delegations'}
           </Table.Cell>
           <Table.Cell>
             <Button

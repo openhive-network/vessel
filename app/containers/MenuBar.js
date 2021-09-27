@@ -66,6 +66,10 @@ class MenuBar extends Component {
           <Icon name="send" />
           Send
         </Link>
+        <Link className="link item" to="/convert">
+          <Icon name="exchange" />
+          Convert
+        </Link>
         <Link className="link item" to="/vesting">
           <Icon name="lightning" />
           Vesting

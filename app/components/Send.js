@@ -73,6 +73,7 @@ const exchangeSupportingEncryption = ["bittrex"];
 
 const defaultState = {
   sourceType: "liquid",
+  destinationType: "liquid",
   from: "",
   to: "",
   amount: "",
@@ -123,18 +124,38 @@ export default class Send extends Component {
     });
   }
   handleSourceTypeChange = (e: SyntheticEvent, { value }: { value: any }) => {
-    this.setState({
+    const obj = {
       sourceType: value
+    }
+    if (this.state.destinationType === 'same_account') {
+      obj.destinationType = value === 'liquid' ? 'savings' : 'liquid'
+    } else {
+      obj.destinationType = value === 'liquid' ? 'liquid' : 'savings'
+    }
+    this.setState(obj);
+  };
+  handleDestinationTypeChange = (e: SyntheticEvent, { value }: { value: any }) => {
+    this.setState({
+      destinationType: value
     });
   };
   handleDestinationChange = (e: SyntheticEvent, { value }: { value: any }) => {
-    this.setState({
+    const obj = {
       to: "",
       memo: "",
       destination: value,
       encryptMemo: false,
       memoEncrypted: false
-    });
+    }
+    if (value === 'exchange') {
+      obj.destinationType = 'liquid'
+    } else if (value === 'same_account') {
+      obj.destinationType = this.state.sourceType === 'liquid' ? 'savings' : 'liquid'
+      obj.to = this.state.from
+    } else if (this.state.destinationType === 'same_account') {
+      obj.destinationType = this.state.sourceType === 'liquid' ? 'liquid' : 'savings'
+    }
+    this.setState(obj);
   };
   handleSymbolChange = (e: SyntheticEvent, { value }: { value: any }) => {
     const detectMemo = this.detectMemo(this.state.to, value);
@@ -315,7 +336,7 @@ export default class Send extends Component {
     const amountFormat = [amount, symbol].join(" ");
     if (this.state.sourceType === "liquid") {
       this.props.actions.useKey(
-        this.state.destination.search("savings") === -1
+        this.state.destinationType !== "savings" || this.state.destination === 'exchange'
           ? "transfer"
           : "transferToSavings",
         { from, to, amount: amountFormat, memo: usedMemo },
@@ -423,20 +444,55 @@ export default class Send extends Component {
     const availableAmount = accounts[this.state.from][field];
     const errorLabel = <Label color="red" pointing />;
     let modal = false;
+
+    const getDestinationTypeField = () => {
+      if (this.state.destination === 'exchange') return null
+      return <Grid.Column width={4} style={{ marginTop: '25px' }}>
+        <div className="field" style={{ marginBottom: '5px' }}>
+          <label htmlFor="from">Select the specific destination</label>
+        </div>
+        <Grid.Row style={{ display: 'flex' }}>
+          <Form.Field
+            control={Radio}
+            name="destinationType"
+            label="liquid"
+            value="liquid"
+            checked={this.state.destinationType === "liquid"}
+            onChange={this.handleDestinationTypeChange}
+            style={{ marginRight: '10px' }}
+          />
+          <Form.Field
+            control={Radio}
+            name="destinationType"
+            label="savings"
+            value="savings"
+            checked={this.state.destinationType === "savings"}
+            onChange={this.handleDestinationTypeChange}
+          />
+        </Grid.Row>
+      </Grid.Column>
+    }
+
     let toField = (
-      <Form.Field
-        control={Input}
-        name="to"
-        label="Enter the account name"
-        placeholder="Enter the account name to send to..."
-        value={this.state.to}
-        onChange={this.handleToChange}
-        // validationErrors={{
-        // accountName: 'Invalid account name'
-        // }}
-        errorLabel={errorLabel}
-      />
+      <Grid.Row>
+        <Form.Field
+          control={Input}
+          name="to"
+          label="Enter the account name"
+          placeholder={'Enter the account name to send to...'}
+          value={this.state.to}
+          onChange={this.handleToChange}
+          // validationErrors={{
+          // accountName: 'Invalid account name'
+          // }}
+          errorLabel={errorLabel}
+        />
+
+      </Grid.Row>
     );
+
+    let destinationTypeField = getDestinationTypeField()
+
     let encryptedField = false;
     if (this.state.destination === "exchange") {
       let externalLink = false;
@@ -549,6 +605,12 @@ export default class Send extends Component {
                     <Table.Cell textAlign="right">Destination:</Table.Cell>
                     <Table.Cell>
                       {this.state.destination.replace("account_", "")}
+                    </Table.Cell>
+                  </Table.Row>
+                  <Table.Row>
+                    <Table.Cell textAlign="right">Destination Type:</Table.Cell>
+                    <Table.Cell>
+                      {this.state.destinationType}
                     </Table.Cell>
                   </Table.Row>
                   <Table.Row>
@@ -697,10 +759,11 @@ export default class Send extends Component {
               <div className="field">
                 <label htmlFor="destination">Send to a...</label>
               </div>
+
               <Form.Field
                 control={Radio}
                 name="destination"
-                label="another user (liquid)"
+                label="another user"
                 value="account_liquid"
                 checked={this.state.destination === "account_liquid"}
                 onChange={this.handleDestinationChange}
@@ -716,21 +779,24 @@ export default class Send extends Component {
               <Form.Field
                 control={Radio}
                 name="destination"
-                label="saved contact"
-                value="contact"
-                checked={this.state.destination === "contact"}
+                label="same account"
+                value="same_account"
+                checked={this.state.destination === "same_account"}
                 onChange={this.handleDestinationChange}
               />
               <Form.Field
                 control={Radio}
                 name="destination"
-                label="another user (savings)"
-                value="account_savings"
-                checked={this.state.destination === "account_savings"}
+                label="saved contact"
+                value="contact"
+                checked={this.state.destination === "contact"}
                 onChange={this.handleDestinationChange}
               />
             </Grid.Column>
-            <Grid.Column width={12}>{toField}</Grid.Column>
+            <Grid.Column width={12}>
+              <Grid.Column width={12}>{toField}</Grid.Column>
+              <Grid.Column width={12}>{destinationTypeField}</Grid.Column>
+            </Grid.Column>
           </Grid.Row>
           <Grid.Row>
             <Grid.Column width={4}>

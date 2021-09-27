@@ -33,6 +33,7 @@ const accountFields = {
   'claim_reward_balance': ['account'],
   'comment': ['author'],
   'convert': ['owner'],
+  'collateralizedConvert': ['owner'],
   'decline_voting_rights': ['account'],
   'delegate_vesting_shares': ['delegator'],
   'set_withdraw_vesting_route': ['from_account'],
@@ -42,7 +43,7 @@ const accountFields = {
   'transfer_to_vesting': ['from'],
   'vote': ['voter'],
   'withdraw_vesting': ['account'],
-  'witness_update': ['owner'],
+  'witness_update': ['owner']
 }
 
 class PromptOperation extends Component {
@@ -52,12 +53,12 @@ class PromptOperation extends Component {
     let meta = {}, ops = []
     try {
       meta = JSON.parse(window.atob(props.query.meta))
-    } catch(exception) {
+    } catch (exception) {
       console.log(exception)
     }
     try {
       ops = JSON.parse(window.atob(props.query.ops))
-    } catch(exception) {
+    } catch (exception) {
       console.log(exception)
     }
     this.state = {
@@ -77,19 +78,6 @@ class PromptOperation extends Component {
   submitOps = (e) => {
     const { account, ops } = this.state
     const permissions = this.props.keys.permissions;
-    // Needs it's own independant section of logic, but here for now
-    ops.forEach((op, idx) => {
-      const opType = op[0]
-      const opData = op[1]
-      switch(opType) {
-        case 'convert':
-          // The requestid just needs to be a unique number, so currently setting to the timestamp
-          if(opData.requestid == '') {
-            ops[idx][1].requestid = Math.floor(Date.now() / 1000)
-          }
-          break
-      }
-    })
     this.props.actions.useKey('send', { operations: ops, extensions: [] }, permissions[account]);
     e.preventDefault()
   }
@@ -108,7 +96,7 @@ class PromptOperation extends Component {
     ops.forEach((op, idx) => {
       const opType = op[0]
       const opData = op[1]
-      if(accountFieldTypes.indexOf(opType) > -1) {
+      if (accountFieldTypes.indexOf(opType) > -1) {
         const modData = Object.assign({}, opData)
         accountFields[opType].forEach((field) => {
           modData[field] = account

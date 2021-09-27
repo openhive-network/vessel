@@ -46,7 +46,15 @@ import {
   ACCOUNT_POWER_UP_COMPLETED,
   ACCOUNT_POWER_UP_FAILED,
   ACCOUNT_POWER_UP_STARTED,
-  ACCOUNT_POWER_UP_RESOLVED
+  ACCOUNT_POWER_UP_RESOLVED,
+  ACCOUNT_CONVERT_COMPLETED,
+  ACCOUNT_CONVERT_STARTED,
+  ACCOUNT_CONVERT_RESOLVED,
+  ACCOUNT_CONVERT_FAILED,
+  ACCOUNT_COLLATERALIZED_CONVERT_COMPLETED,
+  ACCOUNT_COLLATERALIZED_CONVERT_STARTED,
+  ACCOUNT_COLLATERALIZED_CONVERT_FAILED,
+  ACCOUNT_COLLATERALIZED_CONVERT_RESOLVED
 } from '../actions/account';
 
 const defaultState = {
@@ -104,6 +112,42 @@ export default function processing(state: any = defaultState, action: actionType
         account_transfer_resolved: true,
         account_transfer_pending: false
       });
+    case ACCOUNT_CONVERT_STARTED:
+      return Object.assign({}, state, {
+        account_convert_error: false,
+        account_convert_resolved: false,
+        account_convert_pending: true
+      });
+    case ACCOUNT_CONVERT_FAILED:
+      return Object.assign({}, state, {
+        account_convert_error: setError(action.payload),
+        account_convert_resolved: false,
+        account_convert_pending: false
+      });
+    case ACCOUNT_CONVERT_RESOLVED:
+      return Object.assign({}, state, {
+        account_convert_error: false,
+        account_convert_resolved: true,
+        account_convert_pending: false
+      });
+    case ACCOUNT_COLLATERALIZED_CONVERT_STARTED:
+      return Object.assign({}, state, {
+        account_collateralized_convert_error: false,
+        account_collateralized_convert_resolved: false,
+        account_collateralized_convert_pending: true
+      });
+    case ACCOUNT_COLLATERALIZED_CONVERT_FAILED:
+      return Object.assign({}, state, {
+        account_collateralized_convert_error: setError(action.payload),
+        account_collateralized_convert_resolved: false,
+        account_collateralized_convert_pending: false
+      });
+    case ACCOUNT_COLLATERALIZED_CONVERT_RESOLVED:
+      return Object.assign({}, state, {
+        account_collateralized_convert_error: false,
+        account_collateralized_convert_resolved: true,
+        account_collateralized_convert_pending: false
+      });
     case ACCOUNT_CUSTOM_JSON_STARTED:
       return Object.assign({}, state, {
         account_custom_json_error: false,
@@ -157,6 +201,18 @@ export default function processing(state: any = defaultState, action: actionType
         account_transfer_error: false,
         account_transfer_resolved: false,
         account_transfer_pending: false
+      });
+    case ACCOUNT_CONVERT_COMPLETED:
+      return Object.assign({}, state, {
+        account_convert_error: false,
+        account_convert_resolved: false,
+        account_convert_pending: false
+      });
+    case ACCOUNT_COLLATERALIZED_CONVERT_COMPLETED:
+      return Object.assign({}, state, {
+        account_collateralized_convert_error: false,
+        account_collateralized_convert_resolved: false,
+        account_collateralized_convert_pending: false
       });
     case ACCOUNT_DELEGATE_VESTING_SHARES_STARTED:
       return Object.assign({}, state, {

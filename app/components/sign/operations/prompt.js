@@ -54,7 +54,11 @@ const opTemplates = {
   },
   convert: {
     color: 'orange',
-    message: (op) => `Convert ${op.amount} to equiv HIVE (5 day wait).`
+    message: (op) => `Convert ${op.amount} to equiv HIVE in 3.5 days.`
+  },
+  collateralizedConvert: {
+    color: 'orange',
+    message: (op) => `Collateralized Convert ${op.amount} to equiv HBD and HIVE coll. return in 3.5 days.`
   },
   delegate_vesting_shares: {
     color: 'orange',
@@ -115,8 +119,8 @@ export default class OperationsPrompt extends Component {
   getPromptsFromMeta = (props) => {
     return Object.keys(props.meta).map((field) => {
       const meta = props.meta[field]
-      if(meta.prompt) {
-        switch(meta.type) {
+      if (meta.prompt) {
+        switch (meta.type) {
           case "asset":
           case "hbd":
           case "hive":
@@ -170,7 +174,7 @@ export default class OperationsPrompt extends Component {
   }
 
   setAccount = (e, { value }) => {
-    this.setState({account: value})
+    this.setState({ account: value })
     this.props.accountChange(value)
   }
 
@@ -178,27 +182,27 @@ export default class OperationsPrompt extends Component {
     const opType = op[0]
     const opData = op[1]
     const opTemplate = opTemplates[opType]
-    if(!opTemplate) {
+    if (!opTemplate) {
       return (
         <Segment key={idx} attached>
-          <Label color='red' style={{marginRight: '1em'}}>{op[0]}</Label>
+          <Label color='red' style={{ marginRight: '1em' }}>{op[0]}</Label>
           Review this operation via the JSON.
         </Segment>
       )
     }
     return (
       <Segment key={idx} attached>
-        <Label color={opTemplate['color']} style={{marginRight: '1em'}}>{op[0]}</Label>
+        <Label color={opTemplate['color']} style={{ marginRight: '1em' }}>{op[0]}</Label>
         {opTemplate.message(opData)}
       </Segment>
     )
   }
 
   listOps = (ops) => {
-    if(ops.length === 1) {
+    if (ops.length === 1) {
       const op = this.props.ops[0]
       const opData = op[1]
-      switch(ops[0][0]) {
+      switch (ops[0][0]) {
         case 'delegate_vesting_shares':
           return [
             <Header attached='top' key='op-header'><Icon name='power' />Delegate Hive Power</Header>,
@@ -281,15 +285,15 @@ export default class OperationsPrompt extends Component {
             <Segment attached='bottom'>
               <Accordion>
                 <Accordion.Title active={this.state.displayRawJSON === true} index={0} onClick={this.handleClick}>
-                  <Header style={{margin: 0}}>
-                    <Header.Content style={{padding: 0}}>
+                  <Header style={{ margin: 0 }}>
+                    <Header.Content style={{ padding: 0 }}>
                       <Icon name='dropdown' />
                       Transaction JSON
                     </Header.Content>
                   </Header>
                 </Accordion.Title>
                 <Accordion.Content active={this.state.displayRawJSON === true}>
-                  <Segment padded secondary><pre>{JSON.stringify(ops, null, 2) }</pre></Segment>
+                  <Segment padded secondary><pre>{JSON.stringify(ops, null, 2)}</pre></Segment>
                 </Accordion.Content>
               </Accordion>
             </Segment>

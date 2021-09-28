@@ -4,6 +4,28 @@ Vessel is a lite wallet for the Hive blockchain that you can run on your desktop
 
 **This is experimental and messy software at the moment, please use with caution.**
 
+# Release Instructions
+
+To build for release:
+
+```
+#Install Wine if you want to build for windows
+sudo dpkg --add-architecture i386
+wget -nc https://dl.winehq.org/wine-builds/winehq.key
+sudo apt-key add winehq.key
+sudo add-apt-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ focal main'
+sudo apt update
+sudo apt install --install-recommends winehq-stable
+
+npm run build
+sudo npm i -g electron-builder
+electron-builder -mwl
+```
+
+Mac releases must be built on a Mac. Can build on intel for M1 thanks to Rosetta.
+
+
+
 ## No Support & No Warranty
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -35,3 +57,7 @@ IN THE SOFTWARE.
 - [2017/09/19 - 0.0.7 Release Notes](https://hive.blog/steem-project/@jesta/vessel-007-account-creation-encrypted-memos-bittrex)
 - [2017/05/24 - 0.0.6 Release Notes](https://hive.blog/steem-project/@jesta/vessel-006-steem-power-delegation)
 - [2017/05/20 - This app was announced on hive.blog](https://hive.blog/steem-project/@jesta/vessel-pre-release-looking-for-feedback)
+
+
+
+

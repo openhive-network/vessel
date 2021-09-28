@@ -16,6 +16,11 @@ IN THE SOFTWARE.
 
 ## Updates
 
+### 1.0.1 Release
+
+- Added Conversion (HBD => HIVE) and Collateralized Conversion (HIVE => HBD)
+- Improved `Send` page to make it easier to deposit to/withdraw from savings
+
 ### 1.0.0 Release
 
 - Converted to community owned project

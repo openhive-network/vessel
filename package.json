@@ -1,7 +1,7 @@
 {
   "name": "vessel",
   "productName": "vessel",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A simple wallet for managing your Hive accounts.",
   "scripts": {
     "test": "cross-env NODE_ENV=test BABEL_DISABLE_CACHE=1 node --trace-warnings ./test/runTests.js",
@@ -29,7 +29,7 @@
     "package-linux": "npm run build && build --linux",
     "package-all": "npm run build && build -mwl",
     "release": "build -mwl",
-    "dist": "electron-builder"
+    "dist": "electron-builder -mw"
   },
   "browserslist": "electron 1.8",
   "build": {
@@ -81,7 +81,7 @@
       "category": "Network",
       "desktop": {
         "Name": "vessel",
-        "Version": "1.0.0",
+        "Version": "1.0.1",
         "GenericName": "Hive Client",
         "X-GNOME-FullName": "vessel",
         "Comment": "A simple wallet for managing your Hive accounts.",
@@ -203,7 +203,7 @@
     "webpack-merge": "^4.2.2"
   },
   "dependencies": {
-    "@hiveio/hive-js": "^0.8.13",
+    "@hiveio/hive-js": "^2.0.4",
     "bip39": "^2.6.0",
     "bufferutil": "^3.0.5",
     "connected-react-router": "^6.6.1",

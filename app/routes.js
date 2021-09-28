@@ -15,6 +15,7 @@ import SendPage from './containers/SendPage';
 import TransactionsPage from './containers/TransactionsPage';
 import WelcomePage from './containers/WelcomePage';
 import VestingPage from './containers/VestingPage';
+import ConvertPage from './containers/ConvertPage';
 import DecryptPrompt from './containers/DecryptPrompt';
 import ServerStatus from './containers/ServerStatus';
 
@@ -23,11 +24,11 @@ import * as HiveActions from './actions/hive';
 class Routes extends Component {
   isURL(str) {
     const pattern = new RegExp('^(https?:\\/\\/)?' // protocol
-    + '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.?)+[a-z]{2,}|' // domain name
-    + '((\\d{1,3}\\.){3}\\d{1,3}))' // OR ip (v4) address
-    + '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' // port and path
-    + '(\\?[;&a-z\\d%_.~+=-]*)?' // query string
-    + '(\\#[-a-z\\d_]*)?$', 'i'); // fragment locator
+      + '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.?)+[a-z]{2,}|' // domain name
+      + '((\\d{1,3}\\.){3}\\d{1,3}))' // OR ip (v4) address
+      + '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' // port and path
+      + '(\\?[;&a-z\\d%_.~+=-]*)?' // query string
+      + '(\\#[-a-z\\d_]*)?$', 'i'); // fragment locator
     return pattern.test(str);
   }
 
@@ -92,6 +93,7 @@ class Routes extends Component {
           <Route path="/transactions" component={TransactionsPage} />
           <Route path="/debug" component={DebugPage} />
           <Route path="/send" component={SendPage} />
+          <Route path="/convert" {...this.props} component={ConvertPage} />
           <Route path="/vesting" component={VestingPage} />
           <Route path="/accounts" component={AccountsPage} />
           <Route path="/settings" component={SettingsPage} />

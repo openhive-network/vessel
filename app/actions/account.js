@@ -94,6 +94,15 @@ export const ACCOUNT_TRANSFER_TO_SAVINGS_COMPLETED =
 export const ACCOUNT_CONTACTS_ADD = "ACCOUNT_CONTACTS_ADD";
 export const ACCOUNT_CONTACTS_REMOVE = "ACCOUNT_CONTACTS_REMOVE";
 
+export const ACCOUNT_CONVERT_COMPLETED = "ACCOUNT_CONVERT_COMPLETED";
+export const ACCOUNT_CONVERT_STARTED = "ACCOUNT_CONVERT_STARTED";
+export const ACCOUNT_CONVERT_FAILED = "ACCOUNT_CONVERT_FAILED";
+export const ACCOUNT_CONVERT_RESOLVED = "ACCOUNT_CONVERT_RESOLVED";
+export const ACCOUNT_COLLATERALIZED_CONVERT_COMPLETED = "ACCOUNT_COLLATERALIZED_CONVERT_COMPLETED";
+export const ACCOUNT_COLLATERALIZED_CONVERT_STARTED = "ACCOUNT_COLLATERALIZED_CONVERT_STARTED";
+export const ACCOUNT_COLLATERALIZED_CONVERT_FAILED = "ACCOUNT_COLLATERALIZED_CONVERT_FAILED";
+export const ACCOUNT_COLLATERALIZED_CONVERT_RESOLVED = "ACCOUNT_COLLATERALIZED_CONVERT_RESOLVED";
+
 export function claimRewardBalance(wif: string, params: object) {
   return (dispatch: () => void) => {
     let { account, reward_hive, reward_hbd, reward_vests } = params;
@@ -341,6 +350,77 @@ export function transferCompleted() {
     type: ACCOUNT_TRANSFER_COMPLETED
   };
 }
+
+export function convert(wif, params) {
+  return (dispatch: () => void) => {
+    var { owner, requestid, amount } = params;
+    dispatch({
+      type: ACCOUNT_CONVERT_STARTED
+    });
+    if (hive.config.get('address_prefix') === 'TST') {
+      //if testnet
+      amount = amount.replace("HIVE", "TESTS");
+      amount = amount.replace("HBD", "TBD");
+    }
+    if (!requestid) requestid = Math.floor(Date.now() / 1000)
+    hive.broadcast.convert(wif, owner, requestid, amount, (err, result) => {
+      if (err) {
+        dispatch({
+          type: ACCOUNT_CONVERT_FAILED,
+          payload: err
+        });
+      } else {
+        refreshAccountData([owner]);
+        dispatch({
+          type: ACCOUNT_CONVERT_RESOLVED
+        });
+      }
+    });
+  };
+}
+
+export function convertCompleted() {
+  return {
+    type: ACCOUNT_CONVERT_COMPLETED
+  };
+}
+
+export function collateralizedConvert(wif, params) {
+  return (dispatch: () => void) => {
+    var { owner, requestid, amount } = params;
+    dispatch({
+      type: ACCOUNT_COLLATERALIZED_CONVERT_STARTED
+    });
+    if (hive.config.get('address_prefix') === 'TST') {
+      //if testnet
+      amount = amount.replace("HIVE", "TESTS");
+      amount = amount.replace("HBD", "TBD");
+    }
+    if (!requestid) requestid = Math.floor(Date.now() / 1000)
+    console.log('hive', hive)
+    hive.broadcast.collateralizedConvert(wif, owner, requestid, amount, (err, result) => {
+      if (err) {
+        dispatch({
+          type: ACCOUNT_COLLATERALIZED_CONVERT_FAILED,
+          payload: err
+        });
+      } else {
+        refreshAccountData([owner]);
+        dispatch({
+          type: ACCOUNT_COLLATERALIZED_CONVERT_RESOLVED
+        });
+      }
+    });
+  };
+}
+
+export function collateralizedConvertCompleted() {
+  return {
+    type: ACCOUNT_COLLATERALIZED_CONVERT_COMPLETED
+  };
+}
+
+
 
 export function transferFromSavings(wif, params) {
   return (dispatch: () => void) => {
@@ -666,7 +746,7 @@ export function customJson(wif, params) {
     dispatch({
       type: ACCOUNT_CUSTOM_JSON_STARTED
     });
-    hive.broadcast.customJson(wif, auths, postingAuths, id, json, function(
+    hive.broadcast.customJson(wif, auths, postingAuths, id, json, function (
       err,
       result
     ) {
@@ -698,7 +778,7 @@ export function send(wif, params) {
     dispatch({
       type: ACCOUNT_CUSTOM_OPS_STARTED
     });
-    hive.broadcast.send({ operations, extensions }, { posting: wif }, function(
+    hive.broadcast.send({ operations, extensions }, { posting: wif }, function (
       err,
       result
     ) {

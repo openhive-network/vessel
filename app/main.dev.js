@@ -55,6 +55,16 @@ if (singleInstance) {
   app.quit()
 }
 
+// const singleInstance = app.requestSingleInstanceLock()
+// app.on('second-instance', ((event, argv, workingDirectory) => {
+//   if (process.platform == 'win32' || process.platform === 'linux') {
+//     customURI = argv.slice(1)
+//   }
+//   if (mainWindow) {
+//     createPrompt(false, customURI)
+//   }
+// }))
+
 async function createWindow() {
 
   if (process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true') {
@@ -99,7 +109,7 @@ async function createPrompt(event, url) {
   if (process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true') {
     await installExtensions();
   }
-  if(event) event.preventDefault()
+  if (event) event.preventDefault()
   customURI = url
   var parse = require('url-parse');
   promptWindow = new BrowserWindow({
@@ -118,14 +128,14 @@ async function createPrompt(event, url) {
     promptWindow.show();
     promptWindow.focus();
   })
-  if(parsed.host === 'sign') {
+  if (parsed.host === 'sign') {
     const exp = /\/tx\/((?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?)/;
     const match = exp.exec(parsed.pathname);
     const base64encoded = match[1];
     const metaexp = /^#((?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?)$/
     const metamatch = metaexp.exec(parsed.hash)
     let base64encodedmeta = 'e30='
-    if(metamatch) {
+    if (metamatch) {
       base64encodedmeta = metamatch[1]
     }
     promptWindow.loadURL(`file://${__dirname}/app.html?type=sign&action=promptOperation&ops=${base64encoded}&meta=${base64encodedmeta}`);

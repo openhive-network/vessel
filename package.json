@@ -3,6 +3,14 @@
   "productName": "vessel",
   "version": "1.0.1",
   "description": "A simple wallet for managing your Hive accounts.",
+  "author": "Rishi Panthee <hi@rishipanthee.com>",
+  "contributors": [
+    {
+      "name" : "Rishi Panthee",
+      "email" : "hi@rishipanthee.com",
+      "url" : "https://rishipanthee.com/"
+    }
+  ],
   "scripts": {
     "test": "cross-env NODE_ENV=test BABEL_DISABLE_CACHE=1 node --trace-warnings ./test/runTests.js",
     "test-all": "npm run lint && npm run flow && npm run test && npm run build && npm run test-e2e",

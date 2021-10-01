@@ -165,8 +165,8 @@ class ConvertPage extends Component {
     return (
       <ContentBar>
         <Form
-          error={!!this.props.processing.account_transfer_error}
-          loading={this.props.processing.account_transfer_pending}
+          error={!!this.props.processing.account_convert_error || !!this.props.processing.account_collateralized_convert_error}
+          loading={this.props.processing.account_convert_pending || this.props.processing.account_collateralized_convert_pending}
         >
           {modal}
           <Segment padded attached secondary>

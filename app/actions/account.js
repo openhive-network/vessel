@@ -75,22 +75,6 @@ export const ACCOUNT_TRANSFER_STARTED = "ACCOUNT_TRANSFER_STARTED";
 export const ACCOUNT_TRANSFER_FAILED = "ACCOUNT_TRANSFER_FAILED";
 export const ACCOUNT_TRANSFER_RESOLVED = "ACCOUNT_TRANSFER_RESOLVED";
 export const ACCOUNT_TRANSFER_COMPLETED = "ACCOUNT_TRANSFER_COMPLETED";
-export const ACCOUNT_TRANSFER_FROM_SAVINGS_STARTED =
-  "ACCOUNT_TRANSFER_FROM_SAVINGS_STARTED";
-export const ACCOUNT_TRANSFER_FROM_SAVINGS_FAILED =
-  "ACCOUNT_TRANSFER_FROM_SAVINGS_FAILED";
-export const ACCOUNT_TRANSFER_FROM_SAVINGS_RESOLVED =
-  "ACCOUNT_TRANSFER_FROM_SAVINGS_RESOLVED";
-export const ACCOUNT_TRANSFER_FROM_SAVINGS_COMPLETED =
-  "ACCOUNT_TRANSFER_FROM_SAVINGS_COMPLETED";
-export const ACCOUNT_TRANSFER_TO_SAVINGS_STARTED =
-  "ACCOUNT_TRANSFER_TO_SAVINGS_STARTED";
-export const ACCOUNT_TRANSFER_TO_SAVINGS_FAILED =
-  "ACCOUNT_TRANSFER_TO_SAVINGS_FAILED";
-export const ACCOUNT_TRANSFER_TO_SAVINGS_RESOLVED =
-  "ACCOUNT_TRANSFER_TO_SAVINGS_RESOLVED";
-export const ACCOUNT_TRANSFER_TO_SAVINGS_COMPLETED =
-  "ACCOUNT_TRANSFER_TO_SAVINGS_COMPLETED";
 export const ACCOUNT_CONTACTS_ADD = "ACCOUNT_CONTACTS_ADD";
 export const ACCOUNT_CONTACTS_REMOVE = "ACCOUNT_CONTACTS_REMOVE";
 
@@ -318,39 +302,6 @@ export function refreshAccountData(accounts: Array) {
   };
 }
 
-export function transfer(wif, params) {
-  return (dispatch: () => void) => {
-    var { from, to, amount, memo } = params;
-    dispatch({
-      type: ACCOUNT_TRANSFER_STARTED
-    });
-    if (hive.config.get('address_prefix') === 'TST') {
-      //if testnet
-      amount = amount.replace("HIVE", "TESTS");
-      amount = amount.replace("HBD", "TBD");
-    }
-    hive.broadcast.transfer(wif, from, to, amount, memo, (err, result) => {
-      if (err) {
-        dispatch({
-          type: ACCOUNT_TRANSFER_FAILED,
-          payload: err
-        });
-      } else {
-        refreshAccountData([from, to]);
-        dispatch({
-          type: ACCOUNT_TRANSFER_RESOLVED
-        });
-      }
-    });
-  };
-}
-
-export function transferCompleted() {
-  return {
-    type: ACCOUNT_TRANSFER_COMPLETED
-  };
-}
-
 export function convert(wif, params) {
   return (dispatch: () => void) => {
     var { owner, requestid, amount } = params;
@@ -420,13 +371,45 @@ export function collateralizedConvertCompleted() {
   };
 }
 
+export function transfer(wif, params) {
+  return (dispatch: () => void) => {
+    var { from, to, amount, memo } = params;
+    dispatch({
+      type: ACCOUNT_TRANSFER_STARTED
+    });
+    if (hive.config.get('address_prefix') === 'TST') {
+      //if testnet
+      amount = amount.replace("HIVE", "TESTS");
+      amount = amount.replace("HBD", "TBD");
+    }
+    hive.broadcast.transfer(wif, from, to, amount, memo, (err, result) => {
+      if (err) {
+        dispatch({
+          type: ACCOUNT_TRANSFER_FAILED,
+          payload: err
+        });
+      } else {
+        refreshAccountData([from, to]);
+        dispatch({
+          type: ACCOUNT_TRANSFER_RESOLVED
+        });
+      }
+    });
+  };
+}
+
+export function transferCompleted() {
+  return {
+    type: ACCOUNT_TRANSFER_COMPLETED
+  };
+}
 
 
 export function transferFromSavings(wif, params) {
   return (dispatch: () => void) => {
     var { from, requestId, to, amount, memo } = params;
     dispatch({
-      type: ACCOUNT_TRANSFER_FROM_SAVINGS_STARTED
+      type: ACCOUNT_TRANSFER_STARTED
     });
     if (hive.config.get('address_prefix') === 'TST') {
       //if testnet
@@ -443,13 +426,13 @@ export function transferFromSavings(wif, params) {
       (err, result) => {
         if (err) {
           dispatch({
-            type: ACCOUNT_TRANSFER_FROM_SAVINGS_FAILED,
+            type: ACCOUNT_TRANSFER_FAILED,
             payload: err
           });
         } else {
           refreshAccountData([from, to]);
           dispatch({
-            type: ACCOUNT_TRANSFER_FROM_SAVINGS_RESOLVED
+            type: ACCOUNT_TRANSFER_RESOLVED
           });
         }
       }
@@ -459,7 +442,7 @@ export function transferFromSavings(wif, params) {
 
 export function transferFromSavingsCompleted() {
   return {
-    type: ACCOUNT_TRANSFER_FROM_SAVINGS_COMPLETED
+    type: ACCOUNT_TRANSFER_COMPLETED
   };
 }
 
@@ -472,7 +455,7 @@ export function transferToSavings(wif, params) {
       amount = amount.replace("HBD", "TBD");
     }
     dispatch({
-      type: ACCOUNT_TRANSFER_TO_SAVINGS_STARTED
+      type: ACCOUNT_TRANSFER_STARTED
     });
     hive.broadcast.transferToSavings(
       wif,
@@ -483,13 +466,13 @@ export function transferToSavings(wif, params) {
       (err, result) => {
         if (err) {
           dispatch({
-            type: ACCOUNT_TRANSFER_TO_SAVINGS_FAILED,
+            type: ACCOUNT_TRANSFER_FAILED,
             payload: err
           });
         } else {
           refreshAccountData([from, to]);
           dispatch({
-            type: ACCOUNT_TRANSFER_TO_SAVINGS_RESOLVED
+            type: ACCOUNT_TRANSFER_RESOLVED
           });
         }
       }
@@ -499,7 +482,7 @@ export function transferToSavings(wif, params) {
 
 export function transferToSavingsCompleted() {
   return {
-    type: ACCOUNT_TRANSFER_TO_SAVINGS_COMPLETED
+    type: ACCOUNT_TRANSFER_COMPLETED
   };
 }
 

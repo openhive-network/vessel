@@ -3,12 +3,12 @@
   "productName": "vessel",
   "version": "1.0.1",
   "description": "A simple wallet for managing your Hive accounts.",
-  "author": "Rishi Panthee <hi@rishipanthee.com>",
+  "author": "hive <none@hive.io>",
   "contributors": [
     {
-      "name" : "Rishi Panthee",
-      "email" : "hi@rishipanthee.com",
-      "url" : "https://rishipanthee.com/"
+      "name" : "Hive",
+      "email" : "none",
+      "url" : "https://hive.io"
     }
   ],
   "scripts": {

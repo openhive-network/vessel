@@ -214,6 +214,22 @@ export default class Settings extends Component {
             </Form.Group>
           </Segment>
 
+
+          <Segment attached>
+            <Header size="small">
+              Gate.io
+            </Header>
+            <Form.Group widths="equal">
+              <Form.Input
+                label="HIVE Memo (Unencrypted)"
+                name="gateio_hive"
+                value={this.props.preferences.gateio_hive}
+                onChange={this.handleChange}
+                placeholder="Enter your HIVE Memo for Gate.io"
+              />
+            </Form.Group>
+          </Segment>
+
           <Segment attached>
             <Header size="small">
               Ionomy

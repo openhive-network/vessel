@@ -38,6 +38,13 @@ IN THE SOFTWARE.
 
 ## Updates
 
+### 1.0.2 Release
+
+- Added Gate.io exchange
+- Removed automatic setting of liquid/savings target when choosing `same_account`
+- Reduced columns of the confirmation modal on the `Send` page
+
+
 ### 1.0.1 Release
 
 - Added Conversion (HBD => HIVE) and Collateralized Conversion (HIVE => HBD)

@@ -34,6 +34,11 @@ var exchangeOptions = [
     value: "huobi-pro"
   },
   {
+    key: "gateio",
+    text: "Gate.io (@gateiodeposit)",
+    value: "gateiodeposit"
+  },
+  {
     key: "ionomy",
     text: "Ionomy (@ionomy)",
     value: "ionomy"
@@ -56,7 +61,8 @@ const exchangeLinks = {
   deepcrypto8: "https://binance.com",
   ionomy: "https://ionomy.com",
   probithive: "https://probit.com",
-  mxchive: "https://mxc.com"
+  mxchive: "https://mxc.com",
+  gateiodeposit: "https://gate.io"
 };
 
 const exchangeNotes = {
@@ -150,11 +156,12 @@ export default class Send extends Component {
     if (value === 'exchange') {
       obj.destinationType = 'liquid'
     } else if (value === 'same_account') {
-      obj.destinationType = this.state.sourceType === 'liquid' ? 'savings' : 'liquid'
+      // obj.destinationType = this.state.sourceType === 'liquid' ? 'savings' : 'liquid'
       obj.to = this.state.from
-    } else if (this.state.destinationType === 'same_account') {
-      obj.destinationType = this.state.sourceType === 'liquid' ? 'liquid' : 'savings'
     }
+    // } else if (this.state.destinationType === 'same_account') {
+    //   obj.destinationType = this.state.sourceType === 'liquid' ? 'liquid' : 'savings'
+    // }
     this.setState(obj);
   };
   handleSymbolChange = (e: SyntheticEvent, { value }: { value: any }) => {
@@ -590,42 +597,25 @@ export default class Send extends Component {
                 collapsing
                 style={{ minWidth: "300px", margin: "0 auto" }}
               >
-                <Table.Header>
-                  <Table.Row>
-                    <Table.HeaderCell textAlign="right">Field</Table.HeaderCell>
-                    <Table.HeaderCell>Value</Table.HeaderCell>
-                  </Table.Row>
-                </Table.Header>
                 <Table.Body>
-                  <Table.Row>
-                    <Table.Cell textAlign="right">Source:</Table.Cell>
-                    <Table.Cell>{this.state.sourceType}</Table.Cell>
-                  </Table.Row>
-                  <Table.Row>
-                    <Table.Cell textAlign="right">Destination:</Table.Cell>
-                    <Table.Cell>
-                      {this.state.destination.replace("account_", "")}
-                    </Table.Cell>
-                  </Table.Row>
-                  <Table.Row>
-                    <Table.Cell textAlign="right">Destination Type:</Table.Cell>
-                    <Table.Cell>
-                      {this.state.destinationType}
-                    </Table.Cell>
-                  </Table.Row>
                   <Table.Row>
                     <Table.Cell textAlign="right">From:</Table.Cell>
                     <Table.Cell>{this.state.from}</Table.Cell>
+                    <Table.Cell>{this.state.sourceType}</Table.Cell>
                   </Table.Row>
                   <Table.Row>
                     <Table.Cell textAlign="right">To:</Table.Cell>
                     <Table.Cell>{this.state.to}</Table.Cell>
+                    <Table.Cell  style={{ fontWeight: this.state.destinationType === 'savings' ? 800 : 300 }}>{this.state.destinationType}</Table.Cell>
                   </Table.Row>
+               
+
                   <Table.Row>
                     <Table.Cell textAlign="right">Amount:</Table.Cell>
                     <Table.Cell>
                       {this.state.amount} {this.state.symbol}
                     </Table.Cell>
+                    <Table.Cell></Table.Cell>
                   </Table.Row>
                   <Table.Row>
                     <Table.Cell textAlign="right">Memo:</Table.Cell>
@@ -636,6 +626,7 @@ export default class Send extends Component {
                           : this.state.memo}
                       </code>
                     </Table.Cell>
+                    <Table.Cell></Table.Cell>
                   </Table.Row>
                 </Table.Body>
               </Table>

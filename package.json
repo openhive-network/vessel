@@ -1,7 +1,7 @@
 {
   "name": "vessel",
   "productName": "vessel",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A simple wallet for managing your Hive accounts.",
   "author": "hive <none@hive.io>",
   "contributors": [
@@ -89,7 +89,7 @@
       "category": "Network",
       "desktop": {
         "Name": "vessel",
-        "Version": "1.0.1",
+        "Version": "1.0.2",
         "GenericName": "Hive Client",
         "X-GNOME-FullName": "vessel",
         "Comment": "A simple wallet for managing your Hive accounts.",
@@ -164,8 +164,8 @@
     "cross-spawn": "^5.1.0",
     "css-loader": "^0.28.11",
     "devtron": "^1.4.0",
-    "electron": "3.0.0",
-    "electron-builder": "^21.2.0",
+    "electron": "3.1.13",
+    "electron-builder": "^23.0.3",
     "electron-devtools-installer": "^2.2.4",
     "eslint": "^6.8.0",
     "eslint-config-airbnb": "^18.0.1",

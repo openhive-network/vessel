@@ -14,7 +14,6 @@ export function refreshGlobalProps() {
         //   payload: err
         // });
       } else {
-        console.log(hive.config.get('chain_id'), results)
         if(results.virtual_supply.search('HIVE') >= 0){
           if (hive.config.get('chain_id' === 'beeab0de00000000000000000000000000000000000000000000000000000000')){
             results.network = "Hive";

@@ -1,7 +1,7 @@
 {
   "name": "vessel",
   "productName": "vessel",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A simple wallet for managing your Hive accounts.",
   "main": "./main.prod.js",
   "author": "hive <none@hive.io>",

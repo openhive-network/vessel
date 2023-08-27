@@ -38,6 +38,10 @@ IN THE SOFTWARE.
 
 ## Updates
 
+### 1.0.3 Release
+
+- Added new Binance address with warning notes.
+
 ### 1.0.2 Release
 
 - Added Gate.io exchange

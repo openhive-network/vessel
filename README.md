@@ -40,7 +40,9 @@ IN THE SOFTWARE.
 
 ### 1.0.3 Release
 
-- Added new Binance address with warning notes.
+- Added new Binance exchange address.
+- Removed Blocktrades exchange.
+- Added Hive Mirrornet display.
 
 ### 1.0.2 Release
 

@@ -1,7 +1,7 @@
 {
   "name": "vessel",
   "productName": "vessel",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A simple wallet for managing your Hive accounts.",
   "author": "hive <none@hive.io>",
   "contributors": [
@@ -89,7 +89,7 @@
       "category": "Network",
       "desktop": {
         "Name": "vessel",
-        "Version": "1.0.2",
+        "Version": "1.0.3",
         "GenericName": "Hive Client",
         "X-GNOME-FullName": "vessel",
         "Comment": "A simple wallet for managing your Hive accounts.",

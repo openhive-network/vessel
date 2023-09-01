@@ -19,9 +19,9 @@ const { shell } = require("electron");
 
 var exchangeOptions = [
   {
-    key: "binance",
-    text: "Binance (@deepcrypto8)",
-    value: "deepcrypto8"
+    key: "binance_bdhivesteem",
+    text: "Binance (@bdhivesteem)",
+    value: "bdhivesteem"
   },
   {
     key: "bittrex",
@@ -52,12 +52,18 @@ var exchangeOptions = [
     key: "mxc",
     text: "MXC (@mxchive)",
     value: "mxchive"
-  }
+  },
+  {
+    key: "binance",
+    text: "DEPRECATED - Binance (@deepcrypto8)",
+    value: "deepcrypto8"
+  },
 ];
 
 const exchangeLinks = {
   bittrex: "https://bittrex.com",
   "huobi-pro": "https://huobi.com",
+  bdhivesteem: "https://binance.com",
   deepcrypto8: "https://binance.com",
   ionomy: "https://ionomy.com",
   probithive: "https://probit.com",
@@ -71,6 +77,16 @@ const exchangeNotes = {
       <strong>Warning</strong>: Blocktrades (@blocktrades) is currently blocked
       on Steem. Account updated to @silly-einstein (current Steem Blocktrades
       account).
+    </Message>
+  ),
+  "deepcrypto8": (
+    <Message>
+      <strong>Warning</strong>: Binance changed their deposit address from @deepcrypto8 to @bdhivesteem. Use @bdhivesteem instead and make sure to generate a new deposit address memo as well.
+    </Message>
+  ),
+  "bdhivesteem": (
+    <Message>
+      <strong>Warning</strong>: Binance changed their deposit address from @deepcrypto8 to @bdhivesteem. Make sure to have generated a new deposit address memo instead of using the old one for @deepcrypto8.
     </Message>
   )
 };

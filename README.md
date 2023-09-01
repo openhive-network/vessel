@@ -38,6 +38,12 @@ IN THE SOFTWARE.
 
 ## Updates
 
+### 1.0.3 Release
+
+- Added new Binance exchange address.
+- Removed Blocktrades exchange.
+- Added Hive Mirrornet display.
+
 ### 1.0.2 Release
 
 - Added Gate.io exchange

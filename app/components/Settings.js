@@ -135,29 +135,22 @@ export default class Settings extends Component {
 
           <Segment attached>
             <Header size="small">
-              Blocktrades
+              Binance (@bdhivesteem)
             </Header>
             <Form.Group widths="equal">
               <Form.Input
                 label="HIVE Memo (Unencrypted)"
-                name="blocktrades_hive"
-                value={this.props.preferences.blocktrades_hive}
+                name="binance_bdhivesteem_hive"
+                value={this.props.preferences.binance_bdhivesteem_hive}
                 onChange={this.handleChange}
-                placeholder="Enter your HIVE Memo for Blocktrades"
-              />
-              <Form.Input
-                label="HBD Memo (Unencrypted)"
-                name="blocktrades_hbd"
-                value={this.props.preferences.blocktrades_hbd}
-                onChange={this.handleChange}
-                placeholder="Enter your HBD Memo for Blocktrades"
+                placeholder="Enter your HIVE Memo for Binance"
               />
             </Form.Group>
           </Segment>
 
           <Segment attached>
             <Header size="small">
-              Binance
+              Binance (DEPRECATED - @deepcrypto8)
             </Header>
             <Form.Group widths="equal">
               <Form.Input

@@ -70,15 +70,15 @@ export default class PendingReward extends Component {
           <Segment>
             <Statistic.Group size="tiny" widths="four">
               <Statistic>
-                <Statistic.Label>{network === "Hive" ? "HBD" : "TBD"}</Statistic.Label>
+                <Statistic.Label>{network === "Hive" || network === "Hive Mirrornet" ? "HBD" : "TBD"}</Statistic.Label>
                 <Statistic.Value>{<NumericLabel params={numberFormat}>{totals.HBD}</NumericLabel>}</Statistic.Value>
               </Statistic>
               <Statistic>
-                <Statistic.Label>{network === "Hive" ? "HIVE" : "TESTS"}</Statistic.Label>
+                <Statistic.Label>{network === "Hive" || network === "Hive Mirrornet" ? "HIVE" : "TESTS"}</Statistic.Label>
                 <Statistic.Value>{<NumericLabel params={numberFormat}>{totals.HIVE}</NumericLabel>}</Statistic.Value>
               </Statistic>
               <Statistic>
-                <Statistic.Label>{network === "Hive" ? "HP" : "TP"}</Statistic.Label>
+                <Statistic.Label>{network === "Hive" || network === "Hive Mirrornet" ? "HP" : "TP"}</Statistic.Label>
                 <Statistic.Value>{<NumericLabel params={numberFormat}>{totals.HP}</NumericLabel>}</Statistic.Value>
               </Statistic>
               <Statistic>
@@ -112,19 +112,19 @@ export default class PendingReward extends Component {
                   Name
                 </Table.HeaderCell>
                 <Table.HeaderCell textAlign="right">
-                  {network === "Hive" ? "HBD" : "TBD"}
+                  {network === "Hive" || network === "Hive Mirrornet" ? "HBD" : "TBD"}
                 </Table.HeaderCell>
                 <Table.HeaderCell textAlign="right">
-                  {network === "Hive" ? "HIVE" : "TESTS"}
+                  {network === "Hive" || network === "Hive Mirrornet" ? "HIVE" : "TESTS"}
                 </Table.HeaderCell>
                 <Table.HeaderCell textAlign="right">
-                  {network === "Hive" ? "HBD" : "TBD"}
+                  {network === "Hive" || network === "Hive Mirrornet" ? "HBD" : "TBD"}
                 </Table.HeaderCell>
                 <Table.HeaderCell textAlign="right">
-                  {network === "Hive" ? "HIVE" : "TESTS"}
+                  {network === "Hive" || network === "Hive Mirrornet" ? "HIVE" : "TESTS"}
                 </Table.HeaderCell>
                 <Table.HeaderCell textAlign="right">
-                  {network === "Hive" ? "HP" : "TP"}
+                  {network === "Hive" || network === "Hive Mirrornet" ? "HP" : "TP"}
                 </Table.HeaderCell>
                 <Table.HeaderCell textAlign="right">
                   VESTS

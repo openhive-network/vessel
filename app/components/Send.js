@@ -72,13 +72,6 @@ const exchangeLinks = {
 };
 
 const exchangeNotes = {
-  "silly-einstein": (
-    <Message>
-      <strong>Warning</strong>: Blocktrades (@blocktrades) is currently blocked
-      on Steem. Account updated to @silly-einstein (current Steem Blocktrades
-      account).
-    </Message>
-  ),
   "deepcrypto8": (
     <Message>
       <strong>Warning</strong>: Binance changed their deposit address from @deepcrypto8 to @bdhivesteem. Use @bdhivesteem instead and make sure to generate a new deposit address memo as well.
@@ -120,12 +113,8 @@ export default class Send extends Component {
     });
   }
   componentDidMount() {
-    this.handleBlocktrades(this.state.network);
   }
   componentWillUpdate(nextProps, nextState) {
-    if (this.props.hive.props.network !== nextProps.hive.props.network) {
-      this.handleBlocktrades(nextProps.hive.props.network);
-    }
   }
   componentWillReceiveProps = nextProps => {
     if (nextProps.processing.account_transfer_resolved) {
@@ -399,46 +388,6 @@ export default class Send extends Component {
       newContact: ""
     });
     e.preventDefault();
-  };
-
-  handleBlocktrades = network => {
-    network = network ? network.toLowerCase() : "hive";
-    var key = {
-      hive: "blocktrades",
-      steem: "silly-einstein"
-    };
-    var found = exchangeOptions.find(x => {
-      return x.key === key[network];
-    });
-    if (!found) {
-      exchangeOptions.unshift({
-        key: key[network],
-        text: `Blocktrades (@${key[network]})`,
-        value: key[network]
-      });
-    }
-
-    exchangeLinks[key[network]] = "https://blocktrades.us";
-
-    if (network === "hive") {
-      found = exchangeOptions.find(x => {
-        return x.key === key["steem"];
-      });
-      exchangeOptions = exchangeOptions.filter(x => {
-        return x !== found;
-      });
-      delete exchangeLinks[key["steem"]];
-    } else {
-      found = exchangeOptions.find(x => {
-        return x.key === key["hive"];
-      });
-      exchangeOptions = exchangeOptions.filter(x => {
-        return x !== found;
-      });
-      delete exchangeLinks["blocktrades"];
-    }
-
-    this.forceUpdate();
   };
 
   render() {

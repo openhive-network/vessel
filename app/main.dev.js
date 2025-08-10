@@ -42,28 +42,15 @@ const installExtensions = async () => {
     .catch(console.log);
 };
 
-const singleInstance = app.makeSingleInstance((argv, workingDirectory) => {
+const singleInstance = app.requestSingleInstanceLock();
+app.on('second-instance', ((event, argv, workingDirectory) => {
   if (process.platform == 'win32' || process.platform === 'linux') {
-    customURI = argv.slice(1)
+    customURI = argv.slice(1);
   }
   if (mainWindow) {
-    createPrompt(false, customURI)
+    createPrompt(false, customURI);
   }
-})
-
-if (singleInstance) {
-  app.quit()
-}
-
-// const singleInstance = app.requestSingleInstanceLock()
-// app.on('second-instance', ((event, argv, workingDirectory) => {
-//   if (process.platform == 'win32' || process.platform === 'linux') {
-//     customURI = argv.slice(1)
-//   }
-//   if (mainWindow) {
-//     createPrompt(false, customURI)
-//   }
-// }))
+}));
 
 async function createWindow() {
 

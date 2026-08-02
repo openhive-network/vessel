@@ -11,6 +11,23 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import * as path from 'path';
 import MenuBuilder from './menu';
+import * as fs from 'fs';
+
+// Resolve the renderer entry for BOTH build systems until MR-B removes webpack: electron-vite dev
+// server URL, else the electron-vite prod build (out/renderer/index.html), else the legacy webpack
+// app.html. `query` (e.g. the sign-window params) rides on whichever URL we pick.
+const rendererURL = (query = ''): string => {
+  if (process.env.ELECTRON_RENDERER_URL) return `${process.env.ELECTRON_RENDERER_URL}${query}`;
+  const viteIndex = path.join(__dirname, '../renderer/index.html');
+  if (fs.existsSync(viteIndex)) return `file://${viteIndex}${query}`;
+  return `file://${path.join(__dirname, 'app.html')}${query}`;
+};
+
+// Same dual-build resolution for the preload script: out/preload under electron-vite, else app/.
+const preloadPath = (): string => {
+  const vitePreload = path.join(__dirname, '../preload/preload.js');
+  return fs.existsSync(vitePreload) ? vitePreload : path.join(__dirname, 'preload.js');
+};
 
 let mainWindow: BrowserWindow | null = null;
 let promptWindow: BrowserWindow | null = null;
@@ -76,11 +93,11 @@ async function createWindow() {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
-      preload: path.join(__dirname, 'preload.js'),
+      preload: preloadPath(),
     },
   });
 
-  mainWindow.loadURL(`file://${__dirname}/app.html`);
+  mainWindow.loadURL(rendererURL());
 
   mainWindow.webContents.on('did-finish-load', () => {
     if (!mainWindow) {
@@ -159,7 +176,7 @@ async function createPrompt(
         base64encodedmeta = metamatch[1];
       }
       promptWindow.loadURL(
-        `file://${__dirname}/app.html?type=sign&action=promptOperation&ops=${base64encoded}&meta=${base64encodedmeta}`
+        rendererURL(`?type=sign&action=promptOperation&ops=${base64encoded}&meta=${base64encodedmeta}`)
       );
     }
   }

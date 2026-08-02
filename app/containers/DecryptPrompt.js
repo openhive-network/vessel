@@ -2,127 +2,57 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { Modal, Segment } from 'semantic-ui-react';
-import { Form, Input } from 'formsy-semantic-ui-react';
 
 import * as KeysActions from '../actions/keys';
+import DecryptModal from '../components/DecryptModal';
+import { encryptKey, isEncrypted, needsReencrypt } from '../utils/keyEnvelope';
 
-const CryptoJS = require('crypto-js');
-
-const defaultState = {
-  password: '',
-  decrypted: false,
-};
-
+/**
+ * §7.2 — the redux-driven unlock prompt. It owns none of the crypto UI: the shared `DecryptModal`
+ * captures the password and decrypts `auth.key`; this container performs the field-aware lazy
+ * re-encrypt and re-issues the operation with a FRESH local auth carrying the cleartext WIF.
+ *
+ * The decrypted WIF (and the password) exist ONLY inside `handleDecrypted`'s scope. The props
+ * `auth` object is NEVER mutated (mutating it was the old cleartext-at-rest leak, §6a).
+ */
 class DecryptPrompt extends Component {
-  constructor(props) {
-    super(props);
-    this.state = defaultState;
-  }
-
-  handleKeyUp = (e) => {
-    if (this.state.decrypted && e.key == 'Enter') {
-      this.handleSubmit(e);
-    }
-  };
-
-  handlePasswordChange = (e: SyntheticEvent, { value }: { value: string }) => {
-    const { from } = this.state;
-    const { key } = this.props.keys.decrypt.auth;
-    const decrypted = this.decryptKey(key, value);
-    this.setState({
-      password: value,
-      decrypted,
-    });
-  };
-
-  handleSubmit = (e: SyntheticEvent) => {
+  handleDecrypted = async (wif: string, password: string) => {
     const { operation, params, auth } = this.props.keys.decrypt;
-    const { password } = this.state;
-    const { key } = this.props.keys.decrypt.auth;
-    // Extract the WIF key
-    const decrypted = this.decryptKey(key, password);
-    // Modify the auth information with the unencrypted information
-    auth.encrypted = false;
-    auth.key = decrypted;
-    // Reissue the action with the unencrypted auth information
-    this.props.actions.useKey(operation, params, auth);
-    // Reset to the default state
-    this.state = defaultState;
-    e.preventDefault();
-  };
 
-  handleCancel = (e: SyntheticEvent) => {
-    // Close the prompt
-    this.props.actions.useKeyRequestDecryptClose();
-    // Reset to the default state
-    this.state = defaultState;
-  };
-
-  decryptKey(wif: string, password: string) {
-    try {
-      const bytes = CryptoJS.AES.decrypt(wif, password);
-      const key = bytes.toString(CryptoJS.enc.Utf8);
-      if (key) {
-        return key;
-      }
-    } catch (e) {
-      console.log(e);
+    // ---- lazy re-encrypt (Task 2 / §7.2), under the just-verified password ----
+    const reenc = {};
+    if (needsReencrypt(auth.key)) {
+      reenc.key = await encryptKey(wif, password);
     }
-    return false;
-  }
+    if (auth.memo && !isEncrypted(auth.memo)) {
+      // legacy plaintext memo -> upgrade to a v2 envelope bound to the same password
+      reenc.memo = await encryptKey(auth.memo, password);
+    }
+    if (reenc.key || reenc.memo) {
+      this.props.actions.keyReencrypted({ account: auth.account, ...reenc });
+    }
+
+    // ---- proceed with the operation; cleartext WIF lives ONLY in this local object ----
+    const localAuth = { ...auth, encrypted: false, key: wif };
+    this.props.actions.useKey(operation, params, localAuth);
+    this.props.actions.useKeyRequestDecryptClose();
+  };
+
+  handleCancel = () => {
+    this.props.actions.useKeyRequestDecryptClose();
+  };
 
   render() {
-    let prompt = false;
     const { decrypt } = this.props.keys;
-    if (decrypt) {
-      prompt = (
-        <Modal
-          size="small"
-          open
-          header="Decrypt Wallet to Broadcast Transaction"
-          onOpen={this.focusInput}
-          content={
-            <Segment padded basic>
-              <p>
-                The wallet requested is encrypted locally. Please type your wallet password to
-                broadcast the transaction to the blockchain.
-              </p>
-              <Form>
-                <Input
-                  name="password"
-                  type="password"
-                  focus
-                  autoFocus
-                  placeholder="Enter wallet password"
-                  value={this.state.password}
-                  onChange={this.handlePasswordChange}
-                  onKeyUp={this.handleKeyUp}
-                />
-              </Form>
-            </Segment>
-          }
-          actions={[
-            {
-              key: 'no',
-              content: 'Cancel Operation',
-              floated: 'left',
-              color: 'red',
-              onClick: this.handleCancel,
-            },
-            {
-              key: 'yes',
-              type: 'submit',
-              content: 'Unlock + Broadcast',
-              color: 'purple',
-              onClick: this.handleSubmit,
-              disabled: !this.state.decrypted,
-            },
-          ]}
-        />
-      );
-    }
-    return prompt;
+    if (!decrypt || !decrypt.auth) return null;
+    return (
+      <DecryptModal
+        ciphertext={decrypt.auth.key}
+        header="Decrypt Wallet to Broadcast Transaction"
+        onDecrypted={this.handleDecrypted}
+        onCancel={this.handleCancel}
+      />
+    );
   }
 }
 

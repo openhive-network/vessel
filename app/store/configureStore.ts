@@ -15,6 +15,7 @@ import {
 import storage from 'redux-persist/lib/storage';
 import rootReducer from '../reducers';
 import { migrateLegacyKeystore } from './legacyKeystoreMigration';
+import { keysSurfaceTransform } from './keysPersistTransform';
 
 export const history = createHashHistory();
 
@@ -22,6 +23,7 @@ const persistConfig = {
   key: 'root',
   storage,
   whitelist: ['account', 'keys', 'preferences', 'hive'],
+  transforms: [keysSurfaceTransform],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

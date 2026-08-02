@@ -23,11 +23,17 @@ import {
   KEY_ADD_PROMPT,
   KEY_CREATE_CANCEL,
   KEY_CREATE_PROMPT,
+  KEY_ADD_FAILED_PASSWORD_REQUIRED,
+  KEY_ADD_MEMO_FAILED_PASSWORD_MISMATCH,
+  KEY_ADD_MEMO_FAILED_PLAINTEXT_MAIN,
+  KEY_USE_ROLE_MISMATCH,
+  KEY_REENCRYPTED,
 } from '../actions/keys';
 
 const defaultState = {
   names: [],
   permissions: {},
+  removedLegacy: [],
 };
 
 type actionType = {
@@ -67,6 +73,19 @@ export default function keys(state: any = defaultState, action: actionType) {
       return { ...state, lastError: 'Invalid WIF Key!' };
     case KEY_ADD_FAILED_WIF_INCORRECT:
       return { ...state, lastError: 'Invalid WIF Key for Account!' };
+    case KEY_ADD_FAILED_PASSWORD_REQUIRED:
+      return { ...state, lastError: 'A wallet password is required to store a key.' };
+    case KEY_ADD_MEMO_FAILED_PASSWORD_MISMATCH:
+      return {
+        ...state,
+        lastError:
+          'That password does not unlock this account. The memo key must use the same wallet password as the account.',
+      };
+    case KEY_ADD_MEMO_FAILED_PLAINTEXT_MAIN:
+      return {
+        ...state,
+        lastError: 'Set a wallet password for this account first, then add its encrypted memo key.',
+      };
     case KEY_ADD_MEMO_CANCEL: {
       return { ...state, addMemoPrompt: false, confirmMemo: false };
     }
@@ -74,12 +93,17 @@ export default function keys(state: any = defaultState, action: actionType) {
       return { ...state, addMemoPrompt: true, confirmMemo: action.payload };
     }
     case KEY_ADD_MEMO_CONFIRMED: {
-      const newPermissions = state.permissions;
-      const { account, wif } = action.payload;
-      if (newPermissions[account]) {
-        newPermissions[account].memo = wif;
-      }
-      return { ...state, addMemoPrompt: false, confirmMemo: false, permissions: newPermissions };
+      const { account, memo } = action.payload || {};
+      if (!account || !state.permissions[account]) return state;
+      return {
+        ...state,
+        addMemoPrompt: false,
+        confirmMemo: false,
+        permissions: {
+          ...state.permissions,
+          [account]: { ...state.permissions[account], memo },
+        },
+      };
     }
     case KEY_ADD_AUTH_CANCEL: {
       return { ...state, addAuthPrompt: false, confirmAuth: false };
@@ -88,13 +112,17 @@ export default function keys(state: any = defaultState, action: actionType) {
       return { ...state, addAuthPrompt: true, confirmAuth: action.payload };
     }
     case KEY_ADD_AUTH_CONFIRMED: {
-      console.log('add new auth');
-      const newPermissions = state.permissions;
-      const { account, wif } = action.payload;
-      if (newPermissions[account]) {
-        newPermissions[account].memo = wif;
-      }
-      return { ...state, addAuthPrompt: false, confirmAuth: false, permissions: newPermissions };
+      const { account, memo } = action.payload || {};
+      if (!account || !state.permissions[account]) return state;
+      return {
+        ...state,
+        addAuthPrompt: false,
+        confirmAuth: false,
+        permissions: {
+          ...state.permissions,
+          [account]: { ...state.permissions[account], memo },
+        },
+      };
     }
     case KEY_CREATE_PROMPT: {
       return { ...state, createPrompt: true };
@@ -116,6 +144,25 @@ export default function keys(state: any = defaultState, action: actionType) {
       return { ...state, decrypt: false };
       return state;
     }
+    case KEY_REENCRYPTED: {
+      const { account, key, memo } = action.payload || {};
+      if (!account || !state.permissions[account]) return state;
+      const updated = { ...state.permissions[account] };
+      if (key !== undefined) {
+        updated.key = key;
+        updated.encrypted = true;
+      }
+      if (memo !== undefined) {
+        updated.memo = memo;
+      }
+      return {
+        ...state,
+        permissions: { ...state.permissions, [account]: updated },
+      };
+    }
+    case KEY_USE_ROLE_MISMATCH: {
+      return { ...state, lastError: action.payload.message, decrypt: false };
+    }
     case KEY_REMOVE_CANCEL: {
       return { ...state, remove: false };
     }
@@ -126,11 +173,17 @@ export default function keys(state: any = defaultState, action: actionType) {
       const newPermissions = { ...state.permissions };
       delete newPermissions[action.payload];
       const newNames = [...Object.keys(newPermissions)].sort();
+      // 13.3 — tombstone the removed account so the migration never re-persists it (dedup).
+      const removedLegacy = Array.isArray(state.removedLegacy) ? state.removedLegacy : [];
+      const nextRemovedLegacy = removedLegacy.includes(action.payload)
+        ? removedLegacy
+        : [...removedLegacy, action.payload];
       return {
         ...state,
         isUser: !!newNames.length,
         names: newNames,
         permissions: newPermissions,
+        removedLegacy: nextRemovedLegacy,
         remove: false,
       };
     }

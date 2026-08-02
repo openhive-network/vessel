@@ -1,7 +1,7 @@
 // @flow
 import React, { Component } from 'react';
 import hive from '@hiveio/hive-js';
-import { Button, Checkbox, Divider, Form, Grid, Header, Message, Segment } from 'semantic-ui-react';
+import { Button, Divider, Form, Grid, Header, Message, Segment } from 'semantic-ui-react';
 import KeysConfirm from './Confirm';
 
 export default class KeysImport extends Component {
@@ -13,7 +13,6 @@ export default class KeysImport extends Component {
   state = {
     account: '',
     wif: '',
-    encryptWallet: true,
     lock1: '',
     lock2: '',
     errors: {
@@ -28,11 +27,12 @@ export default class KeysImport extends Component {
     const confirmed = data.value;
     e.preventDefault();
     if (confirmed) {
-      const { account, wif, encryptWallet, lock1, lock2 } = this.state;
+      const { account, wif, lock1 } = this.state;
       const { addKeyConfirmed } = this.props.actions;
       const { active, owner } = this.props.keys.confirm;
       const type = owner ? 'owner' : active ? 'active' : 'posting';
-      addKeyConfirmed(account, wif, type, encryptWallet, lock1);
+      // §5.1 — the wallet password is mandatory; the key is always encrypted.
+      addKeyConfirmed(account, wif, type, lock1);
     } else {
       this.props.actions.addKeyCancel();
     }
@@ -46,14 +46,10 @@ export default class KeysImport extends Component {
 
   validate = (newState) => {
     const errors = {};
-    if (newState.encryptWallet) {
-      const { lock1 } = newState;
-      const { lock2 } = newState;
-      // Ensure password is set
-      errors.password_error_not_set = !lock1 || !lock2 || lock1 === '' || lock2 === '';
-      // Ensure passwords match
-      errors.password_error_no_match = lock1 !== lock2;
-    }
+    const { lock1, lock2 } = newState;
+    // Password is now mandatory (§5.1 — no unencrypted opt-out).
+    errors.password_error_not_set = !lock1 || !lock2 || lock1 === '' || lock2 === '';
+    errors.password_error_no_match = lock1 !== lock2;
     errors.account_name_required = !newState.account || newState.account === '';
     errors.wif_error_invalid = !hive.auth.isWif(newState.wif);
     return errors;
@@ -64,12 +60,6 @@ export default class KeysImport extends Component {
     return !!Object.keys(errors).filter((error) => errors[error]).length;
   };
 
-  handleToggle = (e: SyntheticEvent, { name, value }: { name: string, value: string }) => {
-    const newState = { ...this.state, [name]: value === 'on' };
-    newState.errors = this.validate(newState);
-    this.setState(newState);
-  };
-
   handleSubmit = (e: SyntheticEvent) => {
     e.preventDefault();
     const { addKey } = this.props.actions;
@@ -78,17 +68,16 @@ export default class KeysImport extends Component {
   };
 
   render() {
-    const { account, wif, encryptWallet, lock1, lock2 } = this.state;
+    const { account, wif, lock1, lock2 } = this.state;
     const confirmAccount = this.props.keys.confirm;
     const { errors } = this.state;
     const hasErrors = this.hasErrors();
     const messages = {
       account_name_required: 'An existing account name is required.',
-      password_error_not_set: 'You must set a password to enable encryption.',
+      password_error_not_set: 'You must set a wallet password to encrypt your keys.',
       password_error_no_match: 'The passwords you have entered do not match.',
       wif_error_invalid: 'They WIF Private Key you have entered is invalid.',
     };
-    let passwordInput = false;
     let handleMethodReset = false;
     if (this.props.handleMethodReset) {
       handleMethodReset = (
@@ -103,10 +92,10 @@ export default class KeysImport extends Component {
       );
     }
     const passwordWarning = false;
-    let encryptionWarning = (
+    const encryptionWarning = (
       <Message
-        header="Warning - Unencrypted Wallets"
-        content="If you choose not to encrypt your wallet, your private keys will be stored on your computer unencrypted. This greatly increases the risk of your account being comprimised in the event your computer is hacked."
+        header="Notice about Encryption"
+        content="The wallet password if only used to unlock Vessel during transactions. If you lose your password, you will be unable to recover your keys. Please make sure to back up your keys and remember your password."
       />
     );
     let message = false;
@@ -129,32 +118,24 @@ export default class KeysImport extends Component {
       }
       warning = <Message error icon="warning" content={message} />;
     }
-    if (encryptWallet) {
-      passwordInput = (
-        <div>
-          <Form.Input
-            label="Wallet Password"
-            type="password"
-            name="lock1"
-            value={lock1}
-            onChange={this.handleChange}
-          />
-          <Form.Input
-            label="Wallet Password (Repeat)"
-            type="password"
-            name="lock2"
-            value={lock2}
-            onChange={this.handleChange}
-          />
-        </div>
-      );
-      encryptionWarning = (
-        <Message
-          header="Notice about Encryption"
-          content="The wallet password if only used to unlock Vessel during transactions. If you lose your password, you will be unable to recover your keys. Please make sure to back up your keys and remember your password."
+    const passwordInput = (
+      <div>
+        <Form.Input
+          label="Wallet Password"
+          type="password"
+          name="lock1"
+          value={lock1}
+          onChange={this.handleChange}
         />
-      );
-    }
+        <Form.Input
+          label="Wallet Password (Repeat)"
+          type="password"
+          name="lock2"
+          value={lock2}
+          onChange={this.handleChange}
+        />
+      </div>
+    );
     let display = (
       <div>
         <Header>
@@ -184,15 +165,6 @@ export default class KeysImport extends Component {
                   value={wif}
                   onChange={this.handleChange}
                 />
-                <Divider hidden />
-                <Checkbox
-                  toggle
-                  name="encryptWallet"
-                  label="Encrypt this Wallet for better security"
-                  checked={encryptWallet}
-                  value={encryptWallet ? 'off' : 'on'}
-                  onChange={this.handleToggle}
-                />
               </Grid.Column>
               <Grid.Column width={8}>
                 {passwordInput}
@@ -213,11 +185,7 @@ export default class KeysImport extends Component {
     );
     if (confirmAccount) {
       display = (
-        <KeysConfirm
-          handleConfirmAction={this.handleConfirmAction}
-          encryptWallet={this.state.encryptWallet}
-          {...this.props}
-        />
+        <KeysConfirm handleConfirmAction={this.handleConfirmAction} encryptWallet {...this.props} />
       );
     }
     return display;

@@ -15,6 +15,9 @@ import {
 import { Form, Input } from 'formsy-semantic-ui-react';
 import hive from '@hiveio/hive-js';
 
+import DecryptModal from './DecryptModal';
+import { encryptKey, isEncrypted, needsReencrypt } from '../utils/keyEnvelope';
+
 const { shell } = require('electron');
 
 const exchangeOptions = [
@@ -106,6 +109,8 @@ const defaultState = {
   modalPreview: false,
   addContactModal: false,
   newContact: '',
+  memoDecryptPrompt: false,
+  memoDecrypt: null,
 };
 
 export default class Send extends Component {
@@ -139,6 +144,8 @@ export default class Send extends Component {
       encryptMemo: false,
       modalPreview: false,
       memoDetected: false,
+      memoDecryptPrompt: false,
+      memoDecrypt: null,
     });
   }
 
@@ -288,51 +295,99 @@ export default class Send extends Component {
   };
 
   handlePreview = (e: SyntheticEvent) => {
-    if (this.isFormValid()) {
-      const cleaned = this.state.memo.trim();
-      if (this.state.encryptMemo) {
-        const { from } = this.state;
-        const { to } = this.state;
-        const memoKey = this.props.keys.permissions[from].memo;
-        // Make sure we have a memoKey set and it's a valid WIF
-        if (memoKey && hive.auth.isWif(memoKey)) {
-          // Ensure it's the current memo key on file to prevent a user from using an invalid key
-          const derivedKey = hive.auth.wifToPublic(memoKey);
-          const memoPublic = this.props.account.accounts[from].memo_key;
-          if (derivedKey === memoPublic) {
-            // Load the account we're sending to
-            hive.api.getAccounts([to], (err, result) => {
-              if (result.length > 0) {
-                const toAccount = result[0];
-                const toMemoPublic = toAccount.memo_key;
-                // Generate encrypted memo based on their public memo key + our private memo key
-                const memoEncrypted = hive.memo.encode(memoKey, toMemoPublic, `#${cleaned}`);
-                // Set the state to reflect
-                this.setState({
-                  memo: cleaned,
-                  memoEncrypted,
-                  modalPreview: true,
-                });
-              } else {
-                // no account found
-              }
+    e.preventDefault();
+    if (!this.isFormValid()) {
+      console.log('form not valid');
+      return;
+    }
+    const cleaned = this.state.memo.trim();
+    if (!this.state.encryptMemo) {
+      this.setState({
+        memo: cleaned,
+        modalPreview: true,
+      });
+      return;
+    }
+    const { from, to } = this.state;
+    const memoStored = this.props.keys.permissions[from].memo;
+    const memoPublic = this.props.account.accounts[from].memo_key;
+    if (isEncrypted(memoStored)) {
+      // §7.3 — the memo key is a v2 envelope (or legacy blob); decrypting it needs the wallet
+      // password. Resolve the recipient's public memo key first, then prompt. The decrypted memo
+      // WIF is used exactly once (in handleMemoDecrypted) and never held across renders.
+      hive.api.getAccounts([to], (err, result) => {
+        if (result && result.length > 0) {
+          this.setState({
+            memoDecrypt: { toMemoPublic: result[0].memo_key, cleaned },
+            memoDecryptPrompt: true,
+          });
+        } else {
+          // no account found
+        }
+      });
+      return;
+    }
+    // Legacy plaintext memo WIF — behavior unchanged.
+    if (memoStored && hive.auth.isWif(memoStored)) {
+      // Ensure it's the current memo key on file to prevent a user from using an invalid key
+      const derivedKey = hive.auth.wifToPublic(memoStored);
+      if (derivedKey === memoPublic) {
+        // Load the account we're sending to
+        hive.api.getAccounts([to], (err, result) => {
+          if (result.length > 0) {
+            const toMemoPublic = result[0].memo_key;
+            // Generate encrypted memo based on their public memo key + our private memo key
+            const memoEncrypted = hive.memo.encode(memoStored, toMemoPublic, `#${cleaned}`);
+            this.setState({
+              memo: cleaned,
+              memoEncrypted,
+              modalPreview: true,
             });
           } else {
-            // memo key saved on account doesn't match blockchain
+            // no account found
           }
-        } else {
-          // memo key is not saved or is not valid wif
-        }
-      } else {
-        this.setState({
-          memo: cleaned,
-          modalPreview: true,
         });
+      } else {
+        // memo key saved on account doesn't match blockchain
       }
     } else {
-      console.log('form not valid');
+      // memo key is not saved or is not valid wif
     }
-    e.preventDefault();
+  };
+
+  // §7.3 — invoked by DecryptModal once the memo key is decrypted and validated as a WIF. The
+  // decrypted WIF (and password) are scoped to this handler: the memo is ENCODED immediately and
+  // only the encoded string is kept in state — the WIF is never stored or held across renders.
+  handleMemoDecrypted = async (memoWif: string, password: string) => {
+    const { from, memoDecrypt } = this.state;
+    if (!memoDecrypt) return;
+    const { toMemoPublic, cleaned } = memoDecrypt;
+    const memoStored = this.props.keys.permissions[from].memo;
+    const memoPublic = this.props.account.accounts[from].memo_key;
+    // The decrypted memo key must still match the account's on-file memo public key.
+    if (hive.auth.wifToPublic(memoWif) !== memoPublic) {
+      this.setState({ memoDecryptPrompt: false, memoDecrypt: null });
+      return;
+    }
+    // Lazy-upgrade a stale/legacy memo envelope under the same password.
+    if (needsReencrypt(memoStored)) {
+      this.props.actions.keyReencrypted({
+        account: from,
+        memo: await encryptKey(memoWif, password),
+      });
+    }
+    const memoEncrypted = hive.memo.encode(memoWif, toMemoPublic, `#${cleaned}`);
+    this.setState({
+      memo: cleaned,
+      memoEncrypted,
+      modalPreview: true,
+      memoDecryptPrompt: false,
+      memoDecrypt: null,
+    });
+  };
+
+  handleMemoDecryptCancel = () => {
+    this.setState({ memoDecryptPrompt: false, memoDecrypt: null });
   };
 
   handleCancel = (e: SyntheticEvent) => {
@@ -526,7 +581,8 @@ export default class Send extends Component {
     if (
       keys.permissions[this.state.from] &&
       keys.permissions[this.state.from].memo &&
-      hive.auth.isWif(keys.permissions[this.state.from].memo)
+      (isEncrypted(keys.permissions[this.state.from].memo) ||
+        hive.auth.isWif(keys.permissions[this.state.from].memo))
     ) {
       if (
         exchangeSupportingEncryption.indexOf(this.state.to) >= 0 ||
@@ -653,12 +709,24 @@ export default class Send extends Component {
         />
       );
     }
+    let memoDecryptModal = false;
+    if (this.state.memoDecryptPrompt && keys.permissions[this.state.from]) {
+      memoDecryptModal = (
+        <DecryptModal
+          ciphertext={keys.permissions[this.state.from].memo}
+          header="Unlock Encrypted Memo Key"
+          onDecrypted={this.handleMemoDecrypted}
+          onCancel={this.handleMemoDecryptCancel}
+        />
+      );
+    }
     return (
       <Form
         error={!!this.props.processing.account_transfer_error}
         loading={this.props.processing.account_transfer_pending}
       >
         {modal}
+        {memoDecryptModal}
         <Grid divided centered>
           <Grid.Row>
             <Message

@@ -6,6 +6,7 @@ import {
   Button,
   Checkbox,
   Divider,
+  Form,
   Grid,
   Header,
   Icon,
@@ -30,6 +31,12 @@ export default class KeysCreate extends Component {
     mnemonic: false,
     requestedFundingMethod: false,
     modalPreview: false,
+    lock1: '',
+    lock2: '',
+  };
+
+  handleLockChange = (e: SyntheticEvent, { name, value }: { name: string, value: string }) => {
+    this.setState({ [name]: value });
   };
 
   checkUsername = _.debounce((e, props) => {
@@ -107,10 +114,13 @@ export default class KeysCreate extends Component {
   componentWillReceiveProps(nextProps) {
     if (nextProps.processing.account_create_resolved) {
       const { addKeyConfirmed } = this.props.actions;
-      const { requestedName } = this.state;
-      addKeyConfirmed(requestedName, this.state.prv.active, 'active', false, '');
+      const { requestedName, lock1 } = this.state;
+      // §5.1 — encrypt the freshly created account's active key under the wallet password.
+      addKeyConfirmed(requestedName, this.state.prv.active, 'active', lock1);
       this.setState({
         modalPreview: false,
+        lock1: '',
+        lock2: '',
       });
       this.props.handleMethodReset();
       this.props.actions.processingAccountCreateCancel();
@@ -118,8 +128,11 @@ export default class KeysCreate extends Component {
   }
 
   handleConfirm = (e: SyntheticEvent) => {
+    e.preventDefault();
+    const { requestedOwner, requestedName, password, lock1, lock2 } = this.state;
+    // Wallet password must be set and matching before the account is created (§5.1).
+    if (!lock1 || lock1 !== lock2) return;
     const { useKey } = this.props.actions;
-    const { requestedOwner, requestedName, password } = this.state;
     const creatorKey = this.props.keys.permissions[requestedOwner];
     useKey(
       'createAccountDelegated',
@@ -130,7 +143,6 @@ export default class KeysCreate extends Component {
       },
       creatorKey
     );
-    e.preventDefault();
   };
 
   render() {
@@ -232,6 +244,8 @@ export default class KeysCreate extends Component {
     if (this.props.account && this.props.account.minimumDelegation) {
       delegation = this.props.account.minimumDelegation;
     }
+    const { lock1, lock2 } = this.state;
+    const passwordValid = !!lock1 && lock1 === lock2;
     if (this.state.modalPreview && delegation) {
       modal = (
         <Modal
@@ -314,6 +328,42 @@ export default class KeysCreate extends Component {
                 </Grid.Row>
                 <Grid.Row>
                   <Grid.Column>
+                    <Segment basic>
+                      <Header>
+                        Wallet Password
+                        <Header.Subheader>
+                          Set a password to encrypt this account&apos;s active key inside Vessel. You
+                          will enter it to sign transactions from this wallet.
+                        </Header.Subheader>
+                      </Header>
+                      <Form>
+                        <Form.Input
+                          label="Wallet Password"
+                          type="password"
+                          name="lock1"
+                          value={lock1}
+                          onChange={this.handleLockChange}
+                        />
+                        <Form.Input
+                          label="Wallet Password (Repeat)"
+                          type="password"
+                          name="lock2"
+                          value={lock2}
+                          onChange={this.handleLockChange}
+                        />
+                      </Form>
+                      {lock1 && lock2 && lock1 !== lock2 ? (
+                        <Message
+                          error
+                          icon="warning"
+                          content="The passwords you have entered do not match."
+                        />
+                      ) : null}
+                    </Segment>
+                  </Grid.Column>
+                </Grid.Row>
+                <Grid.Row>
+                  <Grid.Column>
                     <Message
                       icon="warning sign"
                       header="Ready to create?"
@@ -339,6 +389,7 @@ export default class KeysCreate extends Component {
               icon: 'checkmark',
               content: 'Confirmed - Create Account',
               color: 'green',
+              disabled: !passwordValid,
               onClick: this.handleConfirm,
             },
           ]}

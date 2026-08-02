@@ -25,15 +25,16 @@ export default class KeysAuth extends Component {
   state = {
     action: 'add',
     wif: '',
+    password: '',
     errors: {
       wif_error_invalid: false,
       wif_not_valid: false,
+      wallet_password_required: false,
     },
   };
 
   handleChange = (e: SyntheticEvent, { name, value }: { name: string, value: string }) => {
     const newState = { ...this.state, [name]: value };
-    console.log({ name, value });
     newState.errors = this.validate(newState);
     this.setState(newState);
   };
@@ -45,6 +46,8 @@ export default class KeysAuth extends Component {
     if (newState.wif && hive.auth.wifIsValid(newState.wif, newState.public) === true) {
       errors.wif_not_valid = false;
     }
+    // §5.2 — the auth key is encrypted under the account's wallet password (non-empty).
+    errors.wallet_password_required = !newState.password || newState.password === '';
     return errors;
   };
 
@@ -55,18 +58,20 @@ export default class KeysAuth extends Component {
 
   handleSubmit = (e: SyntheticEvent) => {
     e.preventDefault();
-    const { addMemoKey } = this.props.actions;
-    const { action, wif } = this.state;
-    // addMemoKey(action, wif);
+    const { addAuth } = this.props.actions;
+    const { wif, password } = this.state;
+    // WIP: wire once this flow supplies the target account.
+    // addAuth(account, wif, password);
   };
 
   render() {
-    const { action, wif } = this.state;
+    const { action, wif, password } = this.state;
     const { errors } = this.state;
     const hasErrors = this.hasErrors();
     const messages = {
       wif_error_invalid: 'They WIF Private Key you have is not valid.',
       wif_not_valid: 'The WIF Private Key does not match the memo key of this account.',
+      wallet_password_required: "This account's wallet password is required to encrypt the key.",
     };
     let handleMethodReset = false;
     if (this.props.handleMethodReset) {
@@ -84,6 +89,9 @@ export default class KeysAuth extends Component {
     let message = false;
     let warning = false;
     if (hasErrors) {
+      if (errors.wallet_password_required) {
+        message = messages.wallet_password_required;
+      }
       if (errors.wif_not_valid) {
         message = messages.wif_not_valid;
       }
@@ -145,6 +153,13 @@ export default class KeysAuth extends Component {
                     onChange={this.handleChange}
                   />
                 </Form.Field>
+                <Form.Input
+                  label="Wallet Password"
+                  type="password"
+                  name="password"
+                  value={password}
+                  onChange={this.handleChange}
+                />
               </Grid.Column>
             </Grid.Row>
           </Grid>

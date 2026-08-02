@@ -7,8 +7,13 @@ import {
   PROCESSING_ACCOUNT_LOADING_COMPLETE,
   PROCESSING_ACCOUNT_LOADING_FAILED,
 } from './processing';
-
-const CryptoJS = require('crypto-js');
+import { encryptKey, decryptKey, isEncrypted } from '../utils/keyEnvelope';
+import {
+  requiredRoleForAction,
+  keySatisfiesRole,
+  MixedAuthorityError,
+  NoOperationsError,
+} from '../utils/authorityRoles';
 
 export const KEY_REMOVE_CANCEL = 'KEY_REMOVE_CANCEL';
 export const KEY_REMOVE_CONFIRM = 'KEY_REMOVE_CONFIRM';
@@ -34,6 +39,11 @@ export const KEY_ADD_AUTH_PROMPT = 'KEY_ADD_AUTH_PROMPT';
 export const KEY_ADD_PROMPT = 'KEY_ADD_PROMPT';
 export const KEY_CREATE_CANCEL = 'KEY_CREATE_CANCEL';
 export const KEY_CREATE_PROMPT = 'KEY_CREATE_PROMPT';
+export const KEY_ADD_FAILED_PASSWORD_REQUIRED = 'KEY_ADD_FAILED_PASSWORD_REQUIRED';
+export const KEY_ADD_MEMO_FAILED_PASSWORD_MISMATCH = 'KEY_ADD_MEMO_FAILED_PASSWORD_MISMATCH';
+export const KEY_ADD_MEMO_FAILED_PLAINTEXT_MAIN = 'KEY_ADD_MEMO_FAILED_PLAINTEXT_MAIN';
+export const KEY_USE_ROLE_MISMATCH = 'KEY_USE_ROLE_MISMATCH';
+export const KEY_REENCRYPTED = 'KEY_REENCRYPTED';
 
 export function addKey(account: string, wif: string) {
   const isValidKey = hive.auth.isWif(wif);
@@ -89,29 +99,18 @@ export function addKey(account: string, wif: string) {
   };
 }
 
-export function addKeyConfirmed(
-  account: string,
-  wif: string,
-  type: string,
-  encrypted: boolean,
-  password: string
-) {
-  return (dispatch: () => void) => {
-    let key = wif;
-    const payload = {};
-    if (encrypted) {
-      key = CryptoJS.AES.encrypt(wif, password).toString();
+// §5.1 — the main WIF is ALWAYS encrypted (D9a envelope); `key = wif` is never persisted.
+// Async thunk: a wallet password is mandatory. Existing `encrypted:false` records stay readable
+// (useKey's unencrypted branch) and are upgraded via the §5.3 launch modal.
+export function addKeyConfirmed(account: string, wif: string, type: string, password: string) {
+  return async (dispatch: () => void) => {
+    if (!password) {
+      dispatch({ type: KEY_ADD_FAILED_PASSWORD_REQUIRED });
+      return;
     }
-    payload[account] = {
-      account,
-      key,
-      encrypted,
-      type,
-    };
-    dispatch({
-      type: KEY_ADD_CONFIRMED,
-      payload,
-    });
+    const key = await encryptKey(wif, password);
+    const payload = { [account]: { account, key, encrypted: true, type } };
+    dispatch({ type: KEY_ADD_CONFIRMED, payload });
   };
 }
 
@@ -155,16 +154,59 @@ export function useKeyRequestDecryptClose() {
   };
 }
 
+// §7.2 — the client-side HF28 authority gate. FIRST resolve the role the whole request needs; a
+// tx that mixes posting with active/owner (unsatisfiable by one key) or carries no ops is refused
+// here, BEFORE any key selection or network call. Then verify the stored key can satisfy that role.
 export function useKey(operation, params, auth) {
   return (dispatch: () => void) => {
+    let required;
+    try {
+      required = requiredRoleForAction(operation, params);
+    } catch (e) {
+      // requiredRoleForAction throws ONLY MixedAuthorityError / NoOperationsError (D2). Fail closed.
+      let reason = 'mixed';
+      let message =
+        'This request mixes operations that need different key levels and cannot be signed with one key.';
+      if (e instanceof NoOperationsError) {
+        reason = 'empty';
+        message = 'This request contains no operations to sign.';
+      } else if (!(e instanceof MixedAuthorityError)) {
+        message = 'This request could not be authorized with a single key.';
+      }
+      dispatch({ type: KEY_USE_ROLE_MISMATCH, payload: { operation, reason, message } });
+      return;
+    }
+    if (!auth || !keySatisfiesRole(auth.type, required, auth.roles)) {
+      dispatch({
+        type: KEY_USE_ROLE_MISMATCH,
+        payload: {
+          operation,
+          required,
+          provided: auth && auth.type,
+          account: auth && auth.account,
+          message: `This operation requires your ${required.toUpperCase()} key; the stored key for this account is ${
+            auth && auth.type ? auth.type.toUpperCase() : 'missing'
+          }.`,
+        },
+      });
+      return;
+    }
     if (auth.encrypted) {
-      const authEncrypted = { ...auth };
-      dispatch(useKeyRequestDecrypt(operation, params, authEncrypted));
+      dispatch(useKeyRequestDecrypt(operation, params, { ...auth, requiredRole: required }));
     } else {
-      const callback = AccountActions[operation];
-      dispatch(callback(auth.key, params));
+      // Permanent read path for pre-existing plaintext records. Route the role so account.js
+      // signs with the correct authority (D1: account.js send { [role]: wif }).
+      dispatch(AccountActions[operation](auth.key, { ...params, role: required }));
       dispatch(useKeyRequestDecryptClose());
     }
+  };
+}
+
+// §5.3 / §4.4 — replace a record's main key and/or memo with a freshly-encrypted envelope.
+export function keyReencrypted(payload: { account: string, key?: string, memo?: string }) {
+  return {
+    type: KEY_REENCRYPTED,
+    payload,
   };
 }
 
@@ -204,31 +246,37 @@ export function removeKeyCancel() {
   };
 }
 
-export function addMemoKey(account: string, wif: string) {
+// §5.2 — store the memo key as a v2 envelope bound to the account's wallet password. C6: refuse
+// unless the main key is already encrypted AND the entered password unlocks it, so the memo always
+// shares the main key's password (else memo decrypt at send time is impossible).
+export function addMemoKey(account: string, wif: string, password: string) {
   const isValidKey = hive.auth.isWif(wif);
-  if (isValidKey) {
-    return (dispatch: () => void) => {
-      hive.api.getAccounts([account], (err, result) => {
-        if (result && result.length) {
-          const derivedKey = hive.auth.wifToPublic(wif);
-          if (derivedKey === result[0].memo_key) {
-            const payload = {
-              account,
-              wif,
-            };
-            dispatch({
-              type: KEY_ADD_MEMO_CONFIRMED,
-              payload,
-            });
-          } else {
-            // Incorrect key for account
-          }
-        }
-      });
-    };
+  if (!isValidKey) {
+    return { type: KEY_ADD_FAILED_WIF_INVALID };
   }
-  return {
-    type: KEY_ADD_FAILED_WIF_INVALID,
+  return (dispatch: () => void, getState: () => Object) => {
+    hive.api.getAccounts([account], async (err, result) => {
+      if (!result || !result.length) return;
+      const derivedKey = hive.auth.wifToPublic(wif);
+      if (derivedKey !== result[0].memo_key) {
+        // Incorrect key for account
+        return;
+      }
+      const rec = getState().keys.permissions[account];
+      // C6: a plaintext (or missing) main key cannot bind a memo — force the §5.3 upgrade first.
+      if (!rec || !isEncrypted(rec.key)) {
+        dispatch({ type: KEY_ADD_MEMO_FAILED_PLAINTEXT_MAIN });
+        return;
+      }
+      try {
+        await decryptKey(rec.key, password); // verify the entered pw unlocks the main key
+      } catch (e) {
+        dispatch({ type: KEY_ADD_MEMO_FAILED_PASSWORD_MISMATCH });
+        return;
+      }
+      const memo = await encryptKey(wif, password);
+      dispatch({ type: KEY_ADD_MEMO_CONFIRMED, payload: { account, memo } });
+    });
   };
 }
 
@@ -259,33 +307,35 @@ export function addMemoKeyCancel() {
   };
 }
 
-export function addAuth(account: string, wif: string) {
-  console.log('add auth');
+// §5.2 — same treatment as addMemoKey (funnels to the same reducer shape), keyed on the auth flow.
+export function addAuth(account: string, wif: string, password: string) {
   const isValidKey = hive.auth.isWif(wif);
-  if (isValidKey) {
-    return (dispatch: () => void) => {
-      hive.api.getAccounts([account], (err, result) => {
-        if (result && result.length) {
-          const derivedKey = hive.auth.wifToPublic(wif);
-          if (derivedKey === result[0].memo_key) {
-            const payload = {
-              account,
-              wif,
-            };
-            dispatch({
-              type: KEY_ADD_AUTH_CONFIRMED,
-              payload,
-            });
-          } else {
-            // Incorrect key for account
-          }
-        }
-      });
-    };
+  if (!isValidKey) {
+    return { type: KEY_ADD_FAILED_WIF_INVALID };
   }
-  // return {
-  //   type: KEY_ADD_FAILED_WIF_INVALID
-  // };
+  return (dispatch: () => void, getState: () => Object) => {
+    hive.api.getAccounts([account], async (err, result) => {
+      if (!result || !result.length) return;
+      const derivedKey = hive.auth.wifToPublic(wif);
+      if (derivedKey !== result[0].memo_key) {
+        // Incorrect key for account
+        return;
+      }
+      const rec = getState().keys.permissions[account];
+      if (!rec || !isEncrypted(rec.key)) {
+        dispatch({ type: KEY_ADD_MEMO_FAILED_PLAINTEXT_MAIN });
+        return;
+      }
+      try {
+        await decryptKey(rec.key, password);
+      } catch (e) {
+        dispatch({ type: KEY_ADD_MEMO_FAILED_PASSWORD_MISMATCH });
+        return;
+      }
+      const memo = await encryptKey(wif, password);
+      dispatch({ type: KEY_ADD_AUTH_CONFIRMED, payload: { account, memo } });
+    });
+  };
 }
 
 export function addAuthPrompt(account: string) {

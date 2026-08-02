@@ -2,6 +2,7 @@
 import hive from '@hiveio/hive-js';
 import type { accountStateType } from '../reducers/account';
 import * as ProcessingActions from './processing';
+import { requiredRoleForOps } from '../utils/authorityRoles';
 
 export const ACCOUNT_CUSTOM_JSON_STARTED = 'ACCOUNT_CUSTOM_JSON_STARTED';
 export const ACCOUNT_CUSTOM_JSON_RESOLVED = 'ACCOUNT_CUSTOM_JSON_RESOLVED';
@@ -699,11 +700,15 @@ export function customJsonCompleted() {
 export function send(wif, params) {
   return (dispatch: () => void) => {
     const { operations, extensions } = params;
-    console.log(operations, extensions);
+    // Route the HF28 authority role onto the broadcast. useKey normally supplies params.role; the
+    // requiredRoleForOps fallback covers direct callers and throws on mixed/empty authority (which
+    // surfaces as the broadcast error). Post-HF28 a single key satisfies only one role, so the WIF
+    // must carry the authority the ops actually require rather than a hardcoded { posting: wif }.
+    const role = params.role || requiredRoleForOps(operations).role;
     dispatch({
       type: ACCOUNT_CUSTOM_OPS_STARTED,
     });
-    hive.broadcast.send({ operations, extensions }, { posting: wif }, (err, result) => {
+    hive.broadcast.send({ operations, extensions }, { [role]: wif }, (err, result) => {
       if (result) {
         dispatch({
           type: ACCOUNT_CUSTOM_OPS_RESOLVED,

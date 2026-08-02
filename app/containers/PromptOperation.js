@@ -4,17 +4,19 @@ import { bindActionCreators } from 'redux';
 import { Redirect } from 'react-router';
 import { connect } from 'react-redux';
 import hive from '@hiveio/hive-js';
+import { Message } from 'semantic-ui-react';
 
 import * as AccountActions from '../actions/account';
 import * as KeysActions from '../actions/keys';
 import * as ProcessingActions from '../actions/processing';
+import {
+  requiredRoleForOps,
+  keySatisfiesRole,
+  MixedAuthorityError,
+  NoOperationsError,
+} from '../utils/authorityRoles';
 
 import OperationsPrompt from '../components/sign/operations/prompt';
-
-const permissions = {
-  active: ['account_update', 'custom_json'],
-  posting: ['vote', 'comment', 'custom_json'],
-};
 
 const accountFields = {
   account_create: ['creator'],
@@ -56,6 +58,7 @@ class PromptOperation extends Component {
     }
     this.state = {
       account: null,
+      authorityError: null,
       meta,
       ops,
       opsString: props.query.ops,
@@ -69,10 +72,35 @@ class PromptOperation extends Component {
   }
 
   submitOps = (e) => {
+    e.preventDefault();
     const { account, ops } = this.state;
     const { permissions } = this.props.keys;
-    this.props.actions.useKey('send', { operations: ops, extensions: [] }, permissions[account]);
-    e.preventDefault();
+    // Resolve the single authority the whole tx needs BEFORE any key selection or broadcast.
+    // Post-HF28 a tx that mixes posting with active/owner (or has no ops) can never be signed by
+    // one key: surface it in the sign window and refuse to dispatch.
+    let role;
+    try {
+      role = requiredRoleForOps(ops).role;
+    } catch (err) {
+      if (err instanceof MixedAuthorityError || err instanceof NoOperationsError) {
+        this.setState({ authorityError: err.message });
+        return;
+      }
+      throw err;
+    }
+    // Guard the chosen signing account: its stored key type must satisfy the required role. This
+    // mirrors the account-picker flag (the Select lives in the child prompt component) and is
+    // defense-in-depth over useKey's own KEY_USE_ROLE_MISMATCH gate.
+    const auth = permissions[account];
+    if (!auth || !keySatisfiesRole(auth.type, role, auth.roles)) {
+      const stored = auth ? auth.type : 'unknown';
+      this.setState({
+        authorityError: `The selected account's stored ${stored} key cannot satisfy the required ${role.toUpperCase()} authority. Import the ${role.toUpperCase()} key for this account before signing.`,
+      });
+      return;
+    }
+    this.setState({ authorityError: null });
+    this.props.actions.useKey('send', { operations: ops, extensions: [], role }, auth);
   };
 
   modifyOpsPrompt(e, data) {
@@ -104,20 +132,30 @@ class PromptOperation extends Component {
   }
 
   render() {
-    const { ops, meta } = this.state;
+    const { ops, meta, authorityError } = this.state;
     const { account, keys } = this.props;
     return (
-      <OperationsPrompt
-        account={account}
-        accounts={keys.names}
-        accountChange={this.modifyOpsByAccount.bind(this)}
-        meta={meta}
-        modifyOpsPrompt={this.modifyOpsPrompt.bind(this)}
-        ops={ops}
-        processing={this.props.processing}
-        hive={this.props.hive}
-        submitOps={this.submitOps.bind(this)}
-      />
+      <>
+        {authorityError ? (
+          <Message
+            error
+            icon="warning sign"
+            header="Cannot sign this transaction"
+            content={authorityError}
+          />
+        ) : null}
+        <OperationsPrompt
+          account={account}
+          accounts={keys.names}
+          accountChange={this.modifyOpsByAccount.bind(this)}
+          meta={meta}
+          modifyOpsPrompt={this.modifyOpsPrompt.bind(this)}
+          ops={ops}
+          processing={this.props.processing}
+          hive={this.props.hive}
+          submitOps={this.submitOps.bind(this)}
+        />
+      </>
     );
   }
 }

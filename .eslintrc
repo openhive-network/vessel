@@ -77,7 +77,10 @@
     "jsx-a11y/no-static-element-interactions": "warn",
     "jsx-a11y/click-events-have-key-events": "warn",
     "jsx-a11y/anchor-is-valid": "warn",
-    "jsx-a11y/anchor-has-content": "warn"
+    "jsx-a11y/anchor-has-content": "warn",
+    "max-classes-per-file": "warn",
+    "no-bitwise": "warn",
+    "import/prefer-default-export": "warn"
   },
   "plugins": [
     "import",

@@ -1,6 +1,5 @@
 // @flow
 import React, { Component } from 'react';
-import { Redirect } from 'react-router';
 import { Button, Divider, Grid, Header, Segment } from 'semantic-ui-react';
 
 import KeysGenerate from './Generate';

@@ -1,7 +1,6 @@
 // @flow
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
-import { Redirect } from 'react-router';
 import { connect } from 'react-redux';
 import hive from '@hiveio/hive-js';
 import { Message } from 'semantic-ui-react';

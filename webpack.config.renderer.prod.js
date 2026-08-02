@@ -8,6 +8,7 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 const { merge } = require('webpack-merge');
 const baseConfig = require('./webpack.config.base');
 
@@ -147,6 +148,14 @@ module.exports = merge(baseConfig, {
 
     new MiniCssExtractPlugin({
       filename: 'style.css'
+    }),
+
+    // Semantic-UI's CSS references its icon fonts by relative path (themes/default/assets/fonts/*),
+    // but the .global.css rule runs css-loader with { url:false }, so webpack never emits them and
+    // the @font-face urls 404 (no icons). Copy the theme assets into the build output so they resolve.
+    // (Transitional — the whole webpack pipeline is replaced by electron-vite in Phase 2.)
+    new CopyWebpackPlugin({
+      patterns: [{ from: path.join(__dirname, 'app/semantic-ui/themes'), to: 'themes' }]
     }),
 
     new BundleAnalyzerPlugin({

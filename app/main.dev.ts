@@ -22,6 +22,16 @@ if (process.env.VESSEL_USER_DATA) {
   app.setPath('userData', process.env.VESSEL_USER_DATA);
 }
 
+// Dev/unpackaged launches (e.g. the profile-copy harness, `npm start`) otherwise show the generic
+// Electron dock icon; packaged builds get the icon from electron-builder. Set it for dev on macOS.
+if (!app.isPackaged && process.platform === 'darwin' && app.dock) {
+  try {
+    app.dock.setIcon(path.join(__dirname, '..', 'assets', 'icons', 'png', '512x512.png'));
+  } catch {
+    // non-fatal — dev cosmetics only
+  }
+}
+
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
   sourceMapSupport.install();

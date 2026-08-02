@@ -13,7 +13,7 @@
     }
   ],
   "scripts": {
-    "postinstall": "npm rebuild --runtime=electron --target=28.2.0 --disturl=https://atom.io/download/atom-shell --build-from-source"
+    "postinstall": "npm rebuild --runtime=electron --target=28.2.0 --build-from-source"
   },
   "license": "MIT"
 }

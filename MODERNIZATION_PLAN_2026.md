@@ -112,7 +112,13 @@ Each decision states the choice, the rationale, and rejected alternatives. These
 
 ## 3. Phased Roadmap
 
-Ordering principle: a wallet's risk order is (1) toolchain must work at all, (2) users' keys, (3) the process boundary (Electron), (4) the money-moving API layer, (5) code quality, (6) cosmetics. Each phase ends shippable.
+**Sequencing is driven by breakage risk, not by time.** Two axes decide the order, and they pull against each other:
+- **Change-risk** — how likely applying a change is to break something that works today, how far the damage spreads if it does (cosmetic → a feature → all broadcasts → the build → the keystore), and how cleanly it reverts.
+- **Standing-risk** — how much danger the code is in *right now* by leaving it alone (a one-click-drain URI and MD5-encrypted keys are live hazards; an old UI library is not).
+
+The rule: **build the safety net before taking any risk, then spend the earned confidence on the highest standing-risk items, and leave the large-but-safe surface for last.** Concretely — (0) make the gates and tests real so breakage is *detectable* at all; then attack the live security/money hazards (high stakes, but each change is de-risked by a hard invariant — e.g. the keystore never loses its legacy read path); then modernize the build substrate (high change-risk, zero money/key exposure, fully reversible); then the deep process-boundary work; then the money-path client swap behind a facade; and only then the wide, mechanical, per-file-reversible surface (the legacy backlog, router, UI). Every phase ends shippable, so work can stop at any boundary without leaving the app half-broken.
+
+Each phase below carries a **Risk:** line in the form *likelihood · blast radius · reversibility* instead of a time estimate.
 
 ---
 
@@ -131,7 +137,7 @@ Ordering principle: a wallet's risk order is (1) toolchain must work at all, (2)
 
 **Verification gate:** on a clean checkout with Node 24/npm 11: `npm ci && npm run lint && npm run typecheck && npm run build` all exit 0; `npm run build && npm start` launches the production wallet and the accounts page renders (the path discovery actually verified green). Dev-mode (`npm run dev`) is a stretch check, not a gate — no discovery agent ever exercised it and it rides on the DLL/webpack-dev-server machinery; budget debugging time if it turns out broken rather than blocking the phase on it.
 **Rollback:** trivial — all changes are config/lockfile-level; revert commits individually.
-**Effort:** 1.5–3 person-days.
+**Risk:** *Very low · dev/CI only, no runtime wallet behavior touched · trivial per-commit revert.* Every change here fixes something already broken (install, lint, typecheck, lockfile drift); the failure mode is "a gate still isn't green," not "a working feature broke." This is the phase that makes every later risk **detectable** — nothing riskier should start until it lands.
 
 ---
 
@@ -152,7 +158,7 @@ This phase does the **at-rest KDF envelope (D9a)** and the plaintext-key fixes; 
 
 **Verification gate:** test suite covering both envelope versions passes; a state blob inspected in localStorage contains **no** cleartext WIF or memo key for any account; manual test: a wallet state created on master decrypts, re-encrypts to v2, and unlocks again after restart; on testnet, a posting-authority op signs with the posting key, an active-authority op signs with the active key, and an active-authority op offered only a posting key is rejected client-side before broadcast.
 **Rollback:** v2 envelope carries a version tag; the shim keeps reading v1 forever, so a rollback build simply keeps writing v1 — no data loss path. Never delete v1 read support. (Note: the plaintext-key fixes are forward-only — a downgrade to a pre-Phase-1 build would resume writing plaintext memo keys; call this out in release notes.)
-**Effort:** 5–8 person-days.
+**Risk:** *Medium likelihood · blast radius: HIGH (the keystore is users' money; the broadcast path is live) · reverts cleanly for crypto, forward-only for the plaintext-key fix.* This is high-stakes-early **on purpose** — the hazards it fixes (MD5 key encryption, plaintext memo keys, HF28-broken broadcasts) are already live, so the standing-risk of waiting outweighs the change-risk. The change-risk is pinned down by one hard invariant: **the legacy keystore read path is permanent** — a bad build can never make an existing wallet undecryptable. Everything key-touching gets a second reviewer and a both-formats test before it merges.
 
 ---
 
@@ -170,7 +176,7 @@ This phase does the **at-rest KDF envelope (D9a)** and the plaintext-key fixes; 
 
 **Verification gate:** CI green on the new pipeline; packaged app installs and launches on Linux + Windows (macOS manually); `out/preload.js` exists and loads (verifiable in devtools even before isolation flips); a hive-js-signed test transaction broadcasts from the dev renderer; the promptOperation/sign window opens from a `vessel://` URI against the Vite-built html (the query-param load is the exact surface the html replacement is most likely to break).
 **Rollback:** between MR-A and MR-B the webpack path (`npm run build:webpack`) still genuinely works — that is the escape hatch, and it's real only because MR-B's deletions wait for a shipped electron-vite release. After MR-B the hatch is gone: rollback is `git revert` of MR-B. Packaging regressions are the biggest risk — gate MR-B on a manual install smoke test per platform.
-**Effort:** 6–9 person-days.
+**Risk:** *High likelihood · blast radius: the build substrate (no keys, no money) · reversible until a release ships, then git-revert of MR-B.* The build is the ground everything stands on, and two failure modes here are canonical Vite-migration breakages (the ~60 JSX-in-`.js` Flow files compiling, and hive-js signing through the polyfills) — both are **prove-first spikes that must pass before the migration commits**. What keeps this merely High and not Critical: it touches nothing key- or money-related, and the MR-A/MR-B split keeps the webpack path genuinely runnable as a real escape hatch until the first electron-vite release is out. Packaging (MR-B) is the sharpest edge — gated on a manual install smoke test per platform.
 
 ---
 
@@ -189,7 +195,7 @@ This phase does the **at-rest KDF envelope (D9a)** and the plaintext-key fixes; 
 
 **Verification gate:** `webPreferences` audit clean (no `nodeIntegration` / `contextIsolation:false` anywhere; both windows have a preload); `require('electron')` grep over `app/` (excl. main/preload) returns zero; no WIF crosses the IPC boundary into the renderer (asserted by an IPC-contract test); a CSP header is present on every response; a crafted `vessel://sign` link cannot broadcast without the plain-language confirmation + password; all e2e smoke tests pass on the new Electron; a `hive://` sign request round-trips with the correct key role.
 **Rollback:** each Electron hop is its own MR/tag; the D9b custody move and the hardening flags are separate MRs; treat reverting isolation or re-exposing keys to the renderer as an incident, not a routine rollback. The localStorage key read path stays for one release so a rollback build can still unlock.
-**Effort:** 9–14 person-days (raised from the pre-review estimate: D9b custody + IPC signing and the URI gate are new structural work, not just flag flips).
+**Risk:** *Medium–high likelihood · blast radius: HIGHEST in the plan (keystore + every broadcast + whether the renderer even renders) · separate MRs, but re-exposing keys or reverting isolation is an incident, not a routine undo.* This is the single most dangerous phase: flipping `contextIsolation` changes assumptions the entire legacy renderer was written under, and moving key custody + signing across the IPC boundary is new structural code on the money path. It is sequenced here deliberately — **after** the build substrate is modern (Phase 2 gives a preload that actually compiles) and **after** the crypto envelope exists (Phase 1), so it isn't also fighting a broken build or weak encryption. De-risking: each concern (isolation flip, custody move, URI gate, each Electron hop) is its own MR with its own gate; the legacy localStorage read path stays one release; an IPC-contract test asserts no WIF ever crosses into the renderer.
 
 ---
 
@@ -205,7 +211,7 @@ This phase does the **at-rest KDF envelope (D9a)** and the plaintext-key fixes; 
 
 **Verification gate:** grep proves zero imports of any hive client outside `hiveApi.ts`; facade test suite green; manual send + power-up + witness-vote on testnet succeed.
 **Rollback:** the facade makes rollback a one-commit engine swap back to hive-js; keep hive-js in package.json until one release after the swap ships.
-**Effort:** 5–7 person-days (3–5 for the swap per research, plus facade completion and tests).
+**Risk:** *Medium likelihood · blast radius: every network read + every broadcast (money path) · one-commit revert to hive-js behind the facade.* Swapping the Hive client is money-path work, so subtle behavior differences between hive-js and hive-tx (serialization, error shapes, asset formatting) are the real hazard — caught by a per-op-family testnet broadcast gate before mainnet. The facade is what caps this at Medium: because exactly one module talks to the network, the engine swap is a single commit and rolling back is a single commit, with hive-js kept in the tree one release past the swap.
 
 ---
 
@@ -225,7 +231,7 @@ This phase does the **at-rest KDF envelope (D9a)** and the plaintext-key fixes; 
 
 **Verification gate:** `git grep -l "@flow" app/` empty; `git grep -l "extends Component\|extends React.Component" app/` empty (excl. vendor); `tsc --noEmit` green under full `strict`; lint at `error` severity green; feature-parity checklist (§5) walked manually per converted page; a redux-persist state blob captured from a pre-RTK build rehydrates correctly into the RTK store (explicit automated test, with the `keys` slice asserted by name).
 **Rollback:** per-directory commits; behavior-change commits (class→hooks) separated from rename commits precisely so a regression bisects to a small diff.
-**Effort:** 15–25 person-days (the bulk of the plan; ~61–68 files and ~51–55 class conversions per differing agent counts — recount at phase start, since this estimate scales from them — plus the 4,400-lint-error residual burn-down).
+**Risk:** *Low per change, but the widest surface in the plan (~61–68 files — recount at phase start) · blast radius: one page/slice at a time · fully per-directory reversible.* Individually each conversion is low-risk and independently revertible, which is the whole point of doing it as many small commits rather than one big rewrite — a regression bisects to a single small diff. Two things keep it honest: the rename+Flow-strip commit is always kept **separate** from the class→hooks behavior-change commit (so a break is unambiguously one or the other), and the one genuinely dangerous spot — the RTK-converted `keys` slice rehydrating old redux-persist state — is guarded by a named, tested state-shape invariant (a break there is a keystore-loss event, not a cosmetic one).
 
 ---### Phase 6 — Router v8 + ESM convergence + test build-out
 **Objective:** routing and module system current; test suite meaningful.
@@ -238,7 +244,7 @@ This phase does the **at-rest KDF envelope (D9a)** and the plaintext-key fixes; 
 
 **Verification gate:** all routes reachable (parity checklist §5); e2e suite green in CI; no `require(` in app source.
 **Rollback:** router migration is a self-contained MR; revert cleanly if data-router semantics regress the sign-window flow.
-**Effort:** 4–6 person-days.
+**Risk:** *Medium likelihood · blast radius: all routing, including the `vessel://` sign-window query-param flow · self-contained MR, clean revert.* The router jump is mechanical for ~85–90% (codemod), but data-router semantics can subtly change how the externally-triggered sign window mounts — which is a money-path surface, so it gets an explicit e2e gate rather than just "routes render." Contained because it's one self-contained MR that reverts cleanly.
 
 ---
 
@@ -253,7 +259,7 @@ This phase does the **at-rest KDF envelope (D9a)** and the plaintext-key fixes; 
 
 **Verification gate:** zero semantic-ui imports; React 19 in lockfile; full parity checklist walked; e2e green.
 **Rollback:** container-by-container migration means any page can ship on Mantine while others remain on Semantic (both libraries coexist during the phase — verified acceptable bundle-size cost, or accept temporarily).
-**Effort:** 15–25 person-days (largest single workstream per research; sized comparable to Phase 5).
+**Risk:** *Medium per container, wide UI surface · blast radius: visual/interaction regressions across every page · per-container reversible, both libraries coexist during the swap.* Large but not dangerous: no keys, no signing, no money logic — the worst case is a page that looks wrong or a form that mis-validates, caught by the parity walk. It sits last precisely because it's the highest-surface, lowest-stakes work: nothing security- or money-critical should wait behind it, and by here everything underneath is already modern and tested. Both Semantic UI and Mantine render side-by-side during migration, so any single page can ship on the new library while the rest stay on the old.
 
 ---
 
@@ -262,7 +268,7 @@ This phase does the **at-rest KDF envelope (D9a)** and the plaintext-key fixes; 
 
 **Tasks:** delete PLAN.md/UPGRADE_NOTES.md (superseded by this doc, kept in git history); final dependency audit (`npm audit`, `npm outdated`); prune `overrides` (formsy gone); README/CLAUDE.md rewritten to match reality (the current CLAUDE.md claims context isolation that Phase 3 only now made true); version bump + tagged release with GitLab CI-built Linux/Windows artifacts and a manual macOS build; publish upgrade notes for users covering the key-envelope migration behavior.
 **Verification gate:** clean-machine install of packaged artifacts on all three platforms; fresh-profile and migrated-profile wallet flows both pass.
-**Effort:** 2–3 person-days.
+**Risk:** *Low, except the release step · blast radius: deletions are dead-code-only; a bad packaged release means users can't install · gated, not easily un-shipped.* The cleanup deletions (superseded docs, dead deps, flow config) can't break anything running. The one real hazard is the release/packaging itself — a broken installer or protocol registration reaches users — so it's gated on a clean-machine install of the packaged artifacts on all three platforms, with both a fresh-profile and a migrated-profile wallet flow exercised before the tag is pushed.
 
 ---
 
@@ -320,22 +326,26 @@ Walked manually at the end of Phases 3, 5, 6 and 7 (and automated where the e2e 
 
 ---
 
-## 6. Effort Summary & Risks
+## 6. Risk Model & Sequencing
 
-| Phase | Scope | Person-days |
-|---|---|---|
-| 0 | Green baseline | 1.5–3 |
-| 1 | Key crypto (KDF envelope + plaintext-key fixes) + HF28 broadcast fix | 5–8 |
-| 2 | electron-vite (MR-A/MR-B) + pkg collapse + CI + lint/test stack | 6–9 |
-| 3 | Electron hardening + D9b main-process key custody + URI gate + staged bump | 9–14 |
-| 4 | Hive facade + hive-tx | 5–7 |
-| 5 | Legacy backlog (~61–68 files) TS/hooks/RTK migration | 15–25 |
-| 6 | Router v8 / ESM / e2e build-out | 4–6 |
-| 7 | Mantine + React 19 | 15–25 |
-| 8 | Cleanup & release | 2–3 |
-| **Total** | | **≈ 62–100 person-days** |
+This plan is ordered by breakage risk, not by time. Each phase is rated on three axes:
+- **Change-breakage likelihood** — odds that applying it breaks something that works today.
+- **Blast radius** — how bad it is if it does, on a wallet-specific scale: *cosmetic < a feature < the build < all broadcasts (money) < the keystore (money, possibly unrecoverable) < can't-ship*.
+- **Reversibility** — clean git-revert · revert-but-forward-only-data · needs-a-data-migration-to-undo · incident-grade.
 
-Phases 0–4 (≈ 26–41 days) deliver a secure, maintained-dependency wallet on the existing UI — a defensible stopping point if resourcing forces one. Phases 5–7 are the long tail.
+| Phase | Change-breakage likelihood | Blast radius if it breaks | Reversibility |
+|---|---|---|---|
+| 0 · Green baseline | **Very low** (fixes already-broken gates) | dev/CI only — no runtime behavior | clean per-commit |
+| 1 · Key crypto + plaintext fixes + HF28 | **Medium** | **keystore + broadcasts (money)** | clean (crypto) / forward-only (plaintext fix); legacy read path permanent |
+| 2 · electron-vite + pkg collapse + CI | **High** | the build substrate (no keys/money) | escape hatch until a release ships, then git-revert |
+| 3 · Hardening + main-process custody + URI gate | **Medium–high** | **highest: keystore + all broadcasts + render** | separate MRs; incident-grade if keys re-exposed |
+| 4 · Hive facade → hive-tx | **Medium** | **every read + broadcast (money)** | one-commit swap back behind the facade |
+| 5 · Legacy backlog → TS/hooks/RTK | **Low per change**, widest surface | one page/slice at a time (RTK `keys` slice is the exception) | per-directory revert |
+| 6 · Router v8 / ESM / e2e | **Medium** | all routing incl. sign-window flow | self-contained MR |
+| 7 · Mantine + React 19 | **Medium per container**, wide | visual/interaction only — no money logic | per-container; libraries coexist |
+| 8 · Cleanup & release | **Low** except the release step | dead-code deletes / a bad installer | gated on clean-machine install |
+
+**How to read the order.** Phase 0 is first because it makes breakage *detectable*. Phases 1, 3 and 4 carry the highest blast radius (money/keys) and are done early-to-middle **despite** that — because the hazards they fix are already live and every one of them is fenced by a hard invariant (permanent legacy keystore read, facade one-commit rollback, no-WIF-in-renderer IPC test). Phase 2's high change-*likelihood* is tolerable because its blast radius excludes money and keys and it keeps a real escape hatch. Phases 5–7 are the widest surface but the lowest stakes per change, so they come last: nothing security- or money-critical waits behind them, and each is reversible one file or one page at a time. **Any phase boundary is a safe stopping point** — through Phase 4 you have a hardened, maintained-dependency wallet on the existing UI; 5–7 are polish and long-term maintainability.
 
 ### Risks & mitigations
 1. **hive-js under Vite polyfills fails to sign (Phase 2).** Mitigation: prove a signed broadcast before committing the migration; fallback = keep webpack escape hatch one cycle; worst case pull Phase 4's hive-tx swap earlier (hive-tx needs no polyfills).

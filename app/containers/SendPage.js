@@ -1,7 +1,7 @@
 // @flow
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
-import { Redirect } from 'react-router';
+import { Navigate } from 'react-router';
 import { connect } from 'react-redux';
 import { Header, Segment } from 'semantic-ui-react';
 
@@ -30,7 +30,7 @@ class SendPage extends Component {
 
   render() {
     if (!this.props.keys.isUser) {
-      return <Redirect to="/" />;
+      return <Navigate to="/" replace />;
     }
     return (
       <ContentBar>

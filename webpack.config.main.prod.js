@@ -2,18 +2,20 @@
  * Webpack config for production electron main process
  */
 
-import webpack from 'webpack';
-import merge from 'webpack-merge';
-import BabiliPlugin from 'babili-webpack-plugin';
-import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
-import baseConfig from './webpack.config.base';
+const webpack = require('webpack');
+const { merge } = require('webpack-merge');
+const TerserPlugin = require('terser-webpack-plugin');
+const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+const baseConfig = require('./webpack.config.base');
 
-export default merge.smart(baseConfig, {
+module.exports = merge(baseConfig, {
+  mode: 'production',
+
   devtool: 'source-map',
 
   target: 'electron-main',
 
-  entry: ['babel-polyfill', './app/main.dev'],
+  entry: ['./app/main.dev.ts'],
 
   // 'main.js' in root
   output: {
@@ -21,12 +23,21 @@ export default merge.smart(baseConfig, {
     filename: './app/main.prod.js'
   },
 
-  plugins: [
-    /**
-     * Babli is an ES6+ aware minifier based on the Babel toolchain (beta)
-     */
-    new BabiliPlugin(),
+  optimization: {
+    minimize: true,
+    minimizer: [
+      new TerserPlugin({
+        parallel: true,
+        terserOptions: {
+          compress: { drop_console: true },
+          format: { comments: false }
+        },
+        extractComments: false
+      })
+    ]
+  },
 
+  plugins: [
     new BundleAnalyzerPlugin({
       analyzerMode: process.env.OPEN_ANALYZER === 'true' ? 'server' : 'disabled',
       openAnalyzer: process.env.OPEN_ANALYZER === 'true'

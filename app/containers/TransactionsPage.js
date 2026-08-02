@@ -1,7 +1,7 @@
 // @flow
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
-import { Redirect } from 'react-router';
+import { Navigate } from 'react-router';
 import { connect } from 'react-redux';
 import { Dimmer, Header, Loader, Segment } from 'semantic-ui-react';
 
@@ -24,7 +24,7 @@ class TransactionsPage extends Component {
       </Dimmer>
     )
     if (!this.props.keys.isUser) {
-      return <Redirect to="/" />;
+      return <Navigate to="/" replace />;
     } else {
       account_data = (
         <Segment basic attached>

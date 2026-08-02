@@ -2,24 +2,28 @@
  * Build config for electron renderer process
  */
 
-import path from 'path';
-import webpack from 'webpack';
-import ExtractTextPlugin from 'extract-text-webpack-plugin';
-import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
-import merge from 'webpack-merge';
-import BabiliPlugin from 'babili-webpack-plugin';
-import baseConfig from './webpack.config.base';
+const path = require('path');
+const webpack = require('webpack');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
+const { merge } = require('webpack-merge');
+const baseConfig = require('./webpack.config.base');
 
-export default merge.smart(baseConfig, {
+module.exports = merge(baseConfig, {
+  mode: 'production',
+
   devtool: 'source-map',
 
   target: 'electron-renderer',
 
-  entry: ['babel-polyfill', './app/index'],
+  entry: ['./app/index.tsx'],
 
   output: {
     path: path.join(__dirname, 'app/dist'),
-    publicPath: '../dist/'
+    publicPath: '../dist/',
+    filename: 'bundle.js'
   },
 
   module: {
@@ -27,111 +31,103 @@ export default merge.smart(baseConfig, {
       // Extract all .global.css to style.css as is
       {
         test: /\.global\.css$/,
-        use: ExtractTextPlugin.extract({
-          use: 'css-loader',
-          fallback: 'style-loader',
-        })
+        use: [
+          MiniCssExtractPlugin.loader,
+          {
+            loader: 'css-loader',
+            options: {
+              url: false // Don't resolve data URLs in global CSS
+            }
+          }
+        ]
       },
       // Pipe other styles through css modules and append to style.css
       {
         test: /^((?!\.global).)*\.css$/,
-        use: ExtractTextPlugin.extract({
-          use: {
+        use: [
+          MiniCssExtractPlugin.loader,
+          {
             loader: 'css-loader',
             options: {
-              modules: true,
-              importLoaders: 1,
-              localIdentName: '[name]__[local]__[hash:base64:5]',
+              modules: {
+                localIdentName: '[name]__[local]__[hash:base64:5]'
+              },
+              importLoaders: 1
             }
           }
-        }),
+        ]
       },
       // Add SASS support  - compile all .global.scss files and pipe it to style.css
       {
         test: /\.global\.scss$/,
-        use: ExtractTextPlugin.extract({
-          use: [
-            {
-              loader: 'css-loader'
-            },
-            {
-              loader: 'sass-loader'
+        use: [
+          MiniCssExtractPlugin.loader,
+          {
+            loader: 'css-loader',
+            options: {
+              url: false // Don't resolve data URLs in global CSS
             }
-          ],
-          fallback: 'style-loader',
-        })
+          },
+          'sass-loader'
+        ]
       },
       // Add SASS support  - compile all other .scss files and pipe it to style.css
       {
         test: /^((?!\.global).)*\.scss$/,
-        use: ExtractTextPlugin.extract({
-          use: [{
+        use: [
+          MiniCssExtractPlugin.loader,
+          {
             loader: 'css-loader',
             options: {
-              modules: true,
-              importLoaders: 1,
-              localIdentName: '[name]__[local]__[hash:base64:5]',
+              modules: {
+                localIdentName: '[name]__[local]__[hash:base64:5]'
+              },
+              importLoaders: 1
             }
           },
-          {
-            loader: 'sass-loader'
-          }]
-        }),
+          'sass-loader'
+        ]
       },
-      // WOFF Font
+      // Fonts - use asset modules
       {
-        test: /\.woff(\?v=\d+\.\d+\.\d+)?$/,
-        use: {
-          loader: 'url-loader',
-          options: {
-            limit: 10000,
-            mimetype: 'application/font-woff',
-          }
-        },
+        test: /\.(woff|woff2|eot|ttf|otf)$/i,
+        type: 'asset/resource'
       },
-      // WOFF2 Font
-      {
-        test: /\.woff2(\?v=\d+\.\d+\.\d+)?$/,
-        use: {
-          loader: 'url-loader',
-          options: {
-            limit: 10000,
-            mimetype: 'application/font-woff',
-          }
-        }
-      },
-      // TTF Font
-      {
-        test: /\.ttf(\?v=\d+\.\d+\.\d+)?$/,
-        use: {
-          loader: 'url-loader',
-          options: {
-            limit: 10000,
-            mimetype: 'application/octet-stream'
-          }
-        }
-      },
-      // EOT Font
-      {
-        test: /\.eot(\?v=\d+\.\d+\.\d+)?$/,
-        use: 'file-loader',
-      },
-      // SVG Font
+      // SVG
       {
         test: /\.svg(\?v=\d+\.\d+\.\d+)?$/,
-        use: {
-          loader: 'url-loader',
-          options: {
-            limit: 10000,
-            mimetype: 'image/svg+xml',
+        type: 'asset',
+        parser: {
+          dataUrlCondition: {
+            maxSize: 10 * 1024
           }
         }
       },
       // Common Image Formats
       {
         test: /\.(?:ico|gif|png|jpg|jpeg|webp)$/,
-        use: 'url-loader',
+        type: 'asset',
+        parser: {
+          dataUrlCondition: {
+            maxSize: 10 * 1024
+          }
+        }
       }
+    ]
+  },
+
+  optimization: {
+    minimize: true,
+    minimizer: [
+      new TerserPlugin({
+        parallel: true,
+        terserOptions: {
+          compress: { drop_console: false },
+          format: { comments: false }
+        },
+        extractComments: false
+      }),
+      new CssMinimizerPlugin()
     ]
   },
 
@@ -149,12 +145,9 @@ export default merge.smart(baseConfig, {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production')
     }),
 
-    /**
-     * Babli is an ES6+ aware minifier based on the Babel toolchain (beta)
-     */
-    new BabiliPlugin(),
-
-    new ExtractTextPlugin('style.css'),
+    new MiniCssExtractPlugin({
+      filename: 'style.css'
+    }),
 
     new BundleAnalyzerPlugin({
       analyzerMode: process.env.OPEN_ANALYZER === 'true' ? 'server' : 'disabled',

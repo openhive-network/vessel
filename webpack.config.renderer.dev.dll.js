@@ -2,15 +2,17 @@
  * Builds the DLL for development electron renderer process
  */
 
-import webpack from 'webpack';
-import path from 'path';
-import merge from 'webpack-merge';
-import baseConfig from './webpack.config.base';
-import { dependencies } from './package.json';
+const webpack = require('webpack');
+const path = require('path');
+const { merge } = require('webpack-merge');
+const baseConfig = require('./webpack.config.base');
+const { dependencies } = require('./package.json');
 
 const dist = path.resolve(process.cwd(), 'dll');
 
-export default merge.smart(baseConfig, {
+module.exports = merge(baseConfig, {
+  mode: 'development',
+
   context: process.cwd(),
 
   devtool: 'eval',
@@ -28,126 +30,87 @@ export default merge.smart(baseConfig, {
       {
         test: /\.global\.css$/,
         use: [
-          {
-            loader: 'style-loader'
-          },
+          'style-loader',
           {
             loader: 'css-loader',
             options: {
-              sourceMap: true,
-            },
+              sourceMap: true
+            }
           }
         ]
       },
       {
         test: /^((?!\.global).)*\.css$/,
         use: [
-          {
-            loader: 'style-loader'
-          },
+          'style-loader',
           {
             loader: 'css-loader',
             options: {
-              modules: true,
+              modules: {
+                localIdentName: '[name]__[local]__[hash:base64:5]'
+              },
               sourceMap: true,
-              importLoaders: 1,
-              localIdentName: '[name]__[local]__[hash:base64:5]',
+              importLoaders: 1
             }
-          },
+          }
         ]
       },
       // Add SASS support  - compile all .global.scss files and pipe it to style.css
       {
         test: /\.global\.scss$/,
         use: [
-          {
-            loader: 'style-loader'
-          },
+          'style-loader',
           {
             loader: 'css-loader',
             options: {
-              sourceMap: true,
-            },
+              sourceMap: true
+            }
           },
-          {
-            loader: 'sass-loader'
-          }
+          'sass-loader'
         ]
       },
       // Add SASS support  - compile all other .scss files and pipe it to style.css
       {
         test: /^((?!\.global).)*\.scss$/,
         use: [
-          {
-            loader: 'style-loader'
-          },
+          'style-loader',
           {
             loader: 'css-loader',
             options: {
-              modules: true,
+              modules: {
+                localIdentName: '[name]__[local]__[hash:base64:5]'
+              },
               sourceMap: true,
-              importLoaders: 1,
-              localIdentName: '[name]__[local]__[hash:base64:5]',
+              importLoaders: 1
             }
           },
-          {
-            loader: 'sass-loader'
-          }
+          'sass-loader'
         ]
       },
-      // WOFF Font
+      // Fonts - use asset modules
       {
-        test: /\.woff(\?v=\d+\.\d+\.\d+)?$/,
-        use: {
-          loader: 'url-loader',
-          options: {
-            limit: 10000,
-            mimetype: 'application/font-woff',
-          }
-        },
+        test: /\.(woff|woff2|eot|ttf|otf)$/i,
+        type: 'asset/resource'
       },
-      // WOFF2 Font
-      {
-        test: /\.woff2(\?v=\d+\.\d+\.\d+)?$/,
-        use: {
-          loader: 'url-loader',
-          options: {
-            limit: 10000,
-            mimetype: 'application/font-woff',
-          }
-        }
-      },
-      // TTF Font
-      {
-        test: /\.ttf(\?v=\d+\.\d+\.\d+)?$/,
-        use: {
-          loader: 'url-loader',
-          options: {
-            limit: 10000,
-            mimetype: 'application/octet-stream'
-          }
-        }
-      },
-      // EOT Font
-      {
-        test: /\.eot(\?v=\d+\.\d+\.\d+)?$/,
-        use: 'file-loader',
-      },
-      // SVG Font
+      // SVG
       {
         test: /\.svg(\?v=\d+\.\d+\.\d+)?$/,
-        use: {
-          loader: 'url-loader',
-          options: {
-            limit: 10000,
-            mimetype: 'image/svg+xml',
+        type: 'asset',
+        parser: {
+          dataUrlCondition: {
+            maxSize: 10 * 1024
           }
         }
       },
       // Common Image Formats
       {
         test: /\.(?:ico|gif|png|jpg|jpeg|webp)$/,
-        use: 'url-loader',
+        type: 'asset',
+        parser: {
+          dataUrlCondition: {
+            maxSize: 10 * 1024
+          }
+        }
       }
     ]
   },
@@ -159,11 +122,9 @@ export default merge.smart(baseConfig, {
   },
 
   entry: {
-    vendor: [
-      'babel-polyfill',
-      ...Object.keys(dependencies)
-    ]
-    .filter(dependency => dependency !== 'font-awesome'),
+    vendor: Object.keys(dependencies).filter(
+      (dep) => dep !== 'font-awesome' && dep !== 'fomantic-ui-css',
+    ),
   },
 
   output: {
@@ -191,15 +152,5 @@ export default merge.smart(baseConfig, {
     new webpack.DefinePlugin({
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
     }),
-
-    new webpack.LoaderOptionsPlugin({
-      debug: true,
-      options: {
-        context: path.resolve(process.cwd(), 'app'),
-        output: {
-          path: path.resolve(process.cwd(), 'dll'),
-        },
-      },
-    })
   ],
 });

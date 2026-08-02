@@ -1,7 +1,7 @@
 // @flow
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
-import { Redirect } from 'react-router';
+import { Navigate } from 'react-router';
 import { connect } from 'react-redux';
 import { Button, Header, Icon, Menu, Modal, Segment, Table } from 'semantic-ui-react';
 
@@ -76,7 +76,7 @@ class AccountsPage extends Component {
 
   render() {
     if (!this.props.keys.isUser) {
-      return <Redirect to="/" />;
+      return <Navigate to="/" replace />;
     }
     const { activeItem } = this.state;
     let modal = false;

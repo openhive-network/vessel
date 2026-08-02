@@ -1,7 +1,7 @@
 // @flow
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
-import { Redirect } from 'react-router';
+import { Navigate } from 'react-router';
 import { connect } from 'react-redux';
 import { Button, Table } from 'semantic-ui-react';
 
@@ -32,7 +32,7 @@ class DebugPage extends Component {
     const accounts = Object.keys(this.props.keys.permissions);
     const permissions = this.props.keys.permissions;
     if (!this.props.keys.isUser) {
-      return <Redirect to="/" />;
+      return <Navigate to="/" replace />;
     }
     return (
       <ContentBar>

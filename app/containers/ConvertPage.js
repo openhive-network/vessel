@@ -2,7 +2,7 @@
 import hive from "@hiveio/hive-js";
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
-import { Redirect } from 'react-router';
+import { Navigate } from 'react-router';
 import { connect } from 'react-redux';
 import MenuBar from './MenuBar';
 import ContentBar from '../components/ContentBar';
@@ -88,7 +88,7 @@ class ConvertPage extends Component {
     const errorLabel = <Label color="red" pointing />;
     let modal = false;
     if (!this.props.keys.isUser) {
-      return <Redirect to="/" />;
+      return <Navigate to="/" replace />;
     }
 
     if (this.state.modalPreview) {

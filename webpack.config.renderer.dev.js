@@ -7,17 +7,15 @@
  * https://webpack.js.org/concepts/hot-module-replacement/
  */
 
-import path from 'path';
-import fs from 'fs';
-import webpack from 'webpack';
-import chalk from 'chalk';
-import merge from 'webpack-merge';
-import { spawn, execSync } from 'child_process';
-import ExtractTextPlugin from 'extract-text-webpack-plugin';
-import baseConfig from './webpack.config.base';
+const path = require('path');
+const fs = require('fs');
+const webpack = require('webpack');
+const chalk = require('chalk');
+const { merge } = require('webpack-merge');
+const { spawn, execSync } = require('child_process');
+const baseConfig = require('./webpack.config.base');
 
 const port = process.env.PORT || 1212;
-const publicPath = `http://localhost:${port}/dist`;
 const dll = path.resolve(process.cwd(), 'dll');
 const manifest = path.resolve(dll, 'vendor.json');
 
@@ -31,20 +29,22 @@ if (!(fs.existsSync(dll) && fs.existsSync(manifest))) {
   execSync('npm run build-dll');
 }
 
-export default merge.smart(baseConfig, {
+module.exports = merge(baseConfig, {
+  mode: 'development',
+
   devtool: 'inline-source-map',
 
   target: 'electron-renderer',
 
   entry: [
-    'react-hot-loader/patch',
     `webpack-dev-server/client?http://localhost:${port}/`,
     'webpack/hot/only-dev-server',
-    path.join(__dirname, 'app/index.js'),
+    path.join(__dirname, 'app/index.tsx'),
   ],
 
   output: {
-    publicPath: `http://localhost:${port}/dist/`
+    publicPath: `http://localhost:${port}/dist/`,
+    filename: 'bundle.js'
   },
 
   module: {
@@ -52,126 +52,89 @@ export default merge.smart(baseConfig, {
       {
         test: /\.global\.css$/,
         use: [
-          {
-            loader: 'style-loader'
-          },
+          'style-loader',
           {
             loader: 'css-loader',
             options: {
               sourceMap: true,
-            },
+              url: false // Don't resolve data URLs in global CSS
+            }
           }
         ]
       },
       {
         test: /^((?!\.global).)*\.css$/,
         use: [
-          {
-            loader: 'style-loader'
-          },
+          'style-loader',
           {
             loader: 'css-loader',
             options: {
-              modules: true,
+              modules: {
+                localIdentName: '[name]__[local]__[hash:base64:5]'
+              },
               sourceMap: true,
-              importLoaders: 1,
-              localIdentName: '[name]__[local]__[hash:base64:5]',
+              importLoaders: 1
             }
-          },
+          }
         ]
       },
       // Add SASS support  - compile all .global.scss files and pipe it to style.css
       {
         test: /\.global\.scss$/,
         use: [
-          {
-            loader: 'style-loader'
-          },
+          'style-loader',
           {
             loader: 'css-loader',
             options: {
               sourceMap: true,
-            },
+              url: false // Don't resolve data URLs in global CSS
+            }
           },
-          {
-            loader: 'sass-loader'
-          }
+          'sass-loader'
         ]
       },
       // Add SASS support  - compile all other .scss files and pipe it to style.css
       {
         test: /^((?!\.global).)*\.scss$/,
         use: [
-          {
-            loader: 'style-loader'
-          },
+          'style-loader',
           {
             loader: 'css-loader',
             options: {
-              modules: true,
+              modules: {
+                localIdentName: '[name]__[local]__[hash:base64:5]'
+              },
               sourceMap: true,
-              importLoaders: 1,
-              localIdentName: '[name]__[local]__[hash:base64:5]',
+              importLoaders: 1
             }
           },
-          {
-            loader: 'sass-loader'
-          }
+          'sass-loader'
         ]
       },
-      // WOFF Font
+      // Fonts - use asset modules
       {
-        test: /\.woff(\?v=\d+\.\d+\.\d+)?$/,
-        use: {
-          loader: 'url-loader',
-          options: {
-            limit: 10000,
-            mimetype: 'application/font-woff',
-          }
-        },
+        test: /\.(woff|woff2|eot|ttf|otf)$/i,
+        type: 'asset/resource'
       },
-      // WOFF2 Font
-      {
-        test: /\.woff2(\?v=\d+\.\d+\.\d+)?$/,
-        use: {
-          loader: 'url-loader',
-          options: {
-            limit: 10000,
-            mimetype: 'application/font-woff',
-          }
-        }
-      },
-      // TTF Font
-      {
-        test: /\.ttf(\?v=\d+\.\d+\.\d+)?$/,
-        use: {
-          loader: 'url-loader',
-          options: {
-            limit: 10000,
-            mimetype: 'application/octet-stream'
-          }
-        }
-      },
-      // EOT Font
-      {
-        test: /\.eot(\?v=\d+\.\d+\.\d+)?$/,
-        use: 'file-loader',
-      },
-      // SVG Font
+      // SVG
       {
         test: /\.svg(\?v=\d+\.\d+\.\d+)?$/,
-        use: {
-          loader: 'url-loader',
-          options: {
-            limit: 10000,
-            mimetype: 'image/svg+xml',
+        type: 'asset',
+        parser: {
+          dataUrlCondition: {
+            maxSize: 10 * 1024
           }
         }
       },
       // Common Image Formats
       {
         test: /\.(?:ico|gif|png|jpg|jpeg|webp)$/,
-        use: 'url-loader',
+        type: 'asset',
+        parser: {
+          dataUrlCondition: {
+            maxSize: 10 * 1024
+          }
+        }
       }
     ]
   },
@@ -186,12 +149,7 @@ export default merge.smart(baseConfig, {
     /**
      * https://webpack.js.org/concepts/hot-module-replacement/
      */
-    new webpack.HotModuleReplacementPlugin({
-      // @TODO: Waiting on https://github.com/jantimon/html-webpack-plugin/issues/533
-      // multiStep: true
-    }),
-
-    new webpack.NoEmitOnErrorsPlugin(),
+    new webpack.HotModuleReplacementPlugin(),
 
     /**
      * Create global constants which can be configured at compile time.
@@ -208,45 +166,32 @@ export default merge.smart(baseConfig, {
     new webpack.DefinePlugin({
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
     }),
-
-    new webpack.LoaderOptionsPlugin({
-      debug: true
-    }),
-
-    new ExtractTextPlugin({
-      filename: '[name].css'
-    }),
   ],
 
   devServer: {
     port,
-    publicPath,
     compress: true,
-    noInfo: true,
-    stats: 'errors-only',
-    inline: true,
-    lazy: false,
     hot: true,
     headers: { 'Access-Control-Allow-Origin': '*' },
-    contentBase: path.join(__dirname, 'dist'),
-    watchOptions: {
-      aggregateTimeout: 300,
-      poll: 100
+    static: {
+      directory: path.join(__dirname, 'dist'),
+      publicPath: '/dist'
     },
     historyApiFallback: {
       verbose: true,
       disableDotRule: false,
     },
-    setup() {
+    setupMiddlewares(middlewares) {
       if (process.env.START_HOT) {
         spawn(
           'npm',
           ['run', 'start-hot-renderer'],
           { shell: true, env: process.env, stdio: 'inherit' }
         )
-        .on('close', code => process.exit(code))
-        .on('error', spawnError => console.error(spawnError));
+          .on('close', code => process.exit(code))
+          .on('error', spawnError => console.error(spawnError));
       }
+      return middlewares;
     }
   },
 });

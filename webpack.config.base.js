@@ -2,16 +2,16 @@
  * Base webpack config used across other specific configs
  */
 
-import path from 'path';
-import webpack from 'webpack';
-import { dependencies as externals } from './app/package.json';
+const path = require('path');
+const webpack = require('webpack');
+const { dependencies: externals } = require('./app/package.json');
 
-export default {
+module.exports = {
   externals: Object.keys(externals || {}),
 
   module: {
     rules: [{
-      test: /\.jsx?$/,
+      test: /\.(js|jsx|ts|tsx)$/,
       exclude: /node_modules/,
       use: {
         loader: 'babel-loader',
@@ -33,14 +33,21 @@ export default {
    * Determine the array of extensions that should be used to resolve modules.
    */
   resolve: {
-    extensions: ['.js', '.jsx', '.json'],
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
     modules: [
       path.join(__dirname, 'app'),
       'node_modules',
     ],
+    fallback: {
+      crypto: require.resolve('crypto-browserify'),
+      stream: require.resolve('stream-browserify'),
+      buffer: require.resolve('buffer/')
+    }
   },
 
   plugins: [
-    new webpack.NamedModulesPlugin(),
+    new webpack.ProvidePlugin({
+      Buffer: ['buffer', 'Buffer'],
+    }),
   ],
 };

@@ -40,6 +40,11 @@ This is enforced concretely, not by good intentions (full detail in D9's three-l
 
 **Migration is always read-old → write-new → verify → keep-old.** The legacy data and read path are retained for at least one release so any build can be rolled back without a user ever losing a key. Every change touching keys is gated on a round-trip test against a **real shipped-format profile** and requires a second reviewer.
 
+**Data-safety protocol (in force now, before any implementation):**
+- **Cold backup taken.** The entire live profile is archived read-only at `~/Vessel-Keystore-Backups/vessel-profile-<timestamp>.tar.gz` (SHA-256 recorded alongside; `chmod 444`). Restore: `tar xzf <archive> -C "$HOME/Library/Application Support"`. Re-take before every risky milestone (each Phase-1/Phase-3 keystore step). The backup lives outside the git repo and must **never** be committed.
+- **Dev/test builds never run against the real profile.** Point them at an isolated userData directory (Electron `--user-data-dir=` or `app.setPath('userData', …)` under a dev/test flag), or run against a *disposable copy* of the profile — so exercising the app can never mutate the originals. This is exactly the guard that was missing when the WIP wrote an empty `persist:root` into the live profile.
+- **The Phase-1 migration is built and tested against a copy**, never the original; the real profile is touched only by the shipped, reviewed, non-destructive migration.
+
 ### Headline decisions
 
 Fix the toolchain to a working baseline first (Phase 0), then fix the two live fires — at-rest key encryption and the HF28 authority-role selection that is failing broadcasts on mainnet today (Phase 1), migrate the build to electron-vite so the preload can finally compile (Phase 2), then harden Electron — context isolation, main-process key custody, and the URI signing gate — and stage the Electron upgrade (Phase 3), swap the Hive client to hive-tx behind a facade (Phase 4), and only then burn down the legacy backlog with Redux Toolkit (Phase 5). React 19 and the replacement of the discontinued Semantic UI ship last, together (Phase 7), because they gate each other. Every phase is independently shippable.

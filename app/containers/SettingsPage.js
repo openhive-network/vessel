@@ -3,12 +3,12 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { Navigate } from 'react-router';
 import { connect } from 'react-redux';
+import { Header, Segment } from 'semantic-ui-react';
 import Settings from '../components/Settings';
 import MenuBar from './MenuBar';
 import ContentBar from '../components/ContentBar';
 import * as AccountActions from '../actions/account';
 import * as PreferencesActions from '../actions/preferences';
-import { Header, Segment } from 'semantic-ui-react';
 
 class SettingsPage extends Component {
   render() {
@@ -35,16 +35,19 @@ function mapStateToProps(state) {
   return {
     account: state.account,
     keys: state.keys,
-    preferences: state.preferences
+    preferences: state.preferences,
   };
 }
 
 function mapDispatchToProps(dispatch) {
   return {
-    actions: bindActionCreators({
-      ...AccountActions,
-      ...PreferencesActions
-    }, dispatch)
+    actions: bindActionCreators(
+      {
+        ...AccountActions,
+        ...PreferencesActions,
+      },
+      dispatch
+    ),
   };
 }
 

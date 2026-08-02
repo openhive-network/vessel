@@ -8,100 +8,96 @@ import AccountName from '../global/AccountName';
 
 export default class AccountsCustomJSON extends Component {
   constructor(props) {
-    super(props)
+    super(props);
     this.state = {
       account: props.keys.names[0],
       id: '',
       json: '',
       message: false,
       permission: 'posting',
-    }
+    };
   }
 
   resetState(extraState) {
-    this.setState(Object.assign({}, {
+    this.setState({
       id: '',
-      json: ''
-    }, extraState))
+      json: '',
+      ...extraState,
+    });
   }
-
 
   handleIdChange = (e: SyntheticEvent, { value }: { value: any }) => {
     this.setState({
-      id: value
-    })
-  }
+      id: value,
+    });
+  };
 
   handleJsonChange = (e: SyntheticEvent, { value }: { value: any }) => {
     this.setState({
-      json: value.trim()
-    })
-  }
+      json: value.trim(),
+    });
+  };
 
   handleAccountChange = (e: SyntheticEvent, { value }: { value: any }) => {
     this.setState({
-      account: value
-    })
-  }
+      account: value,
+    });
+  };
 
   handlePermissionChange = (e: SyntheticEvent, { value }: { value: any }) => {
     this.setState({
-      permission: value
-    })
-  }
+      permission: value,
+    });
+  };
 
-  onValidSubmit = (
-    e: SyntheticEvent
-  ) => {
-    const { account, id, json, permission } = this.state
-    this.setState({message: false})
-    this.props.actions.useKey('customJson', { account, id, json, permission }, this.props.keys.permissions[account]);
-  }
+  onValidSubmit = (e: SyntheticEvent) => {
+    const { account, id, json, permission } = this.state;
+    this.setState({ message: false });
+    this.props.actions.useKey(
+      'customJson',
+      { account, id, json, permission },
+      this.props.keys.permissions[account]
+    );
+  };
 
-  componentWillReceiveProps = (nextProps) => {
+  componentWillReceiveProps(nextProps) {
     if (nextProps.processing.account_custom_json_resolved) {
       nextProps.actions.customJsonCompleted();
       this.resetState({
-        'message': 'Your transaction was successfully broadcast.'
+        message: 'Your transaction was successfully broadcast.',
       });
     }
   }
 
   render() {
-    const {
-      account_custom_json_error,
-      account_custom_json_pending,
-      account_custom_json_resolved
-    } = this.props.processing;
-    const keys = this.props.keys;
+    const { account_custom_json_error, account_custom_json_pending, account_custom_json_resolved } =
+      this.props.processing;
+    const { keys } = this.props;
     const availableFrom = keys.names.map((name) => {
-      const hasPermission = (keys.permissions[name].type === 'active' || keys.permissions[name].type === 'owner');
-      return hasPermission ? {
-        key: name,
-        text: name,
-        value: name
-      } : {
-        key: name,
-        disabled: true,
-        text: name + ' (unavailable - active/owner key not loaded)'
-      };
+      const hasPermission =
+        keys.permissions[name].type === 'active' || keys.permissions[name].type === 'owner';
+      return hasPermission
+        ? {
+            key: name,
+            text: name,
+            value: name,
+          }
+        : {
+            key: name,
+            disabled: true,
+            text: `${name} (unavailable - active/owner key not loaded)`,
+          };
     });
     const availablePermissions = ['active', 'posting'].map((permission) => ({
       key: permission,
       text: permission,
-      value: permission
-    }))
-    let message = false
-    if(this.state.message) {
-      message = (
-        <Message
-          success
-          header="Operation Complete"
-          content={this.state.message}
-        />
-      )
+      value: permission,
+    }));
+    let message = false;
+    if (this.state.message) {
+      message = <Message success header="Operation Complete" content={this.state.message} />;
     }
-    console.log(this.state)
+    console.log(this.state);
     return (
       <Segment basic padded>
         <Header>
@@ -114,7 +110,7 @@ export default class AccountsCustomJSON extends Component {
           onValidSubmit={this.onValidSubmit}
           error={account_custom_json_error}
           loading={account_custom_json_pending}
-          >
+        >
           <Form.Field
             control={Select}
             value={this.state.account}
@@ -147,16 +143,8 @@ export default class AccountsCustomJSON extends Component {
             onChange={this.handleJsonChange}
             placeholder=""
           />
-          <Message
-            error
-            header="Operation Error"
-            content={account_custom_json_error}
-          />
-          <Form.Button
-            color='blue'
-            content='Broadcast'
-            disabled={account_custom_json_pending}
-          />
+          <Message error header="Operation Error" content={account_custom_json_error} />
+          <Form.Button color="blue" content="Broadcast" disabled={account_custom_json_pending} />
         </Form>
       </Segment>
     );

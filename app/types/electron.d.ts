@@ -5,8 +5,14 @@ import 'electron';
 
 declare module 'electron' {
   interface IpcMain {
-    handle(channel: string, listener: (event: IpcMainInvokeEvent, ...args: any[]) => Promise<any> | any): void;
-    handleOnce(channel: string, listener: (event: IpcMainInvokeEvent, ...args: any[]) => Promise<any> | any): void;
+    handle(
+      channel: string,
+      listener: (event: IpcMainInvokeEvent, ...args: any[]) => Promise<any> | any
+    ): void;
+    handleOnce(
+      channel: string,
+      listener: (event: IpcMainInvokeEvent, ...args: any[]) => Promise<any> | any
+    ): void;
     removeHandler(channel: string): void;
   }
 

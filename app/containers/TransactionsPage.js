@@ -16,23 +16,22 @@ import * as KeysActions from '../actions/keys';
 import * as HiveActions from '../actions/hive';
 
 class TransactionsPage extends Component {
-
   render() {
     let account_data = (
-      <Dimmer inverted active style={{minHeight: '100px', display: 'block'}}>
-        <Loader size="large" content="Loading"/>
+      <Dimmer inverted active style={{ minHeight: '100px', display: 'block' }}>
+        <Loader size="large" content="Loading" />
       </Dimmer>
-    )
+    );
     if (!this.props.keys.isUser) {
       return <Navigate to="/" replace />;
-    } else {
-      account_data = (
-        <Segment basic attached>
-          <PendingRewards {...this.props} />
-          <Balances {...this.props} />
-        </Segment>
-      );
     }
+    account_data = (
+      <Segment basic attached>
+        <PendingRewards {...this.props} />
+        <Balances {...this.props} />
+      </Segment>
+    );
+
     return (
       <ContentBar>
         <Segment padded attached secondary>
@@ -55,18 +54,21 @@ function mapStateToProps(state) {
     account_data: state.account_data,
     keys: state.keys,
     processing: state.processing,
-    hive: state.hive
+    hive: state.hive,
   };
 }
 
 function mapDispatchToProps(dispatch) {
   return {
-    actions: bindActionCreators({
-      ...AccountActions,
-      ...KeysActions,
-      ...ProcessingActions,
-      ...HiveActions,
-    }, dispatch)
+    actions: bindActionCreators(
+      {
+        ...AccountActions,
+        ...KeysActions,
+        ...ProcessingActions,
+        ...HiveActions,
+      },
+      dispatch
+    ),
   };
 }
 

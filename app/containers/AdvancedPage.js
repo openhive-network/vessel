@@ -13,12 +13,11 @@ import MenuBar from './MenuBar';
 import ContentBar from '../components/ContentBar';
 
 class AccountsPage extends Component {
-
   state = {
-    activeItem: 'custom_json'
+    activeItem: 'custom_json',
   };
 
-  handleItemClick = (e, { name }) => this.setState({ activeItem: name })
+  handleItemClick = (e, { name }) => this.setState({ activeItem: name });
 
   render() {
     if (!this.props.keys.isUser) {
@@ -40,7 +39,8 @@ class AccountsPage extends Component {
             <Header.Content>
               Advanced Operations
               <Header.Subheader>
-                This section can be used to perform more advanced operations using the loaded accounts.
+                This section can be used to perform more advanced operations using the loaded
+                accounts.
               </Header.Subheader>
             </Header.Content>
           </Header>
@@ -66,17 +66,20 @@ function mapStateToProps(state) {
     account: state.account,
     keys: state.keys,
     processing: state.processing,
-    hive: state.hive
+    hive: state.hive,
   };
 }
 
 function mapDispatchToProps(dispatch) {
   return {
-    actions: bindActionCreators({
-      ...AccountActions,
-      ...KeyActions,
-      ...ProcessingActions,
-    }, dispatch)
+    actions: bindActionCreators(
+      {
+        ...AccountActions,
+        ...KeyActions,
+        ...ProcessingActions,
+      },
+      dispatch
+    ),
   };
 }
 

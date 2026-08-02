@@ -19,7 +19,6 @@ const defaultState = {
 };
 
 class PowerUpPrompt extends Component {
-
   constructor(props) {
     super(props);
     const name = props.targetAccount;
@@ -29,23 +28,26 @@ class PowerUpPrompt extends Component {
     this.state = {
       maximum: balance,
       balance,
-      ...defaultState
-     };
+      ...defaultState,
+    };
   }
 
   handlePreview = (e: SyntheticEvent) => {
-    this.setState({showPreview: true})
+    this.setState({ showPreview: true });
     e.preventDefault();
-  }
+  };
 
   componentDidUpdate(prevProps, prevState) {
-    if(prevProps.processing.account_power_up_resolved !== this.props.processing.account_power_up_resolved) {
-      if(this.props.processing.account_power_up_resolved) {
-        console.log("this.props.actions")
-        console.log(this.props.actions)
+    if (
+      prevProps.processing.account_power_up_resolved !==
+      this.props.processing.account_power_up_resolved
+    ) {
+      if (this.props.processing.account_power_up_resolved) {
+        console.log('this.props.actions');
+        console.log(this.props.actions);
         this.props.actions.powerUpCompleted();
         this.props.handleCancel();
-        this.setState({showPreview: false})
+        this.setState({ showPreview: false });
       }
     }
   }
@@ -53,44 +55,44 @@ class PowerUpPrompt extends Component {
   handleSubmit = (e: SyntheticEvent) => {
     const from_account = this.props.targetAccount;
     const to_account = this.state.to_account ? this.state.to_account : this.props.targetAccount;
-    const permissions = this.props.keys.permissions;
-    const hiveAmount = this.state.hiveAmount;
-    this.props.actions.useKey('powerUp', { from_account, to_account, hiveAmount }, permissions[from_account]);
+    const { permissions } = this.props.keys;
+    const { hiveAmount } = this.state;
+    this.props.actions.useKey(
+      'powerUp',
+      { from_account, to_account, hiveAmount },
+      permissions[from_account]
+    );
     e.preventDefault();
-  }
+  };
 
   handleCancel = (e: SyntheticEvent) => {
     // Reset to the default state
     this.state = defaultState;
-  }
+  };
 
   handleOnChange = (value) => {
     const hiveAmount = parseFloat(value).toFixed(3);
     // const props = this.props.hive.props;
     this.setState({ hiveAmount });
-  }
+  };
 
   handleOnChangeComplete = (value) => {
     const hiveAmount = parseFloat(value).toFixed(3);
     // const props = this.props.hive.props;
     this.setState({ hiveAmount });
-  }
+  };
 
   handleAccountChange = (event) => {
-    this.setState({to_account: event.target.value})
-  }
-
+    this.setState({ to_account: event.target.value });
+  };
 
   render() {
     const numberFormat = {
       shortFormat: true,
-      shortFormatMinValue: 1000
+      shortFormatMinValue: 1000,
     };
-    const {
-      account_power_up_error,
-      account_power_up_pending,
-      account_power_up_resolved
-    } = this.props.processing;
+    const { account_power_up_error, account_power_up_pending, account_power_up_resolved } =
+      this.props.processing;
     let prompt = false;
     if (this.state.hiveAmount) {
       prompt = !this.state.showPreview ? (
@@ -99,14 +101,8 @@ class PowerUpPrompt extends Component {
           open={!account_power_up_resolved}
           header="Power Up Account"
           content={
-            <Form
-              error={account_power_up_error}
-              loading={account_power_up_pending}
-            >
-              <Segment
-                padded
-                basic
-              >
+            <Form error={account_power_up_error} loading={account_power_up_pending}>
+              <Segment padded basic>
                 <Grid>
                   <Grid.Row columns={2}>
                     <Grid.Column>
@@ -114,7 +110,7 @@ class PowerUpPrompt extends Component {
                         <Header.Subheader>Power Up From</Header.Subheader>
                         <AccountName name={this.props.targetAccount} />
                         <Header.Subheader>Power Up To</Header.Subheader>
-                        {this.state.edit_account ? 
+                        {this.state.edit_account ? (
                           <Form>
                             <Form.Input
                               name="to_account"
@@ -122,20 +118,37 @@ class PowerUpPrompt extends Component {
                               onChange={this.handleAccountChange}
                               placeholder="Account to Power Up"
                             />
-                          </Form> :
-                          <AccountName name={this.state.to_account ? this.state.to_account : this.props.targetAccount} />}
-                          {!this.state.edit_account && <Button
+                          </Form>
+                        ) : (
+                          <AccountName
+                            name={
+                              this.state.to_account
+                                ? this.state.to_account
+                                : this.props.targetAccount
+                            }
+                          />
+                        )}
+                        {!this.state.edit_account && (
+                          <Button
                             icon="edit"
                             color="orange"
-                            style={{fontSize: '15px', padding: '8px 8px 8px 10px', marginLeft: '10px'}}
-                            onClick={() => {this.setState({edit_account: true})}}
-                            value={name} />}
+                            style={{
+                              fontSize: '15px',
+                              padding: '8px 8px 8px 10px',
+                              marginLeft: '10px',
+                            }}
+                            onClick={() => {
+                              this.setState({ edit_account: true });
+                            }}
+                            value={name}
+                          />
+                        )}
                       </Header>
                     </Grid.Column>
                     <Grid.Column>
                       <Header textAlign="center" color="green" size="large">
-                        <Header.Subheader>Power Up Amount</Header.Subheader>
-                        +<NumericLabel params={numberFormat}>{this.state.hiveAmount}</NumericLabel>
+                        <Header.Subheader>Power Up Amount</Header.Subheader>+
+                        <NumericLabel params={numberFormat}>{this.state.hiveAmount}</NumericLabel>
                         {' HIVE'}
                       </Header>
                     </Grid.Column>
@@ -152,14 +165,8 @@ class PowerUpPrompt extends Component {
                     onChangeComplete={this.handleOnChangeComplete}
                   />
                 </Segment>
-                <Message
-                  content="Drag the slider to adjust the amount of HIVE to power up as HP."
-                />
-                <Message
-                  error
-                  header='Operation Error'
-                  content={account_power_up_error}
-                />
+                <Message content="Drag the slider to adjust the amount of HIVE to power up as HP." />
+                <Message error header="Operation Error" content={account_power_up_error} />
               </Segment>
             </Form>
           }
@@ -170,7 +177,7 @@ class PowerUpPrompt extends Component {
               floated: 'left',
               color: 'red',
               onClick: this.props.handleCancel,
-              disabled: account_power_up_pending
+              disabled: account_power_up_pending,
             },
             {
               key: 'yes',
@@ -178,8 +185,8 @@ class PowerUpPrompt extends Component {
               content: 'Power Up',
               color: 'blue',
               onClick: this.handlePreview,
-              disabled: account_power_up_pending
-            }
+              disabled: account_power_up_pending,
+            },
           ]}
         />
       ) : (
@@ -188,14 +195,8 @@ class PowerUpPrompt extends Component {
           open
           header="Power Up Account"
           content={
-            <Form
-              error={account_power_up_error}
-              loading={account_power_up_pending}
-            >
-              <Segment
-                padded
-                basic
-              >
+            <Form error={account_power_up_error} loading={account_power_up_pending}>
+              <Segment padded basic>
                 <Grid>
                   <Grid.Row columns={2}>
                     <Grid.Column>
@@ -203,24 +204,24 @@ class PowerUpPrompt extends Component {
                         <Header.Subheader>Power Up From</Header.Subheader>
                         <AccountName name={this.props.targetAccount} />
                         <Header.Subheader>Power Up To</Header.Subheader>
-                        <AccountName name={this.state.to_account ? this.state.to_account : this.props.targetAccount} />
+                        <AccountName
+                          name={
+                            this.state.to_account ? this.state.to_account : this.props.targetAccount
+                          }
+                        />
                       </Header>
                     </Grid.Column>
                     <Grid.Column>
                       <Header textAlign="center" color="green" size="large">
-                        <Header.Subheader>Power Up Amount</Header.Subheader>
-                        +<NumericLabel params={numberFormat}>{this.state.hiveAmount}</NumericLabel>
+                        <Header.Subheader>Power Up Amount</Header.Subheader>+
+                        <NumericLabel params={numberFormat}>{this.state.hiveAmount}</NumericLabel>
                         {' HIVE'}
                       </Header>
                     </Grid.Column>
                   </Grid.Row>
                 </Grid>
                 <Divider />
-                <Message
-                  error
-                  header='Operation Error'
-                  content={account_power_up_error}
-                />
+                <Message error header="Operation Error" content={account_power_up_error} />
               </Segment>
             </Form>
           }
@@ -231,7 +232,7 @@ class PowerUpPrompt extends Component {
               floated: 'left',
               color: 'red',
               onClick: this.props.handleCancel,
-              disabled: account_power_up_pending
+              disabled: account_power_up_pending,
             },
             {
               key: 'yes',
@@ -239,8 +240,8 @@ class PowerUpPrompt extends Component {
               content: 'Confirm - Power Up',
               color: 'blue',
               onClick: this.handleSubmit,
-              disabled: account_power_up_pending
-            }
+              disabled: account_power_up_pending,
+            },
           ]}
         />
       );
@@ -253,16 +254,19 @@ function mapStateToProps(state) {
   return {
     account: state.account,
     keys: state.keys,
-    hive: state.hive
+    hive: state.hive,
   };
 }
 
 function mapDispatchToProps(dispatch) {
   return {
-    actions: bindActionCreators({
-      ...AccountActions,
-      ...KeysActions
-    }, dispatch)
+    actions: bindActionCreators(
+      {
+        ...AccountActions,
+        ...KeysActions,
+      },
+      dispatch
+    ),
   };
 }
 

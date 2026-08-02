@@ -1,9 +1,7 @@
 import hive from '@hiveio/hive-js';
 
 // Promisify callback-based API
-function promisify<T>(
-  fn: (callback: (err: Error | null, result: T) => void) => void
-): Promise<T> {
+function promisify<T>(fn: (callback: (err: Error | null, result: T) => void) => void): Promise<T> {
   return new Promise((resolve, reject) => {
     fn((err, result) => {
       if (err) reject(err);
@@ -37,19 +35,12 @@ export const hiveApi = {
   getWitnessesByVote: (from: string, limit: number): Promise<any[]> =>
     promisify((cb) => hive.api.getWitnessesByVote(from, limit, cb)),
 
-  getConfig: (): Promise<any> =>
-    promisify((cb) => hive.api.getConfig(cb)),
+  getConfig: (): Promise<any> => promisify((cb) => hive.api.getConfig(cb)),
 };
 
 // Broadcast Methods
 export const hiveBroadcast = {
-  transfer: (
-    wif: string,
-    from: string,
-    to: string,
-    amount: string,
-    memo: string
-  ): Promise<any> =>
+  transfer: (wif: string, from: string, to: string, amount: string, memo: string): Promise<any> =>
     promisify((cb) => hive.broadcast.transfer(wif, from, to, amount, memo, cb)),
 
   transferToSavings: (
@@ -79,9 +70,7 @@ export const hiveBroadcast = {
     delegatee: string,
     vests: string
   ): Promise<any> =>
-    promisify((cb) =>
-      hive.broadcast.delegateVestingShares(wif, delegator, delegatee, vests, cb)
-    ),
+    promisify((cb) => hive.broadcast.delegateVestingShares(wif, delegator, delegatee, vests, cb)),
 
   withdrawVesting: (wif: string, account: string, vests: string): Promise<any> =>
     promisify((cb) => hive.broadcast.withdrawVesting(wif, account, vests, cb)),
@@ -92,9 +81,7 @@ export const hiveBroadcast = {
     witness: string,
     approve: boolean
   ): Promise<any> =>
-    promisify((cb) =>
-      hive.broadcast.accountWitnessVote(wif, account, witness, approve, cb)
-    ),
+    promisify((cb) => hive.broadcast.accountWitnessVote(wif, account, witness, approve, cb)),
 
   accountWitnessProxy: (wif: string, account: string, proxy: string): Promise<any> =>
     promisify((cb) => hive.broadcast.accountWitnessProxy(wif, account, proxy, cb)),
@@ -119,9 +106,7 @@ export const hiveBroadcast = {
     requestId: number,
     amount: string
   ): Promise<any> =>
-    promisify((cb) =>
-      hive.broadcast.collateralizedConvert(wif, owner, requestId, amount, cb)
-    ),
+    promisify((cb) => hive.broadcast.collateralizedConvert(wif, owner, requestId, amount, cb)),
 
   customJson: (
     wif: string,
@@ -135,7 +120,7 @@ export const hiveBroadcast = {
     ),
 
   send: (operations: any[], keys: string[]): Promise<any> =>
-    promisify((cb) => hive.broadcast.send(operations, keys, cb))
+    promisify((cb) => hive.broadcast.send(operations, keys, cb)),
 };
 
 // Auth utilities
@@ -145,25 +130,24 @@ export const hiveAuth = {
   toWif: (name: string, password: string, type: string): string =>
     hive.auth.toWif(name, password, type),
   getPrivateKeys: (name: string, password: string, roles?: string[]): any =>
-    hive.auth.getPrivateKeys(name, password, roles)
+    hive.auth.getPrivateKeys(name, password, roles),
 };
 
 // Memo utilities
 export const hiveMemo = {
   encode: (privateKey: string, publicKey: string, message: string): string =>
     hive.memo.encode(privateKey, publicKey, message),
-  decode: (privateKey: string, encoded: string): string =>
-    hive.memo.decode(privateKey, encoded)
+  decode: (privateKey: string, encoded: string): string => hive.memo.decode(privateKey, encoded),
 };
 
 // Config utilities
 export const hiveConfig = {
   get: (key: string): string => hive.config.get(key),
-  set: (key: string, value: string): void => hive.config.set(key, value)
+  set: (key: string, value: string): void => hive.config.set(key, value),
 };
 
 // Formatter utilities
 export const hiveFormatter = {
   vestToHive: (vestingShares: any, totalVestingShares: any, totalVestingFundHive: any): number =>
-    hive.formatter.vestToHive(vestingShares, totalVestingShares, totalVestingFundHive)
+    hive.formatter.vestToHive(vestingShares, totalVestingShares, totalVestingFundHive),
 };

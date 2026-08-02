@@ -5,10 +5,10 @@ import * as AccountActions from './account';
 import {
   PROCESSING_ACCOUNT_LOADING,
   PROCESSING_ACCOUNT_LOADING_COMPLETE,
-  PROCESSING_ACCOUNT_LOADING_FAILED
+  PROCESSING_ACCOUNT_LOADING_FAILED,
 } from './processing';
 
-var CryptoJS = require("crypto-js");
+const CryptoJS = require('crypto-js');
 
 export const KEY_REMOVE_CANCEL = 'KEY_REMOVE_CANCEL';
 export const KEY_REMOVE_CONFIRM = 'KEY_REMOVE_CONFIRM';
@@ -35,22 +35,21 @@ export const KEY_ADD_PROMPT = 'KEY_ADD_PROMPT';
 export const KEY_CREATE_CANCEL = 'KEY_CREATE_CANCEL';
 export const KEY_CREATE_PROMPT = 'KEY_CREATE_PROMPT';
 
-
 export function addKey(account: string, wif: string) {
   const isValidKey = hive.auth.isWif(wif);
   if (isValidKey) {
     return (dispatch: () => void) => {
       dispatch({
-        type: PROCESSING_ACCOUNT_LOADING
+        type: PROCESSING_ACCOUNT_LOADING,
       });
       hive.api.getAccounts([account], (err, result) => {
         // Account not found
         if (err || !result.length) {
           dispatch({
-            type: KEY_ADD_FAILED_ACCOUNT_404
+            type: KEY_ADD_FAILED_ACCOUNT_404,
           });
           dispatch({
-            type: PROCESSING_ACCOUNT_LOADING_COMPLETE
+            type: PROCESSING_ACCOUNT_LOADING_COMPLETE,
           });
         }
         if (result && result.length) {
@@ -61,24 +60,24 @@ export function addKey(account: string, wif: string) {
             const payload = {
               account,
               wif,
-              active: (keyTypes.indexOf('active') !== -1),
-              posting: (keyTypes.indexOf('posting') !== -1),
-              owner: (keyTypes.indexOf('owner') !== -1)
+              active: keyTypes.indexOf('active') !== -1,
+              posting: keyTypes.indexOf('posting') !== -1,
+              owner: keyTypes.indexOf('owner') !== -1,
             };
             dispatch({
-              type: PROCESSING_ACCOUNT_LOADING_COMPLETE
+              type: PROCESSING_ACCOUNT_LOADING_COMPLETE,
             });
             dispatch({
               type: KEY_ADD_CONFIRM,
-              payload
+              payload,
             });
           } else {
             // Incorrect key for account
             dispatch({
-              type: PROCESSING_ACCOUNT_LOADING_COMPLETE
+              type: PROCESSING_ACCOUNT_LOADING_COMPLETE,
             });
             dispatch({
-              type: KEY_ADD_FAILED_WIF_INCORRECT
+              type: KEY_ADD_FAILED_WIF_INCORRECT,
             });
           }
         }
@@ -86,7 +85,7 @@ export function addKey(account: string, wif: string) {
     };
   }
   return {
-    type: KEY_ADD_FAILED_WIF_INVALID
+    type: KEY_ADD_FAILED_WIF_INVALID,
   };
 }
 
@@ -96,7 +95,7 @@ export function addKeyConfirmed(
   type: string,
   encrypted: boolean,
   password: string
-  ) {
+) {
   return (dispatch: () => void) => {
     let key = wif;
     const payload = {};
@@ -107,37 +106,37 @@ export function addKeyConfirmed(
       account,
       key,
       encrypted,
-      type
+      type,
     };
     dispatch({
       type: KEY_ADD_CONFIRMED,
-      payload
+      payload,
     });
   };
 }
 
 export function addKeyCancel() {
   return {
-    type: KEY_ADD_CANCEL
+    type: KEY_ADD_CANCEL,
   };
 }
 
 export function addKeyPrompt() {
   return {
-    type: KEY_ADD_PROMPT
+    type: KEY_ADD_PROMPT,
   };
 }
 
 export function createKeyPrompt() {
   return {
-    type: KEY_CREATE_PROMPT
-  }
+    type: KEY_CREATE_PROMPT,
+  };
 }
 
 export function createKeyCancel() {
   return {
-    type: KEY_CREATE_CANCEL
-  }
+    type: KEY_CREATE_CANCEL,
+  };
 }
 
 // Given an account and a keys
@@ -146,20 +145,20 @@ export function createKeyCancel() {
 export function useKeyRequestDecrypt(operation, params, auth) {
   return {
     type: KEY_USE_DECRYPT_PROMPT,
-    payload: { operation, params, auth }
+    payload: { operation, params, auth },
   };
 }
 
 export function useKeyRequestDecryptClose() {
   return {
-    type: KEY_USE_DECRYPT_PROMPT_CLOSE
+    type: KEY_USE_DECRYPT_PROMPT_CLOSE,
   };
 }
 
 export function useKey(operation, params, auth) {
   return (dispatch: () => void) => {
     if (auth.encrypted) {
-      const authEncrypted = Object.assign({}, auth);
+      const authEncrypted = { ...auth };
       dispatch(useKeyRequestDecrypt(operation, params, authEncrypted));
     } else {
       const callback = AccountActions[operation];
@@ -188,20 +187,20 @@ export function getKeyType(wif: string, account: object) {
 export function removeKey(account: string) {
   return {
     type: KEY_REMOVE_CONFIRM,
-    payload: account
+    payload: account,
   };
 }
 
 export function removeKeyConfirmed(account: string) {
   return {
     type: KEY_REMOVE_CONFIRMED,
-    payload: account
+    payload: account,
   };
 }
 
 export function removeKeyCancel() {
   return {
-    type: KEY_REMOVE_CANCEL
+    type: KEY_REMOVE_CANCEL,
   };
 }
 
@@ -215,11 +214,11 @@ export function addMemoKey(account: string, wif: string) {
           if (derivedKey === result[0].memo_key) {
             const payload = {
               account,
-              wif
+              wif,
             };
             dispatch({
               type: KEY_ADD_MEMO_CONFIRMED,
-              payload
+              payload,
             });
           } else {
             // Incorrect key for account
@@ -229,7 +228,7 @@ export function addMemoKey(account: string, wif: string) {
     };
   }
   return {
-    type: KEY_ADD_FAILED_WIF_INVALID
+    type: KEY_ADD_FAILED_WIF_INVALID,
   };
 }
 
@@ -240,28 +239,28 @@ export function addMemoKeyPrompt(account: string) {
         type: KEY_ADD_MEMO_PROMPT,
         payload: {
           account,
-          public: result[0].memo_key
-        }
+          public: result[0].memo_key,
+        },
       });
-    })
-  }
+    });
+  };
 }
 
 export function addMemoKeyConfirmed(payload) {
   return {
     type: KEY_ADD_MEMO_CONFIRMED,
-    payload
+    payload,
   };
 }
 
 export function addMemoKeyCancel() {
   return {
-    type: KEY_ADD_MEMO_CANCEL
+    type: KEY_ADD_MEMO_CANCEL,
   };
 }
 
 export function addAuth(account: string, wif: string) {
-  console.log("add auth")
+  console.log('add auth');
   const isValidKey = hive.auth.isWif(wif);
   if (isValidKey) {
     return (dispatch: () => void) => {
@@ -271,11 +270,11 @@ export function addAuth(account: string, wif: string) {
           if (derivedKey === result[0].memo_key) {
             const payload = {
               account,
-              wif
+              wif,
             };
             dispatch({
               type: KEY_ADD_AUTH_CONFIRMED,
-              payload
+              payload,
             });
           } else {
             // Incorrect key for account
@@ -296,22 +295,22 @@ export function addAuthPrompt(account: string) {
         type: KEY_ADD_AUTH_PROMPT,
         payload: {
           account,
-          public: result[0].memo_key
-        }
+          public: result[0].memo_key,
+        },
       });
-    })
-  }
+    });
+  };
 }
 
 export function addAuthConfirmed(payload) {
   return {
     type: KEY_ADD_AUTH_CONFIRMED,
-    payload
+    payload,
   };
 }
 
 export function addAuthCancel() {
   return {
-    type: KEY_ADD_AUTH_CANCEL
+    type: KEY_ADD_AUTH_CANCEL,
   };
 }

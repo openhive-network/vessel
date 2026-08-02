@@ -5,12 +5,10 @@ import { Button, Divider, Grid, Header, Segment, Statistic, Table } from 'semant
 
 export default class RecentTransactions extends Component {
   render() {
-    const transactions = this.props.transactions;
+    const { transactions } = this.props;
     const header = (
       <Table.Row>
-        <Table.Header>
-          Test
-        </Table.Header>
+        <Table.Header>Test</Table.Header>
       </Table.Row>
     );
     const items = [];
@@ -28,14 +26,8 @@ export default class RecentTransactions extends Component {
     // console.log(this.props)
     return (
       <Segment textAlign="left" attached>
-        <Header>
-          Recent Transactions
-        </Header>
-        <Table
-          unstackable
-          children={items}
-          headerRow={header}
-        />
+        <Header>Recent Transactions</Header>
+        <Table unstackable children={items} headerRow={header} />
       </Segment>
     );
   }

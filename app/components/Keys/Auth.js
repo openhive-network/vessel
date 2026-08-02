@@ -1,34 +1,42 @@
 // @flow
 import React, { Component } from 'react';
 import hive from '@hiveio/hive-js';
-import { Button, Checkbox, Divider, Form, Grid, Header, Message, Segment, Table, Radio } from 'semantic-ui-react';
+import {
+  Button,
+  Checkbox,
+  Divider,
+  Form,
+  Grid,
+  Header,
+  Message,
+  Segment,
+  Table,
+  Radio,
+} from 'semantic-ui-react';
 
 export default class KeysAuth extends Component {
   constructor(props) {
     super(props);
     this.state.public = this.props.keys.confirmMemo.public;
-    this.state.action = "add"; // "remove"
+    this.state.action = 'add'; // "remove"
     this.state.errors = this.validate(this.state);
   }
+
   state = {
     action: 'add',
     wif: '',
     errors: {
       wif_error_invalid: false,
       wif_not_valid: false,
-    }
-  }
+    },
+  };
 
-  handleChange = (
-    e: SyntheticEvent, { name, value }: { name: string, value: string }
-  ) => {
-    const newState = Object.assign({}, this.state, {
-      [name]: value
-    });
-    console.log({name,value})
+  handleChange = (e: SyntheticEvent, { name, value }: { name: string, value: string }) => {
+    const newState = { ...this.state, [name]: value };
+    console.log({ name, value });
     newState.errors = this.validate(newState);
     this.setState(newState);
-  }
+  };
 
   validate = (newState) => {
     const errors = {};
@@ -38,27 +46,27 @@ export default class KeysAuth extends Component {
       errors.wif_not_valid = false;
     }
     return errors;
-  }
+  };
 
   hasErrors = () => {
-    const errors = this.state.errors;
+    const { errors } = this.state;
     return !!Object.keys(errors).filter((error) => errors[error]).length;
-  }
+  };
 
   handleSubmit = (e: SyntheticEvent) => {
     e.preventDefault();
     const { addMemoKey } = this.props.actions;
     const { action, wif } = this.state;
     // addMemoKey(action, wif);
-  }
+  };
 
   render() {
     const { action, wif } = this.state;
-    const errors = this.state.errors;
+    const { errors } = this.state;
     const hasErrors = this.hasErrors();
     const messages = {
       wif_error_invalid: 'They WIF Private Key you have is not valid.',
-      wif_not_valid: 'The WIF Private Key does not match the memo key of this account.'
+      wif_not_valid: 'The WIF Private Key does not match the memo key of this account.',
     };
     let handleMethodReset = false;
     if (this.props.handleMethodReset) {
@@ -82,15 +90,9 @@ export default class KeysAuth extends Component {
       if (errors.wif_error_invalid) {
         message = messages.wif_error_invalid;
       }
-      warning = (
-        <Message
-          error
-          icon="warning"
-          content={message}
-        />
-      );
+      warning = <Message error icon="warning" content={message} />;
     }
-    let display = (
+    const display = (
       <Segment padded>
         <Message
           error
@@ -103,44 +105,42 @@ export default class KeysAuth extends Component {
           </Header.Subheader>
         </Header>
         <Divider hidden />
-        <Form
-          error={hasErrors}
-        >
+        <Form error={hasErrors}>
           <Grid divided>
             <Grid.Row>
               <Grid.Column width={16}>
                 <Form.Field>
                   <Radio
-                    label='Add'
-                    name='action'
-                    value='add'
+                    label="Add"
+                    name="action"
+                    value="add"
                     checked={this.state.action === 'add'}
                     onChange={this.handleChange}
                   />
                 </Form.Field>
                 <Form.Field>
                   <Radio
-                    label='Remove'
-                    name='action'
-                    value='remove'
+                    label="Remove"
+                    name="action"
+                    value="remove"
                     checked={this.state.action === 'remove'}
                     onChange={this.handleChange}
                   />
                 </Form.Field>
                 <Form.Field>
                   <Radio
-                    label='Key'
-                    name='type'
-                    value='key'
+                    label="Key"
+                    name="type"
+                    value="key"
                     checked={this.state.type === 'key'}
                     onChange={this.handleChange}
                   />
                 </Form.Field>
                 <Form.Field>
                   <Radio
-                    label='Account'
-                    name='type'
-                    value='account'
+                    label="Account"
+                    name="type"
+                    value="account"
                     checked={this.state.type === 'account'}
                     onChange={this.handleChange}
                   />

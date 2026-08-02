@@ -3,23 +3,20 @@ import React, { Component } from 'react';
 
 import { Button, Header, Modal, Segment, Table } from 'semantic-ui-react';
 
-const servers = [
-  'https://api.hive.blog',
-];
+const servers = ['https://api.hive.blog'];
 
 export default class ServerSelect extends Component {
-
   state = {
     loading: false,
     open: false,
-    servers: {}
-  }
+    servers: {},
+  };
 
   startStatus = () => {
-    this.setState({open: true});
+    this.setState({ open: true });
     this.interval = setInterval(this.checkStatus.bind(this), 15000);
     this.checkStatus();
-  }
+  };
 
   componentWillUnmount() {
     clearInterval(this.interval);
@@ -28,7 +25,7 @@ export default class ServerSelect extends Component {
   stopStatus = () => {
     clearInterval(this.interval);
     this.setState({ loading: false, open: false });
-  }
+  };
 
   selectServer = (e, data) => {
     const server = data.value;
@@ -37,7 +34,7 @@ export default class ServerSelect extends Component {
     this.setState({ loading: true, open: false });
     setPreference('hived_node', server);
     refreshGlobalProps();
-  }
+  };
 
   checkStatus = () => {
     servers.forEach((server) => {
@@ -50,68 +47,50 @@ export default class ServerSelect extends Component {
         //   servers[server.replace('wss', 'https')] = props.time;
         //   this.setState({servers});
         // });
-      } catch(e) {
-        console.log(e)
+      } catch (e) {
+        console.log(e);
       }
-    })
-  }
+    });
+  };
 
   render() {
     const { name } = this.props;
     const { servers } = this.state;
-    const current = Object.keys(servers).map((server) => {
-      return (
-        <Table.Row>
-          <Table.Cell>
-            {server}
-          </Table.Cell>
-          <Table.Cell>
-            {servers[server]}
-          </Table.Cell>
-          <Table.Cell collapsing>
-            <Button primary onClick={this.selectServer} value={server}>
-              Connect
-            </Button>
-          </Table.Cell>
-        </Table.Row>
-      );
-    });
+    const current = Object.keys(servers).map((server) => (
+      <Table.Row>
+        <Table.Cell>{server}</Table.Cell>
+        <Table.Cell>{servers[server]}</Table.Cell>
+        <Table.Cell collapsing>
+          <Button primary onClick={this.selectServer} value={server}>
+            Connect
+          </Button>
+        </Table.Cell>
+      </Table.Row>
+    ));
     return (
       <Modal
-        closeIcon={true}
+        closeIcon
         color="black"
         size="large"
         loading={this.state.loading}
         onOpen={this.startStatus}
         onClose={this.stopStatus}
         open={this.state.open}
-        trigger={
-          <Button floated="right" color="red" content="Change Servers"/>
-        }
-        >
-          <Header attached="top">
-            Select a Hive server to connect to:
-          </Header>
-          <Segment loading={this.state.loading}>
-            <Table attached="bottom">
-              <Table.Header>
-                <Table.Row>
-                  <Table.HeaderCell>
-                    Server
-                  </Table.HeaderCell>
-                  <Table.HeaderCell>
-                    Last Block
-                  </Table.HeaderCell>
-                  <Table.HeaderCell>
-                    Controls
-                  </Table.HeaderCell>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {current}
-              </Table.Body>
-            </Table>
-          </Segment>
+        trigger={<Button floated="right" color="red" content="Change Servers" />}
+      >
+        <Header attached="top">Select a Hive server to connect to:</Header>
+        <Segment loading={this.state.loading}>
+          <Table attached="bottom">
+            <Table.Header>
+              <Table.Row>
+                <Table.HeaderCell>Server</Table.HeaderCell>
+                <Table.HeaderCell>Last Block</Table.HeaderCell>
+                <Table.HeaderCell>Controls</Table.HeaderCell>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>{current}</Table.Body>
+          </Table>
+        </Segment>
       </Modal>
     );
   }

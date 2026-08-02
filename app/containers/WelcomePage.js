@@ -6,15 +6,11 @@ import Welcome from '../components/Welcome';
 import * as KeyActions from '../actions/keys';
 import * as PreferencesActions from '../actions/preferences';
 
-
 class WelcomePage extends Component {
-
   render() {
     return (
       <div>
-        <Welcome
-          {... this.props}
-        />
+        <Welcome {...this.props} />
       </div>
     );
   }
@@ -25,16 +21,19 @@ function mapStateToProps(state) {
     account: state.account,
     keys: state.keys,
     processing: state.processing,
-    preferences: state.preferences
+    preferences: state.preferences,
   };
 }
 
 function mapDispatchToProps(dispatch) {
   return {
-    actions: bindActionCreators({
-      ...KeyActions,
-      ...PreferencesActions
-    }, dispatch)
+    actions: bindActionCreators(
+      {
+        ...KeyActions,
+        ...PreferencesActions,
+      },
+      dispatch
+    ),
   };
 }
 

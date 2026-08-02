@@ -20,12 +20,15 @@ import ConvertPage from './containers/ConvertPage';
 import DecryptPrompt from './containers/DecryptPrompt';
 
 const isURL = (str: string): boolean => {
-  const pattern = new RegExp('^(https?:\\/\\/)?' // protocol
-    + '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.?)+[a-z]{2,}|' // domain name
-    + '((\\d{1,3}\\.){3}\\d{1,3}))' // OR ip (v4) address
-    + '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' // port and path
-    + '(\\?[;&a-z\\d%_.~+=-]*)?' // query string
-    + '(\\#[-a-z\\d_]*)?$', 'i'); // fragment locator
+  const pattern = new RegExp(
+    '^(https?:\\/\\/)?' + // protocol
+      '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.?)+[a-z]{2,}|' + // domain name
+      '((\\d{1,3}\\.){3}\\d{1,3}))' + // OR ip (v4) address
+      '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // port and path
+      '(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
+      '(\\#[-a-z\\d_]*)?$',
+    'i'
+  ); // fragment locator
   return pattern.test(str);
 };
 
@@ -87,10 +90,7 @@ const AppRoutes: React.FC = () => {
     <AppContainer>
       <DecryptPrompt />
       <Routes>
-        <Route
-          path="/"
-          element={keys?.isUser ? <TransactionsPage /> : <WelcomePage />}
-        />
+        <Route path="/" element={keys?.isUser ? <TransactionsPage /> : <WelcomePage />} />
         <Route path="/transactions" element={<TransactionsPage />} />
         <Route path="/debug" element={<DebugPage />} />
         <Route path="/send" element={<SendPage />} />

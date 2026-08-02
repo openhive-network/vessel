@@ -13,20 +13,24 @@ import MenuBar from './MenuBar';
 import ContentBar from '../components/ContentBar';
 
 class SendPage extends Component {
-
   state = {
-    intervalId: 0
+    intervalId: 0,
   };
 
   componentDidMount() {
     // this.interval = setInterval(this.timer.bind(this), 10000);
     // this.props.actions.refreshAccountData(this.props.keys.names);
   }
-  componentWillUnmount() { clearInterval(this.interval); }
-  timer = () => { this.props.actions.refreshAccountData(this.props.keys.names); }
+
+  componentWillUnmount() {
+    clearInterval(this.interval);
+  }
+
+  timer = () => {
+    this.props.actions.refreshAccountData(this.props.keys.names);
+  };
 
   interval = 0;
-
 
   render() {
     if (!this.props.keys.isUser) {
@@ -56,17 +60,20 @@ function mapStateToProps(state) {
     keys: state.keys,
     hive: state.hive,
     preferences: state.preferences,
-    processing: state.processing
+    processing: state.processing,
   };
 }
 
 function mapDispatchToProps(dispatch) {
   return {
-    actions: bindActionCreators({
-      ...AccountActions,
-      ...KeysActions,
-      ...ProcessingActions
-    }, dispatch)
+    actions: bindActionCreators(
+      {
+        ...AccountActions,
+        ...KeysActions,
+        ...ProcessingActions,
+      },
+      dispatch
+    ),
   };
 }
 

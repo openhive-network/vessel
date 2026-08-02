@@ -3,11 +3,11 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Modal, Segment } from 'semantic-ui-react';
-import { Form, Input } from 'formsy-semantic-ui-react'
+import { Form, Input } from 'formsy-semantic-ui-react';
 
 import * as KeysActions from '../actions/keys';
 
-var CryptoJS = require("crypto-js");
+const CryptoJS = require('crypto-js');
 
 const defaultState = {
   password: '',
@@ -15,7 +15,6 @@ const defaultState = {
 };
 
 class DecryptPrompt extends Component {
-
   constructor(props) {
     super(props);
     this.state = defaultState;
@@ -25,7 +24,7 @@ class DecryptPrompt extends Component {
     if (this.state.decrypted && e.key == 'Enter') {
       this.handleSubmit(e);
     }
-  }
+  };
 
   handlePasswordChange = (e: SyntheticEvent, { value }: { value: string }) => {
     const { from } = this.state;
@@ -33,9 +32,9 @@ class DecryptPrompt extends Component {
     const decrypted = this.decryptKey(key, value);
     this.setState({
       password: value,
-      decrypted: decrypted
+      decrypted,
     });
-  }
+  };
 
   handleSubmit = (e: SyntheticEvent) => {
     const { operation, params, auth } = this.props.keys.decrypt;
@@ -44,21 +43,21 @@ class DecryptPrompt extends Component {
     // Extract the WIF key
     const decrypted = this.decryptKey(key, password);
     // Modify the auth information with the unencrypted information
-    auth['encrypted'] = false;
-    auth['key'] = decrypted;
+    auth.encrypted = false;
+    auth.key = decrypted;
     // Reissue the action with the unencrypted auth information
     this.props.actions.useKey(operation, params, auth);
     // Reset to the default state
     this.state = defaultState;
     e.preventDefault();
-  }
+  };
 
   handleCancel = (e: SyntheticEvent) => {
     // Close the prompt
     this.props.actions.useKeyRequestDecryptClose();
     // Reset to the default state
     this.state = defaultState;
-  }
+  };
 
   decryptKey(wif: string, password: string) {
     try {
@@ -75,7 +74,7 @@ class DecryptPrompt extends Component {
 
   render() {
     let prompt = false;
-    const decrypt = this.props.keys.decrypt;
+    const { decrypt } = this.props.keys;
     if (decrypt) {
       prompt = (
         <Modal
@@ -86,7 +85,8 @@ class DecryptPrompt extends Component {
           content={
             <Segment padded basic>
               <p>
-                The wallet requested is encrypted locally. Please type your wallet password to broadcast the transaction to the blockchain.
+                The wallet requested is encrypted locally. Please type your wallet password to
+                broadcast the transaction to the blockchain.
               </p>
               <Form>
                 <Input
@@ -108,7 +108,7 @@ class DecryptPrompt extends Component {
               content: 'Cancel Operation',
               floated: 'left',
               color: 'red',
-              onClick: this.handleCancel
+              onClick: this.handleCancel,
             },
             {
               key: 'yes',
@@ -116,8 +116,8 @@ class DecryptPrompt extends Component {
               content: 'Unlock + Broadcast',
               color: 'purple',
               onClick: this.handleSubmit,
-              disabled: !this.state.decrypted
-            }
+              disabled: !this.state.decrypted,
+            },
           ]}
         />
       );
@@ -128,15 +128,18 @@ class DecryptPrompt extends Component {
 
 function mapStateToProps(state) {
   return {
-    keys: state.keys
+    keys: state.keys,
   };
 }
 
 function mapDispatchToProps(dispatch) {
   return {
-    actions: bindActionCreators({
-      ...KeysActions
-    }, dispatch)
+    actions: bindActionCreators(
+      {
+        ...KeysActions,
+      },
+      dispatch
+    ),
   };
 }
 

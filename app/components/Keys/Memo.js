@@ -1,7 +1,17 @@
 // @flow
 import React, { Component } from 'react';
 import hive from '@hiveio/hive-js';
-import { Button, Checkbox, Divider, Form, Grid, Header, Message, Segment, Table } from 'semantic-ui-react';
+import {
+  Button,
+  Checkbox,
+  Divider,
+  Form,
+  Grid,
+  Header,
+  Message,
+  Segment,
+  Table,
+} from 'semantic-ui-react';
 
 export default class KeysMemo extends Component {
   constructor(props) {
@@ -10,24 +20,21 @@ export default class KeysMemo extends Component {
     this.state.public = this.props.keys.confirmMemo.public;
     this.state.errors = this.validate(this.state);
   }
+
   state = {
     account: '',
     wif: '',
     errors: {
       wif_error_invalid: false,
       wif_not_valid: false,
-    }
-  }
+    },
+  };
 
-  handleChange = (
-    e: SyntheticEvent, { name, value }: { name: string, value: string }
-  ) => {
-    const newState = Object.assign({}, this.state, {
-      [name]: value
-    });
+  handleChange = (e: SyntheticEvent, { name, value }: { name: string, value: string }) => {
+    const newState = { ...this.state, [name]: value };
     newState.errors = this.validate(newState);
     this.setState(newState);
-  }
+  };
 
   validate = (newState) => {
     const errors = {};
@@ -37,27 +44,27 @@ export default class KeysMemo extends Component {
       errors.wif_not_valid = false;
     }
     return errors;
-  }
+  };
 
   hasErrors = () => {
-    const errors = this.state.errors;
+    const { errors } = this.state;
     return !!Object.keys(errors).filter((error) => errors[error]).length;
-  }
+  };
 
   handleSubmit = (e: SyntheticEvent) => {
     e.preventDefault();
     const { addMemoKey } = this.props.actions;
     const { account, wif } = this.state;
     addMemoKey(account, wif);
-  }
+  };
 
   render() {
     const { account, wif } = this.state;
-    const errors = this.state.errors;
+    const { errors } = this.state;
     const hasErrors = this.hasErrors();
     const messages = {
       wif_error_invalid: 'They WIF Private Key you have is not valid.',
-      wif_not_valid: 'The WIF Private Key does not match the memo key of this account.'
+      wif_not_valid: 'The WIF Private Key does not match the memo key of this account.',
     };
     let handleMethodReset = false;
     if (this.props.handleMethodReset) {
@@ -81,15 +88,9 @@ export default class KeysMemo extends Component {
       if (errors.wif_error_invalid) {
         message = messages.wif_error_invalid;
       }
-      warning = (
-        <Message
-          error
-          icon="warning"
-          content={message}
-        />
-      );
+      warning = <Message error icon="warning" content={message} />;
     }
-    let display = (
+    const display = (
       <Segment padded>
         <Message
           error
@@ -98,13 +99,12 @@ export default class KeysMemo extends Component {
         />
         <Header>
           <Header.Subheader>
-            If you'd like to encrypt transaction memos from this account, please add the memo private key associated to the specified account:
+            If you'd like to encrypt transaction memos from this account, please add the memo
+            private key associated to the specified account:
           </Header.Subheader>
         </Header>
         <Divider hidden />
-        <Form
-          error={hasErrors}
-        >
+        <Form error={hasErrors}>
           <Grid divided>
             <Grid.Row>
               <Grid.Column width={16}>

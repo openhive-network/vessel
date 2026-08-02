@@ -4,7 +4,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import InputRange from 'react-input-range';
 import { Checkbox, Divider, Message, Modal, Segment } from 'semantic-ui-react';
-import { Form, Input } from 'formsy-semantic-ui-react'
+import { Form, Input } from 'formsy-semantic-ui-react';
 
 import * as KeysActions from '../../actions/keys';
 
@@ -15,52 +15,55 @@ const defaultState = {
 };
 
 class PowerDownDestinationPrompt extends Component {
-
   state = {
     target: '',
     percent: 100,
-    autoVest: false
-  }
+    autoVest: false,
+  };
 
   handleKeyUp = (e) => {
     if (this.state.decrypted && e.key === 'Enter') {
       this.handleSubmit(e);
     }
-  }
+  };
 
   handleSubmit = (e: SyntheticEvent) => {
     const account = this.props.targetAccount;
-    const permissions = this.props.keys.permissions;
+    const { permissions } = this.props.keys;
     const { autoVest, target, percent } = this.state;
-    this.props.actions.useKey('setWithdrawVestingRoute', { account, target, percent, autoVest }, permissions[account]);
+    this.props.actions.useKey(
+      'setWithdrawVestingRoute',
+      { account, target, percent, autoVest },
+      permissions[account]
+    );
     e.preventDefault();
-  }
+  };
 
   handleCancel = () => {
     this.state = defaultState;
-  }
+  };
 
   handleChange = (e, props) => {
     const newState = {};
     newState[props.name] = props.checked || props.value;
     this.setState(newState);
-  }
+  };
 
   handleCheckboxChange = (e, props) => {
     const newState = {};
-    newState[props.name] = (props.checked);
+    newState[props.name] = props.checked;
     this.setState(newState);
-  }
+  };
 
   handleSliderChange = (value) => {
     this.setState({ percent: value });
-  }
+  };
 
   render() {
     const {
       account_set_withdraw_vesting_route_error,
       account_set_withdraw_vesting_route_pending,
-      account_set_withdraw_vesting_route_resolved
+      account_set_withdraw_vesting_route_resolved,
     } = this.props.processing;
     return (
       <Modal
@@ -72,10 +75,7 @@ class PowerDownDestinationPrompt extends Component {
             error={account_set_withdraw_vesting_route_error}
             loading={account_set_withdraw_vesting_route_pending}
           >
-            <Segment
-              padded
-              basic
-            >
+            <Segment padded basic>
               <Segment basic padded clearing attached="top">
                 <Input
                   label="Destination Account"
@@ -120,7 +120,7 @@ class PowerDownDestinationPrompt extends Component {
             floated: 'left',
             color: 'red',
             onClick: this.props.handleCancel,
-            disabled: account_set_withdraw_vesting_route_pending
+            disabled: account_set_withdraw_vesting_route_pending,
           },
           {
             key: 'yes',
@@ -128,8 +128,8 @@ class PowerDownDestinationPrompt extends Component {
             content: 'Set Withdraw Route',
             color: 'blue',
             onClick: this.handleSubmit,
-            disabled: account_set_withdraw_vesting_route_pending
-          }
+            disabled: account_set_withdraw_vesting_route_pending,
+          },
         ]}
       />
     );
@@ -139,15 +139,18 @@ class PowerDownDestinationPrompt extends Component {
 function mapStateToProps(state) {
   return {
     account: state.account,
-    keys: state.keys
+    keys: state.keys,
   };
 }
 
 function mapDispatchToProps(dispatch) {
   return {
-    actions: bindActionCreators({
-      ...KeysActions
-    }, dispatch)
+    actions: bindActionCreators(
+      {
+        ...KeysActions,
+      },
+      dispatch
+    ),
   };
 }
 

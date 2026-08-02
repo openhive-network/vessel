@@ -30,14 +30,11 @@ if (process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true')
 const installExtensions = async () => {
   const installer = require('electron-devtools-installer');
   const forceDownload = !!process.env.UPGRADE_EXTENSIONS;
-  const extensions = [
-    'REACT_DEVELOPER_TOOLS',
-    'REDUX_DEVTOOLS'
-  ];
+  const extensions = ['REACT_DEVELOPER_TOOLS', 'REDUX_DEVTOOLS'];
 
-  return Promise
-    .all(extensions.map(name => installer.default(installer[name], forceDownload)))
-    .catch(console.log);
+  return Promise.all(
+    extensions.map((name) => installer.default(installer[name], forceDownload))
+  ).catch(console.log);
 };
 
 const singleInstance = app.requestSingleInstanceLock();
@@ -73,8 +70,8 @@ async function createWindow() {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
-      preload: path.join(__dirname, 'preload.js')
-    }
+      preload: path.join(__dirname, 'preload.js'),
+    },
   });
 
   mainWindow.loadURL(`file://${__dirname}/app.html`);
@@ -107,7 +104,10 @@ async function createWindow() {
   menuBuilder.buildMenu();
 }
 
-async function createPrompt(event: { preventDefault: () => void } | null, url: string | string[] | undefined) {
+async function createPrompt(
+  event: { preventDefault: () => void } | null,
+  url: string | string[] | undefined
+) {
   if (process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true') {
     await installExtensions();
   }
@@ -124,8 +124,8 @@ async function createPrompt(event: { preventDefault: () => void } | null, url: s
     height: 600,
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false
-    }
+      contextIsolation: false,
+    },
   });
 
   const urlString = Array.isArray(url) ? url[0] : url;
@@ -152,7 +152,9 @@ async function createPrompt(event: { preventDefault: () => void } | null, url: s
       if (metamatch) {
         base64encodedmeta = metamatch[1];
       }
-      promptWindow.loadURL(`file://${__dirname}/app.html?type=sign&action=promptOperation&ops=${base64encoded}&meta=${base64encodedmeta}`);
+      promptWindow.loadURL(
+        `file://${__dirname}/app.html?type=sign&action=promptOperation&ops=${base64encoded}&meta=${base64encodedmeta}`
+      );
     }
   }
 }

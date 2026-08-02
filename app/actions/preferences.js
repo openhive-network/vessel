@@ -8,7 +8,7 @@ export function setPreference(key: string, value: string) {
     type: SET_PREFERENCE,
     payload: {
       key,
-      value
-    }
+      value,
+    },
   };
 }

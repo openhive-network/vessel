@@ -13,37 +13,37 @@ export const PROCESSING_ACCOUNT_CREATE_FAILED = 'PROCESSING_ACCOUNT_CREATE_FAILE
 
 export function processingRewardClaim() {
   return {
-    type: PROCESSING_REWARD_CLAIM
+    type: PROCESSING_REWARD_CLAIM,
   };
 }
 
 export function processingRewardClaimComplete() {
   return {
-    type: PROCESSING_REWARD_CLAIM_COMPLETE
+    type: PROCESSING_REWARD_CLAIM_COMPLETE,
   };
 }
 
 export function processingAccountCreate() {
   return {
-    type: PROCESSING_ACCOUNT_CREATE
+    type: PROCESSING_ACCOUNT_CREATE,
   };
 }
 
 export function processingAccountCreateCancel() {
   return {
-    type: PROCESSING_ACCOUNT_CREATE_CANCEL
+    type: PROCESSING_ACCOUNT_CREATE_CANCEL,
   };
 }
 
 export function processingAccountCreateComplete() {
   return {
-    type: PROCESSING_ACCOUNT_CREATE_COMPLETE
+    type: PROCESSING_ACCOUNT_CREATE_COMPLETE,
   };
 }
 
 export function processingAccountCreateFailed(payload) {
   return {
     type: PROCESSING_ACCOUNT_CREATE_FAILED,
-    payload
+    payload,
   };
 }

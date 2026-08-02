@@ -4,13 +4,14 @@ import type { Children } from 'react';
 
 export default class ContentBar extends Component {
   props: {
-    children: Children
+    children: Children,
   };
+
   render() {
     return (
       <div
         style={{
-          marginLeft: '92px'
+          marginLeft: '92px',
         }}
       >
         {this.props.children}

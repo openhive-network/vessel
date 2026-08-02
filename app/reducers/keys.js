@@ -22,122 +22,85 @@ import {
   KEY_ADD_AUTH_CONFIRMED,
   KEY_ADD_PROMPT,
   KEY_CREATE_CANCEL,
-  KEY_CREATE_PROMPT
+  KEY_CREATE_PROMPT,
 } from '../actions/keys';
 
 const defaultState = {
   names: [],
-  permissions: {}
+  permissions: {},
 };
 
 type actionType = {
   type: string,
-  payload: any
+  payload: any,
 };
 
 export default function keys(state: any = defaultState, action: actionType) {
   // console.log('>>> reducers/account', state, action);
   switch (action.type) {
     case KEY_ADD_PROMPT: {
-      return Object.assign({}, state, {
-        addPrompt: true
-      });
+      return { ...state, addPrompt: true };
     }
     case KEY_ADD_CANCEL: {
-      return Object.assign({}, state, {
-        addPrompt: false,
-        confirm: false
-      });
+      return { ...state, addPrompt: false, confirm: false };
     }
     case KEY_ADD_CONFIRM: {
-      return Object.assign({}, state, {
-        addPrompt: true,
-        confirm: action.payload
-      });
+      return { ...state, addPrompt: true, confirm: action.payload };
     }
     case KEY_ADD_CONFIRMED: {
       const newPermissions = {
         ...state.permissions,
-        ...action.payload
+        ...action.payload,
       };
-      return Object.assign({}, state, {
+      return {
+        ...state,
         addPrompt: false,
         confirm: false,
         isUser: true,
         names: [...Object.keys(newPermissions)].sort(),
-        permissions: newPermissions
-      });
+        permissions: newPermissions,
+      };
     }
     case KEY_ADD_FAILED_ACCOUNT_404:
-      return Object.assign({}, state, {
-        lastError: 'Account not found!'
-      });
+      return { ...state, lastError: 'Account not found!' };
     case KEY_ADD_FAILED_WIF_INVALID:
-      return Object.assign({}, state, {
-        lastError: 'Invalid WIF Key!'
-      });
+      return { ...state, lastError: 'Invalid WIF Key!' };
     case KEY_ADD_FAILED_WIF_INCORRECT:
-      return Object.assign({}, state, {
-        lastError: 'Invalid WIF Key for Account!'
-      });
+      return { ...state, lastError: 'Invalid WIF Key for Account!' };
     case KEY_ADD_MEMO_CANCEL: {
-      return Object.assign({}, state, {
-        addMemoPrompt: false,
-        confirmMemo: false
-      });
+      return { ...state, addMemoPrompt: false, confirmMemo: false };
     }
     case KEY_ADD_MEMO_PROMPT: {
-      return Object.assign({}, state, {
-        addMemoPrompt: true,
-        confirmMemo: action.payload
-      });
+      return { ...state, addMemoPrompt: true, confirmMemo: action.payload };
     }
     case KEY_ADD_MEMO_CONFIRMED: {
-      const newPermissions = state.permissions
-      const { account, wif } = action.payload
-      if(newPermissions[account]) {
+      const newPermissions = state.permissions;
+      const { account, wif } = action.payload;
+      if (newPermissions[account]) {
         newPermissions[account].memo = wif;
       }
-      return Object.assign({}, state, {
-        addMemoPrompt: false,
-        confirmMemo: false,
-        permissions: newPermissions
-      });
+      return { ...state, addMemoPrompt: false, confirmMemo: false, permissions: newPermissions };
     }
     case KEY_ADD_AUTH_CANCEL: {
-      return Object.assign({}, state, {
-        addAuthPrompt: false,
-        confirmAuth: false
-      });
+      return { ...state, addAuthPrompt: false, confirmAuth: false };
     }
     case KEY_ADD_AUTH_PROMPT: {
-      return Object.assign({}, state, {
-        addAuthPrompt: true,
-        confirmAuth: action.payload
-      });
+      return { ...state, addAuthPrompt: true, confirmAuth: action.payload };
     }
     case KEY_ADD_AUTH_CONFIRMED: {
-      console.log("add new auth")
-      const newPermissions = state.permissions
-      const { account, wif } = action.payload
-      if(newPermissions[account]) {
+      console.log('add new auth');
+      const newPermissions = state.permissions;
+      const { account, wif } = action.payload;
+      if (newPermissions[account]) {
         newPermissions[account].memo = wif;
       }
-      return Object.assign({}, state, {
-        addAuthPrompt: false,
-        confirmAuth: false,
-        permissions: newPermissions
-      });
+      return { ...state, addAuthPrompt: false, confirmAuth: false, permissions: newPermissions };
     }
     case KEY_CREATE_PROMPT: {
-      return Object.assign({}, state, {
-        createPrompt: true
-      });
+      return { ...state, createPrompt: true };
     }
     case KEY_CREATE_CANCEL: {
-      return Object.assign({}, state, {
-        createPrompt: false
-      });
+      return { ...state, createPrompt: false };
     }
     case KEY_USE: {
       const { account } = action.payload;
@@ -146,37 +109,30 @@ export default function keys(state: any = defaultState, action: actionType) {
     }
     case KEY_USE_DECRYPT_PROMPT: {
       const { operation, params, auth } = action.payload;
-      return Object.assign({}, state, {
-        decrypt: { operation, params, auth }
-      })
+      return { ...state, decrypt: { operation, params, auth } };
       return state;
     }
     case KEY_USE_DECRYPT_PROMPT_CLOSE: {
-      return Object.assign({}, state, {
-        decrypt: false
-      })
+      return { ...state, decrypt: false };
       return state;
     }
     case KEY_REMOVE_CANCEL: {
-      return Object.assign({}, state, {
-        remove: false
-      });
+      return { ...state, remove: false };
     }
     case KEY_REMOVE_CONFIRM: {
-      return Object.assign({}, state, {
-        remove: action.payload
-      });
+      return { ...state, remove: action.payload };
     }
     case KEY_REMOVE_CONFIRMED: {
-      const newPermissions = Object.assign({}, state.permissions);
+      const newPermissions = { ...state.permissions };
       delete newPermissions[action.payload];
       const newNames = [...Object.keys(newPermissions)].sort();
-      return Object.assign({}, state, {
+      return {
+        ...state,
         isUser: !!newNames.length,
         names: newNames,
         permissions: newPermissions,
-        remove: false
-      });
+        remove: false,
+      };
     }
     default: {
       return state;

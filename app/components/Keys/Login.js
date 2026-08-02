@@ -1,7 +1,17 @@
 // @flow
 import React, { Component } from 'react';
 import hive from '@hiveio/hive-js';
-import { Button, Checkbox, Divider, Form, Grid, Header, Message, Segment, Select } from 'semantic-ui-react';
+import {
+  Button,
+  Checkbox,
+  Divider,
+  Form,
+  Grid,
+  Header,
+  Message,
+  Segment,
+  Select,
+} from 'semantic-ui-react';
 import KeysConfirm from './Confirm';
 
 const permissionOptions = [
@@ -27,6 +37,7 @@ export default class KeysLogin extends Component {
     super(props);
     this.state.errors = this.validate(this.state);
   }
+
   state = {
     account: '',
     password: '',
@@ -39,12 +50,10 @@ export default class KeysLogin extends Component {
       password_error_not_set: false,
       password_error_no_match: false,
       wif_error_invalid: false,
-    }
-  }
-  handleConfirmAction = (
-    e: SyntheticEvent,
-    data: object
-    ) => {
+    },
+  };
+
+  handleConfirmAction = (e: SyntheticEvent, data: object) => {
     const confirmed = data.value;
     e.preventDefault();
     if (confirmed) {
@@ -56,55 +65,45 @@ export default class KeysLogin extends Component {
     } else {
       this.props.actions.addKeyCancel();
     }
-  }
+  };
 
-  handleChange = (
-    e: SyntheticEvent, { name, value }: { name: string, value: string }
-  ) => {
-    const newState = Object.assign({}, this.state, {
-      [name]: value
-    });
+  handleChange = (e: SyntheticEvent, { name, value }: { name: string, value: string }) => {
+    const newState = { ...this.state, [name]: value };
     newState.errors = this.validate(newState);
     this.setState(newState);
-  }
+  };
 
   handleSelectChange = (e, data) => {
     const { name, value } = data;
-    const newState = Object.assign({}, this.state, {
-      [name]: value
-    });
+    const newState = { ...this.state, [name]: value };
     newState.errors = this.validate(newState);
     this.setState(newState);
-  }
+  };
 
   validate = (newState) => {
     const errors = {};
     if (newState.encryptWallet) {
-      const lock1 = newState.lock1;
-      const lock2 = newState.lock2;
+      const { lock1 } = newState;
+      const { lock2 } = newState;
       // Ensure password is set
-      errors.password_error_not_set = (!lock1 || !lock2 || lock1 === '' || lock2 === '');
+      errors.password_error_not_set = !lock1 || !lock2 || lock1 === '' || lock2 === '';
       // Ensure passwords match
-      errors.password_error_no_match = (lock1 !== lock2);
+      errors.password_error_no_match = lock1 !== lock2;
     }
     errors.account_name_required = !newState.account || newState.account === '';
     return errors;
-  }
+  };
 
   hasErrors = () => {
-    const errors = this.state.errors;
+    const { errors } = this.state;
     return !!Object.keys(errors).filter((error) => errors[error]).length;
-  }
+  };
 
-  handleToggle = (
-    e: SyntheticEvent, { name, value }: { name: string, value: string }
-    ) => {
-    const newState = Object.assign({}, this.state, {
-      [name]: (value === 'on'),
-    });
+  handleToggle = (e: SyntheticEvent, { name, value }: { name: string, value: string }) => {
+    const newState = { ...this.state, [name]: value === 'on' };
     newState.errors = this.validate(newState);
     this.setState(newState);
-  }
+  };
 
   handleSubmit = (e: SyntheticEvent) => {
     e.preventDefault();
@@ -113,12 +112,12 @@ export default class KeysLogin extends Component {
     const keys = hive.auth.getPrivateKeys(account, password, [permission]);
     const wif = keys[permission];
     addKey(account, wif);
-  }
+  };
 
   render() {
     const { account, password, permission, encryptWallet, lock1, lock2 } = this.state;
     const confirmAccount = this.props.keys.confirm;
-    const errors = this.state.errors;
+    const { errors } = this.state;
     const hasErrors = this.hasErrors();
     const messages = {
       account_name_required: 'An existing account name is required.',
@@ -140,7 +139,7 @@ export default class KeysLogin extends Component {
         </Segment>
       );
     }
-    let passwordWarning = false;
+    const passwordWarning = false;
     let encryptionWarning = (
       <Message
         header="Warning - Unencrypted Wallets"
@@ -165,19 +164,25 @@ export default class KeysLogin extends Component {
       if (errors.account_name_required) {
         message = messages.account_name_required;
       }
-      warning = (
-        <Message
-          error
-          icon="warning"
-          content={message}
-        />
-      );
+      warning = <Message error icon="warning" content={message} />;
     }
     if (encryptWallet) {
       passwordInput = (
         <div>
-          <Form.Input label="Wallet Password" type="password" name="lock1" value={lock1} onChange={this.handleChange} />
-          <Form.Input label="Wallet Password (Repeat)" type="password" name="lock2" value={lock2} onChange={this.handleChange} />
+          <Form.Input
+            label="Wallet Password"
+            type="password"
+            name="lock1"
+            value={lock1}
+            onChange={this.handleChange}
+          />
+          <Form.Input
+            label="Wallet Password (Repeat)"
+            type="password"
+            name="lock2"
+            value={lock2}
+            onChange={this.handleChange}
+          />
         </div>
       );
       encryptionWarning = (

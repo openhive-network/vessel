@@ -31,14 +31,14 @@ export default class MenuBuilder {
     this.mainWindow.webContents.on('context-menu', (_e, props) => {
       const { x, y } = props;
 
-      Menu
-        .buildFromTemplate([{
+      Menu.buildFromTemplate([
+        {
           label: 'Inspect element',
           click: () => {
             this.mainWindow.webContents.inspectElement(x, y);
-          }
-        }])
-        .popup({ window: this.mainWindow });
+          },
+        },
+      ]).popup({ window: this.mainWindow });
     });
   }
 
@@ -54,8 +54,14 @@ export default class MenuBuilder {
         { label: 'Hide Others', accelerator: 'Command+Shift+H', role: 'hideOthers' },
         { label: 'Show All', role: 'unhide' },
         { type: 'separator' },
-        { label: 'Quit', accelerator: 'Command+Q', click: () => { app.quit(); } }
-      ]
+        {
+          label: 'Quit',
+          accelerator: 'Command+Q',
+          click: () => {
+            app.quit();
+          },
+        },
+      ],
     };
     const subMenuEdit: MenuItemConstructorOptions = {
       label: 'Edit',
@@ -66,16 +72,34 @@ export default class MenuBuilder {
         { label: 'Cut', accelerator: 'Command+X', role: 'cut' },
         { label: 'Copy', accelerator: 'Command+C', role: 'copy' },
         { label: 'Paste', accelerator: 'Command+V', role: 'paste' },
-        { label: 'Select All', accelerator: 'Command+A', role: 'selectAll' }
-      ]
+        { label: 'Select All', accelerator: 'Command+A', role: 'selectAll' },
+      ],
     };
     const subMenuViewDev: MenuItemConstructorOptions = {
       label: 'View',
       submenu: [
-        { label: 'Reload', accelerator: 'Command+R', click: () => { this.mainWindow.webContents.reload(); } },
-        { label: 'Toggle Full Screen', accelerator: 'Ctrl+Command+F', click: () => { this.mainWindow.setFullScreen(!this.mainWindow.isFullScreen()); } },
-        { label: 'Toggle Developer Tools', accelerator: 'Alt+Command+I', click: () => { this.mainWindow.webContents.toggleDevTools(); } }
-      ]
+        {
+          label: 'Reload',
+          accelerator: 'Command+R',
+          click: () => {
+            this.mainWindow.webContents.reload();
+          },
+        },
+        {
+          label: 'Toggle Full Screen',
+          accelerator: 'Ctrl+Command+F',
+          click: () => {
+            this.mainWindow.setFullScreen(!this.mainWindow.isFullScreen());
+          },
+        },
+        {
+          label: 'Toggle Developer Tools',
+          accelerator: 'Alt+Command+I',
+          click: () => {
+            this.mainWindow.webContents.toggleDevTools();
+          },
+        },
+      ],
     };
     const subMenuWindow: MenuItemConstructorOptions = {
       label: 'Window',
@@ -83,89 +107,131 @@ export default class MenuBuilder {
         { label: 'Minimize', accelerator: 'Command+M', role: 'minimize' },
         { label: 'Close', accelerator: 'Command+W', role: 'close' },
         { type: 'separator' },
-        { label: 'Bring All to Front', role: 'front' }
-      ]
+        { label: 'Bring All to Front', role: 'front' },
+      ],
     };
     const subMenuHelp: MenuItemConstructorOptions = {
       label: 'Help',
       submenu: [
-        { label: 'Source Code', click() { shell.openExternal('https://gitlab.syncad.com/hive/vessel'); } },
-        { label: 'Report Bug', click() { shell.openExternal('https://gitlab.syncad.com/hive/vessel/issues'); } },
-        { label: 'Releases', click() { shell.openExternal('https://gitlab.syncad.com/hive/vessel/releases'); } }
-      ]
+        {
+          label: 'Source Code',
+          click() {
+            shell.openExternal('https://gitlab.syncad.com/hive/vessel');
+          },
+        },
+        {
+          label: 'Report Bug',
+          click() {
+            shell.openExternal('https://gitlab.syncad.com/hive/vessel/issues');
+          },
+        },
+        {
+          label: 'Releases',
+          click() {
+            shell.openExternal('https://gitlab.syncad.com/hive/vessel/releases');
+          },
+        },
+      ],
     };
 
     const subMenuView = subMenuViewDev;
 
-    return [
-      subMenuAbout,
-      subMenuEdit,
-      subMenuView,
-      subMenuWindow,
-      subMenuHelp
-    ];
+    return [subMenuAbout, subMenuEdit, subMenuView, subMenuWindow, subMenuHelp];
   }
 
   buildDefaultTemplate(): MenuItemConstructorOptions[] {
-    const templateDefault: MenuItemConstructorOptions[] = [{
-      label: '&File',
-      submenu: [{
-        label: '&Open',
-        accelerator: 'Ctrl+O'
-      }, {
-        label: '&Close',
-        accelerator: 'Ctrl+W',
-        click: () => {
-          this.mainWindow.close();
-        }
-      }]
-    }, {
-      label: '&View',
-      submenu: (process.env.NODE_ENV === 'development') ? [{
-        label: '&Reload',
-        accelerator: 'Ctrl+R',
-        click: () => {
-          this.mainWindow.webContents.reload();
-        }
-      }, {
-        label: 'Toggle &Full Screen',
-        accelerator: 'F11',
-        click: () => {
-          this.mainWindow.setFullScreen(!this.mainWindow.isFullScreen());
-        }
-      }, {
-        label: 'Toggle &Developer Tools',
-        accelerator: 'Alt+Ctrl+I',
-        click: () => {
-          this.mainWindow.webContents.toggleDevTools();
-        }
-      }] : [{
-        label: '&Reload',
-        accelerator: 'Ctrl+R',
-        click: () => {
-          this.mainWindow.webContents.reload();
-        }
-      }, {
-        label: 'Toggle &Full Screen',
-        accelerator: 'F11',
-        click: () => {
-          this.mainWindow.setFullScreen(!this.mainWindow.isFullScreen());
-        }
-      }, {
-        label: 'Toggle &Developer Tools',
-        accelerator: 'Alt+Ctrl+I',
-        click: () => {
-          this.mainWindow.webContents.toggleDevTools();
-        }
-      }]
-    }, {
-      label: 'Help',
-      submenu: [
-        { label: 'Source Code', click() { shell.openExternal('https://gitlab.syncad.com/hive/vessel'); } },
-        { label: 'Report Bug', click() { shell.openExternal('https://gitlab.syncad.com/hive/vessel/issues'); } },
-        { label: 'Releases', click() { shell.openExternal('https://gitlab.syncad.com/hive/vessel/releases'); } }
-      ]
-    }];
+    const templateDefault: MenuItemConstructorOptions[] = [
+      {
+        label: '&File',
+        submenu: [
+          {
+            label: '&Open',
+            accelerator: 'Ctrl+O',
+          },
+          {
+            label: '&Close',
+            accelerator: 'Ctrl+W',
+            click: () => {
+              this.mainWindow.close();
+            },
+          },
+        ],
+      },
+      {
+        label: '&View',
+        submenu:
+          process.env.NODE_ENV === 'development'
+            ? [
+                {
+                  label: '&Reload',
+                  accelerator: 'Ctrl+R',
+                  click: () => {
+                    this.mainWindow.webContents.reload();
+                  },
+                },
+                {
+                  label: 'Toggle &Full Screen',
+                  accelerator: 'F11',
+                  click: () => {
+                    this.mainWindow.setFullScreen(!this.mainWindow.isFullScreen());
+                  },
+                },
+                {
+                  label: 'Toggle &Developer Tools',
+                  accelerator: 'Alt+Ctrl+I',
+                  click: () => {
+                    this.mainWindow.webContents.toggleDevTools();
+                  },
+                },
+              ]
+            : [
+                {
+                  label: '&Reload',
+                  accelerator: 'Ctrl+R',
+                  click: () => {
+                    this.mainWindow.webContents.reload();
+                  },
+                },
+                {
+                  label: 'Toggle &Full Screen',
+                  accelerator: 'F11',
+                  click: () => {
+                    this.mainWindow.setFullScreen(!this.mainWindow.isFullScreen());
+                  },
+                },
+                {
+                  label: 'Toggle &Developer Tools',
+                  accelerator: 'Alt+Ctrl+I',
+                  click: () => {
+                    this.mainWindow.webContents.toggleDevTools();
+                  },
+                },
+              ],
+      },
+      {
+        label: 'Help',
+        submenu: [
+          {
+            label: 'Source Code',
+            click() {
+              shell.openExternal('https://gitlab.syncad.com/hive/vessel');
+            },
+          },
+          {
+            label: 'Report Bug',
+            click() {
+              shell.openExternal('https://gitlab.syncad.com/hive/vessel/issues');
+            },
+          },
+          {
+            label: 'Releases',
+            click() {
+              shell.openExternal('https://gitlab.syncad.com/hive/vessel/releases');
+            },
+          },
+        ],
+      },
+    ];
 
     return templateDefault;
   }

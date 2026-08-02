@@ -4,12 +4,37 @@ declare module '@hiveio/hive-js' {
     getConfig(callback: (err: Error | null, result: any) => void): void;
     getAccounts(accounts: string[], callback: (err: Error | null, result: any[]) => void): void;
     getDynamicGlobalProperties(callback: (err: Error | null, result: any) => void): void;
-    getVestingDelegations(account: string, from: string | number, limit: number, callback: (err: Error | null, result: any[]) => void): void;
-    getWithdrawRoutes(account: string, type: string, callback: (err: Error | null, result: any[]) => void): void;
-    getSavingsWithdrawFrom(account: string, callback: (err: Error | null, result: any[]) => void): void;
-    getAccountHistory(account: string, from: number, limit: number, callback: (err: Error | null, result: any[]) => void): void;
-    getWitnessesByVote(from: string, limit: number, callback: (err: Error | null, result: any[]) => void): void;
-    getContent(author: string, permlink: string, callback: (err: Error | null, result: any) => void): void;
+    getVestingDelegations(
+      account: string,
+      from: string | number,
+      limit: number,
+      callback: (err: Error | null, result: any[]) => void
+    ): void;
+    getWithdrawRoutes(
+      account: string,
+      type: string,
+      callback: (err: Error | null, result: any[]) => void
+    ): void;
+    getSavingsWithdrawFrom(
+      account: string,
+      callback: (err: Error | null, result: any[]) => void
+    ): void;
+    getAccountHistory(
+      account: string,
+      from: number,
+      limit: number,
+      callback: (err: Error | null, result: any[]) => void
+    ): void;
+    getWitnessesByVote(
+      from: string,
+      limit: number,
+      callback: (err: Error | null, result: any[]) => void
+    ): void;
+    getContent(
+      author: string,
+      permlink: string,
+      callback: (err: Error | null, result: any) => void
+    ): void;
   };
 
   export const broadcast: {

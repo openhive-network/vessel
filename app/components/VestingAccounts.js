@@ -16,7 +16,8 @@ export default class VestingAccounts extends Component {
     this.state = {};
     this.props.actions.resetState = this.resetState.bind(this);
   }
-  componentWillReceiveProps = (nextProps) => {
+
+  componentWillReceiveProps(nextProps) {
     if (nextProps.processing.account_set_withdraw_vesting_route_resolved) {
       nextProps.actions.setWithdrawVestingRouteCompleted();
       this.resetState();
@@ -26,6 +27,7 @@ export default class VestingAccounts extends Component {
       this.resetState();
     }
   }
+
   resetState() {
     this.setState({
       powerDown: false,
@@ -34,43 +36,53 @@ export default class VestingAccounts extends Component {
       powerUp: false,
     });
   }
+
   handleRemoveKey = (e, data) => {
     this.props.actions.removeKey(data.value);
-  }
+  };
+
   handlePowerDownPrompt = (e, props) => {
     this.setState({
-      powerDown: props.value
-    })
-  }
+      powerDown: props.value,
+    });
+  };
+
   handlePowerDownDestinationRemove = (e, props) => {
-    const permissions = this.props.keys.permissions;
+    const { permissions } = this.props.keys;
     const account = props.value.route.from_account;
     const target = props.value.route.to_account;
     const percent = 0;
     const autoVest = false;
-    this.props.actions.useKey('setWithdrawVestingRoute', { account, target, percent, autoVest }, permissions[account]);
+    this.props.actions.useKey(
+      'setWithdrawVestingRoute',
+      { account, target, percent, autoVest },
+      permissions[account]
+    );
     e.preventDefault();
-  }
+  };
 
   handlePowerDownDestinationPrompt = (e, props) => {
     this.setState({
-      powerDownDestination: props.value
-    })
-  }
+      powerDownDestination: props.value,
+    });
+  };
+
   handlePowerDownCancelPrompt = (e, props) => {
     this.setState({
-      cancelPowerDown: props.value
-    })
-  }
+      cancelPowerDown: props.value,
+    });
+  };
+
   handlePowerUpPrompt = (e, props) => {
     this.setState({
-      powerUp: props.value
-    })
-  }
+      powerUp: props.value,
+    });
+  };
+
   render() {
     let powerDownPrompt = false;
     let powerUpPrompt = false;
-    const names = this.props.keys.names;
+    const { names } = this.props.keys;
     if (this.state && this.state.powerDownDestination) {
       powerDownPrompt = (
         <PowerDownDestinationPrompt
@@ -109,7 +121,7 @@ export default class VestingAccounts extends Component {
     }
     const numberFormat = {
       shortFormat: true,
-      shortFormatMinValue: 1000
+      shortFormatMinValue: 1000,
     };
     const {
       account_set_withdraw_vesting_route_error,
@@ -117,12 +129,14 @@ export default class VestingAccounts extends Component {
       account_set_withdraw_vesting_route_resolved,
       account_power_down_resolved,
     } = this.props.processing;
-    const props = this.props.hive.props;
+    const { props } = this.props.hive;
     const accounts = names.map((name) => {
       const account = this.props.account.accounts[name];
-      const withdrawRoutes = (this.props.account.withdrawRoutes) ? this.props.account.withdrawRoutes[name] : false;
+      const withdrawRoutes = this.props.account.withdrawRoutes
+        ? this.props.account.withdrawRoutes[name]
+        : false;
       const nextPowerDown = new Date(account.next_vesting_withdrawal);
-      const isPoweringDown = (account.next_vesting_withdrawal != "1969-12-31T23:59:59")
+      const isPoweringDown = account.next_vesting_withdrawal != '1969-12-31T23:59:59';
       let nextPowerDownDisplay = false;
       let withdrawRoutesDisplay = false;
       let withdrawRoutesControl = (
@@ -142,18 +156,14 @@ export default class VestingAccounts extends Component {
           <Table size="small">
             <Table.Body>
               {withdrawRoutes.map((route) => {
-                total = total + route.percent;
+                total += route.percent;
                 return (
                   <Table.Row key={route.to_account}>
                     <Table.Cell>
                       <AccountName name={route.to_account} />
                     </Table.Cell>
-                    <Table.Cell>
-                      {route.percent / 100}%
-                    </Table.Cell>
-                    <Table.Cell>
-                      {(route.auto_vest) ? 'VEST' : 'HIVE'}
-                    </Table.Cell>
+                    <Table.Cell>{route.percent / 100}%</Table.Cell>
+                    <Table.Cell>{route.auto_vest ? 'VEST' : 'HIVE'}</Table.Cell>
                     <Table.Cell collapsing>
                       <Button
                         color="orange"
@@ -180,24 +190,24 @@ export default class VestingAccounts extends Component {
           size="small"
           icon="sort amount down"
           content="Power&nbsp;Down"
-          style={{fontSize: '12px'}}
+          style={{ fontSize: '12px' }}
           value={name}
           onClick={this.handlePowerDownPrompt}
         />
       );
       if (isPoweringDown) {
         const rate = account.vesting_withdraw_rate;
-        const vests = parseFloat(rate.split(" ")[0]);
-        const totalVestsHive = parseFloat(props.total_vesting_fund_hive.split(" ")[0])
-        const totalVests = parseFloat(props.total_vesting_shares.split(" ")[0])
-        const hive = totalVestsHive * vests / totalVests;
+        const vests = parseFloat(rate.split(' ')[0]);
+        const totalVestsHive = parseFloat(props.total_vesting_fund_hive.split(' ')[0]);
+        const totalVests = parseFloat(props.total_vesting_shares.split(' ')[0]);
+        const hive = (totalVestsHive * vests) / totalVests;
         controls = (
           <Button
             color="orange"
             size="small"
             icon="cancel"
             content="Stop Power&nbsp;Down"
-            style={{fontSize: '12px'}}
+            style={{ fontSize: '12px' }}
             value={name}
             onClick={this.handlePowerDownCancelPrompt}
           />
@@ -208,16 +218,9 @@ export default class VestingAccounts extends Component {
             <Header.Subheader>
               &ndash;<NumericLabel params={numberFormat}>{vests}</NumericLabel> VESTS
               {' @ '}
-              <FormattedTime
-                value={nextPowerDown}
-              />
+              <FormattedTime value={nextPowerDown} />
               {' - '}
-              <FormattedDate
-                value={nextPowerDown}
-                day="numeric"
-                month="short"
-                year="numeric"
-              />
+              <FormattedDate value={nextPowerDown} day="numeric" month="short" year="numeric" />
             </Header.Subheader>
           </Header>
         );
@@ -230,12 +233,12 @@ export default class VestingAccounts extends Component {
             size="small"
             icon="lightning"
             content="Power&nbsp;Up"
-            style={{fontSize: '12px'}}
+            style={{ fontSize: '12px' }}
             value={name}
             onClick={this.handlePowerUpPrompt}
           />
-        )
-        console.log("we have a balance for user: " + account.name)
+        );
+        console.log(`we have a balance for user: ${account.name}`);
       }
       return (
         <Table.Row key={name}>
@@ -243,34 +246,25 @@ export default class VestingAccounts extends Component {
             <AccountName name={name} />
           </Table.Cell>
           <Table.Cell textAlign="center">
-            {(isPoweringDown)
-              ? (
-                <Icon.Group size="large">
-                  <Icon color="green" size="big" name="thin circle" />
-                  <Icon color="green" name="lightning" />
-                </Icon.Group>
-              )
-              : (
-                <Icon size="small" color="red" name="circle" />
-              )
-            }
+            {isPoweringDown ? (
+              <Icon.Group size="large">
+                <Icon color="green" size="big" name="thin circle" />
+                <Icon color="green" name="lightning" />
+              </Icon.Group>
+            ) : (
+              <Icon size="small" color="red" name="circle" />
+            )}
           </Table.Cell>
           <Table.Cell>
             {withdrawRoutesDisplay}
             {withdrawRoutesControl}
           </Table.Cell>
-          <Table.Cell>
-            {nextPowerDownDisplay}
-          </Table.Cell>
+          <Table.Cell>{nextPowerDownDisplay}</Table.Cell>
           <Table.Cell textAlign="right">
             <Grid>
-              <Grid.Row style={{fontSize: '10px'}}>
-                <Grid.Column width={8}>
-                  {powerUpControl}
-                </Grid.Column>
-                <Grid.Column width={8}>
-                  {controls}
-                </Grid.Column>
+              <Grid.Row style={{ fontSize: '10px' }}>
+                <Grid.Column width={8}>{powerUpControl}</Grid.Column>
+                <Grid.Column width={8}>{controls}</Grid.Column>
               </Grid.Row>
             </Grid>
           </Table.Cell>
@@ -283,32 +277,20 @@ export default class VestingAccounts extends Component {
         padded
         loading={account_set_withdraw_vesting_route_pending}
         disabled={account_set_withdraw_vesting_route_pending}
-        >
+      >
         {powerDownPrompt}
         {powerUpPrompt}
         <Table celled striped>
           <Table.Header>
             <Table.Row>
-              <Table.HeaderCell>
-                Vested Account
-              </Table.HeaderCell>
-              <Table.HeaderCell collapsing>
-                Active
-              </Table.HeaderCell>
-              <Table.HeaderCell>
-                Destination Account(s)
-              </Table.HeaderCell>
-              <Table.HeaderCell>
-                Incoming Funds
-              </Table.HeaderCell>
-              <Table.HeaderCell textAlign="right">
-                Controls
-              </Table.HeaderCell>
+              <Table.HeaderCell>Vested Account</Table.HeaderCell>
+              <Table.HeaderCell collapsing>Active</Table.HeaderCell>
+              <Table.HeaderCell>Destination Account(s)</Table.HeaderCell>
+              <Table.HeaderCell>Incoming Funds</Table.HeaderCell>
+              <Table.HeaderCell textAlign="right">Controls</Table.HeaderCell>
             </Table.Row>
           </Table.Header>
-          <Table.Body>
-            {accounts}
-          </Table.Body>
+          <Table.Body>{accounts}</Table.Body>
         </Table>
       </Segment>
     );

@@ -21,10 +21,9 @@ import KeysMemo from '../components/Keys/Memo';
 import KeysAuth from '../components/Keys/Auth';
 
 class AccountsPage extends Component {
-
   state = {
     activeItem: 'keys',
-    addAccount: false
+    addAccount: false,
   };
 
   constructor(props) {
@@ -32,47 +31,47 @@ class AccountsPage extends Component {
     // props.actions.getMinimumAccountDelegation(props.preferences);
   }
 
-  handleItemClick = (e, { name }) => this.setState({ activeItem: name })
+  handleItemClick = (e, { name }) => this.setState({ activeItem: name });
 
   handleAddAccount = () => {
     this.props.actions.addKeyPrompt();
-  }
+  };
 
   handleAddAccountCancel = () => {
     this.props.actions.addKeyCancel();
-  }
+  };
 
   handleAddMemoKeyCancel = () => {
     this.props.actions.addMemoKeyCancel();
-  }
+  };
 
   handleAddMemoKeyConfirmed = () => {
     this.props.actions.addMemoKeyConfirmed();
-  }
+  };
 
   handleCreateAccount = () => {
     this.props.actions.createKeyPrompt();
-  }
+  };
 
   handleCreateAccountCancel = () => {
     this.props.actions.createKeyCancel();
-  }
+  };
 
   handleRemoveKeyCancel = () => {
     this.props.actions.removeKeyCancel();
-  }
+  };
 
   handleRemoveKeyConfirmed = () => {
     this.props.actions.removeKeyConfirmed(this.props.keys.remove);
-  }
+  };
 
   handleAddAuthCancel = () => {
     this.props.actions.addAuthCancel();
-  }
+  };
 
   handleAddAuthConfirmed = () => {
     this.props.actions.addAuthConfirmed();
-  }
+  };
 
   render() {
     if (!this.props.keys.isUser) {
@@ -103,16 +102,12 @@ class AccountsPage extends Component {
           className="large"
           content={
             <Segment basic>
-              <KeysCreate
-                handleMethodReset={this.handleCreateAccountCancel}
-                {...this.props}
-              />
+              <KeysCreate handleMethodReset={this.handleCreateAccountCancel} {...this.props} />
             </Segment>
           }
           onClose={this.handleCreateAccountCancel}
         />
-
-      )
+      );
     }
     let activeTab = <Accounts {...this.props} />;
     switch (activeItem) {
@@ -146,15 +141,11 @@ class AccountsPage extends Component {
           content={
             <Segment padded basic>
               <p>
-                Are you sure you want to remove this account? All keys associated
-                to this account will be removed from the wallet. If you do not have
-                backups, your account may be lost.
+                Are you sure you want to remove this account? All keys associated to this account
+                will be removed from the wallet. If you do not have backups, your account may be
+                lost.
               </p>
-              <Header>
-                Account:
-                {' '}
-                {this.props.keys.remove}
-              </Header>
+              <Header>Account: {this.props.keys.remove}</Header>
             </Segment>
           }
           actions={[
@@ -162,14 +153,14 @@ class AccountsPage extends Component {
               key: 'no',
               content: 'No',
               color: 'red',
-              onClick: this.handleRemoveKeyCancel
+              onClick: this.handleRemoveKeyCancel,
             },
             {
               key: 'yes',
               content: 'Yes',
               color: 'green',
-              onClick: this.handleRemoveKeyConfirmed
-            }
+              onClick: this.handleRemoveKeyConfirmed,
+            },
           ]}
         />
       );
@@ -179,19 +170,14 @@ class AccountsPage extends Component {
         <Modal
           open
           header="Add a Memo Key"
-          content={
-            <KeysMemo
-              actions={this.props.actions}
-              keys={this.props.keys}
-            />
-          }
+          content={<KeysMemo actions={this.props.actions} keys={this.props.keys} />}
           actions={[
             {
               key: 'no',
               content: 'Cancel',
               color: 'red',
-              onClick: this.handleAddMemoKeyCancel
-            }
+              onClick: this.handleAddMemoKeyCancel,
+            },
           ]}
         />
       );
@@ -201,19 +187,14 @@ class AccountsPage extends Component {
         <Modal
           open
           header="Add a Key or Account Auth"
-          content={
-            <KeysAuth
-              actions={this.props.actions}
-              keys={this.props.keys}
-            />
-          }
+          content={<KeysAuth actions={this.props.actions} keys={this.props.keys} />}
           actions={[
             {
               key: 'no',
               content: 'Cancel',
               color: 'red',
-              onClick: this.handleAddAuthCancel
-            }
+              onClick: this.handleAddAuthCancel,
+            },
           ]}
         />
       );
@@ -223,19 +204,14 @@ class AccountsPage extends Component {
         <Modal
           open
           header="Remove a Key or Account Auth"
-          content={
-            <KeysAuth
-              actions={this.props.actions}
-              keys={this.props.keys}
-            />
-          }
+          content={<KeysAuth actions={this.props.actions} keys={this.props.keys} />}
           actions={[
             {
               key: 'no',
               content: 'Cancel',
               color: 'red',
-              onClick: this.handleRemoveAuthCancel
-            }
+              onClick: this.handleRemoveAuthCancel,
+            },
           ]}
         />
       );
@@ -311,17 +287,20 @@ function mapStateToProps(state) {
     keys: state.keys,
     processing: state.processing,
     preferences: state.preferences,
-    hive: state.hive
+    hive: state.hive,
   };
 }
 
 function mapDispatchToProps(dispatch) {
   return {
-    actions: bindActionCreators({
-      ...AccountActions,
-      ...KeyActions,
-      ...ProcessingActions,
-    }, dispatch)
+    actions: bindActionCreators(
+      {
+        ...AccountActions,
+        ...KeyActions,
+        ...ProcessingActions,
+      },
+      dispatch
+    ),
   };
 }
 

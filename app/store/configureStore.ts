@@ -10,7 +10,7 @@ import {
   PAUSE,
   PERSIST,
   PURGE,
-  REGISTER
+  REGISTER,
 } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 import rootReducer from '../reducers';
@@ -20,7 +20,7 @@ export const history = createHashHistory();
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['account', 'keys', 'preferences', 'hive']
+  whitelist: ['account', 'keys', 'preferences', 'hive'],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
@@ -36,7 +36,7 @@ const configureStore = () => {
   if (process.env.NODE_ENV === 'development') {
     const logger = createLogger({
       level: 'info',
-      collapsed: true
+      collapsed: true,
     });
     middleware.push(logger);
   }
@@ -44,8 +44,7 @@ const configureStore = () => {
   // Redux DevTools Configuration
   /* eslint-disable no-underscore-dangle */
   const composeEnhancers =
-    (typeof window !== 'undefined' &&
-      (window as any).__REDUX_DEVTOOLS_EXTENSION_COMPOSE__) ||
+    (typeof window !== 'undefined' && (window as any).__REDUX_DEVTOOLS_EXTENSION_COMPOSE__) ||
     compose;
   /* eslint-enable no-underscore-dangle */
 

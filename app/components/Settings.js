@@ -1,77 +1,77 @@
 // @flow
 import React, { Component } from 'react';
 
-import PreferredNode from './global/PreferredNode'
-import { Form, Input } from 'formsy-semantic-ui-react'
-import { Divider, Grid, Header, Label, Segment, Select, Table, Button, Modal } from 'semantic-ui-react';
+import { Form, Input } from 'formsy-semantic-ui-react';
+import {
+  Divider,
+  Grid,
+  Header,
+  Label,
+  Segment,
+  Select,
+  Table,
+  Button,
+  Modal,
+} from 'semantic-ui-react';
+import PreferredNode from './global/PreferredNode';
 
 export default class Settings extends Component {
-
   constructor(props) {
     super(props);
     this.state = {
       addContactModal: false,
       newContact: '',
-    }
+    };
   }
 
-  handleChange = (
-    e: SyntheticEvent, { name, value }: { name: string, value: string }
-  ) => {
+  handleChange = (e: SyntheticEvent, { name, value }: { name: string, value: string }) => {
     const { setPreference } = this.props.actions;
     setPreference(name, value);
-  }
+  };
 
-  onValidSubmit = (
-    e: SyntheticEvent
-  ) => {
+  onValidSubmit = (e: SyntheticEvent) => {
     const { setPreference } = this.props.actions;
     setPreference('hived_node', e.hived_node);
-  }
+  };
 
   handleContactChange = (e: SyntheticEvent, { value }: { value: string }) => {
     const cleaned = value.replace(/(@|\s)+/gim, ' ');
     this.setState({
-      newContact: cleaned
+      newContact: cleaned,
     });
-  }
+  };
 
   handleCancelContact = (e: SyntheticEvent) => {
     this.setState({
-      addContactModal: false
+      addContactModal: false,
     });
     e.preventDefault();
-  }
+  };
 
   handleConfirmContact = (e: SyntheticEvent) => {
     const { newContact } = this.state;
     if (newContact !== '') this.props.actions.addContact(newContact);
     this.setState({
       addContactModal: false,
-      newContact: ''
+      newContact: '',
     });
     e.preventDefault();
-  }
+  };
 
   render() {
     let modal = false;
-    let contactList = this.props.account.contacts && this.props.account.contacts.map((contact) => {
-      return (
+    const contactList =
+      this.props.account.contacts &&
+      this.props.account.contacts.map((contact) => (
         <Table.Row key={contact} textAlign="center">
-          <Table.Cell>
-            {contact}
-          </Table.Cell>
+          <Table.Cell>{contact}</Table.Cell>
           <Table.Cell width={5}>
-            <Button
-              onClick={() => this.props.actions.removeContact(contact)}
-              secondary
-            >
+            <Button onClick={() => this.props.actions.removeContact(contact)} secondary>
               Remove
             </Button>
           </Table.Cell>
         </Table.Row>
-      );
-    })
+      ));
 
     if (this.state.addContactModal) {
       modal = (
@@ -84,9 +84,9 @@ export default class Settings extends Component {
                 <Form.Field
                   control={Input}
                   name="contact"
-                  label='Username to add to contact list'
+                  label="Username to add to contact list"
                   placeholder="username (without @)"
-                  autoFocus={true}
+                  autoFocus
                   value={this.state.newContact}
                   onChange={this.handleContactChange}
                 />
@@ -108,7 +108,7 @@ export default class Settings extends Component {
               content: 'Confirmed - add contact',
               color: 'green',
               onClick: this.handleConfirmContact,
-            }
+            },
           ]}
         />
       );
@@ -116,27 +116,22 @@ export default class Settings extends Component {
 
     return (
       <Segment basic padded>
-
         <PreferredNode {...this.props} />
 
         <Divider />
 
         <Form>
-
           <Header>
             Exchange Configuration
             <Header.Subheader>
-              Configure the required <strong>unencrypted memo</strong> for each
-              individual currency and exchange. Do <strong>NOT</strong> add the
-              <strong>#</strong> prefix for encryption, only the memo that the exchange
-              specifies.
+              Configure the required <strong>unencrypted memo</strong> for each individual currency
+              and exchange. Do <strong>NOT</strong> add the
+              <strong>#</strong> prefix for encryption, only the memo that the exchange specifies.
             </Header.Subheader>
           </Header>
 
           <Segment attached>
-            <Header size="small">
-              Binance (@bdhivesteem)
-            </Header>
+            <Header size="small">Binance (@bdhivesteem)</Header>
             <Form.Group widths="equal">
               <Form.Input
                 label="HIVE Memo (Unencrypted)"
@@ -149,9 +144,7 @@ export default class Settings extends Component {
           </Segment>
 
           <Segment attached>
-            <Header size="small">
-              Binance (DEPRECATED - @deepcrypto8)
-            </Header>
+            <Header size="small">Binance (DEPRECATED - @deepcrypto8)</Header>
             <Form.Group widths="equal">
               <Form.Input
                 label="HIVE Memo (Unencrypted)"
@@ -164,9 +157,7 @@ export default class Settings extends Component {
           </Segment>
 
           <Segment attached>
-            <Header size="small">
-              Bittrex
-            </Header>
+            <Header size="small">Bittrex</Header>
             <Form.Group widths="equal">
               <Form.Input
                 label="HIVE Memo (Unencrypted)"
@@ -186,9 +177,7 @@ export default class Settings extends Component {
           </Segment>
 
           <Segment attached>
-            <Header size="small">
-              Huobi
-            </Header>
+            <Header size="small">Huobi</Header>
             <Form.Group widths="equal">
               <Form.Input
                 label="HIVE Memo (Unencrypted)"
@@ -207,11 +196,8 @@ export default class Settings extends Component {
             </Form.Group>
           </Segment>
 
-
           <Segment attached>
-            <Header size="small">
-              Gate.io
-            </Header>
+            <Header size="small">Gate.io</Header>
             <Form.Group widths="equal">
               <Form.Input
                 label="HIVE Memo (Unencrypted)"
@@ -224,9 +210,7 @@ export default class Settings extends Component {
           </Segment>
 
           <Segment attached>
-            <Header size="small">
-              Ionomy
-            </Header>
+            <Header size="small">Ionomy</Header>
             <Form.Group widths="equal">
               <Form.Input
                 label="HIVE Memo (Unencrypted)"
@@ -246,9 +230,7 @@ export default class Settings extends Component {
           </Segment>
 
           <Segment attached>
-            <Header size="small">
-              ProBit
-            </Header>
+            <Header size="small">ProBit</Header>
             <Form.Group widths="equal">
               <Form.Input
                 label="HIVE Memo (Unencrypted)"
@@ -268,9 +250,7 @@ export default class Settings extends Component {
           </Segment>
 
           <Segment attached>
-            <Header size="small">
-              MXC
-            </Header>
+            <Header size="small">MXC</Header>
             <Form.Group widths="equal">
               <Form.Input
                 label="HIVE Memo (Unencrypted)"
@@ -288,16 +268,13 @@ export default class Settings extends Component {
               />
             </Form.Group>
           </Segment>
-
         </Form>
 
         <Divider />
 
         <Header>
           Contact List
-          <Header.Subheader>
-            Add or remove users from your contact list.
-          </Header.Subheader>
+          <Header.Subheader>Add or remove users from your contact list.</Header.Subheader>
         </Header>
 
         <Segment attached>
@@ -310,10 +287,7 @@ export default class Settings extends Component {
               {contactList}
               <Table.Row>
                 <Table.Cell colSpan={2} textAlign="center">
-                  <Button
-                    onClick={() => this.setState({ addContactModal: true })}
-                    primary
-                  >
+                  <Button onClick={() => this.setState({ addContactModal: true })} primary>
                     Add New Contact
                   </Button>
                 </Table.Cell>

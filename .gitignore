@@ -66,3 +66,4 @@ vessel-profile-*.tar.gz
 *.wif
 Local Storage/
 .phase1-work/
+out/

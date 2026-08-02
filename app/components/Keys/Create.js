@@ -21,7 +21,7 @@ import {
 } from 'semantic-ui-react';
 import KeysConfirm from './Confirm';
 
-const bip39 = require('bip39');
+import { generateMnemonic12, mnemonicToSeedHex } from '../../utils/mnemonic';
 
 export default class KeysCreate extends Component {
   state = {
@@ -87,9 +87,9 @@ export default class KeysCreate extends Component {
   }, 500);
 
   generateSeed = () => {
-    const mnemonic = bip39.generateMnemonic();
+    const mnemonic = generateMnemonic12();
     const name = this.state.requestedName;
-    const seed = bip39.mnemonicToSeedHex(mnemonic);
+    const seed = mnemonicToSeedHex(mnemonic);
     const masterKey = hive.auth.getPrivateKeys(name, seed, ['master']);
     const password = `P${masterKey.master}`;
     const types = ['owner', 'active', 'posting', 'memo'];

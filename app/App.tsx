@@ -7,19 +7,16 @@ import { store, persistor } from './store/configureStore';
 import Routes from './routes';
 import './app.global.css';
 
-const App: React.FC = () => {
-  return (
-    <Provider store={store}>
-      {/* @ts-expect-error - redux-persist types mismatch */}
-      <PersistGate loading={<div>Loading...</div>} persistor={persistor}>
-        <IntlProvider locale="en" defaultLocale="en">
-          <HashRouter>
-            <Routes />
-          </HashRouter>
-        </IntlProvider>
-      </PersistGate>
-    </Provider>
-  );
-};
+const App: React.FC = () => (
+  <Provider store={store}>
+    <PersistGate loading={<div>Loading...</div>} persistor={persistor}>
+      <IntlProvider locale="en" defaultLocale="en">
+        <HashRouter>
+          <Routes />
+        </HashRouter>
+      </IntlProvider>
+    </PersistGate>
+  </Provider>
+);
 
 export default App;

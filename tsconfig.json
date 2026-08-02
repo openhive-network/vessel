@@ -7,7 +7,8 @@
     "moduleResolution": "node",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "strict": false,
+    "strict": true,
+    // noImplicitAny deferred to Phase 5: ~17 TS7016s from untyped legacy .js imports (hive-js, etc.)
     "noImplicitAny": false,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
@@ -15,11 +16,7 @@
     "allowJs": false,
     "checkJs": false,
     "noEmit": true,
-    "outDir": "./dist",
-    "baseUrl": "./app",
-    "paths": {
-      "@/*": ["*"]
-    }
+    "baseUrl": "./app"
   },
   "include": ["app/**/*.ts", "app/**/*.tsx"],
   "exclude": ["node_modules", "dist", "dll", "release"]

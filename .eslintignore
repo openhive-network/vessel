@@ -1,4 +1,6 @@
-app
+# Vendored / generated (not hand-written; deleted in Phase 7) — excluded from lint
+app/semantic-ui/
+app/img/
 
 # Logs
 logs

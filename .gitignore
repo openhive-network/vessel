@@ -65,3 +65,4 @@ vessel-profile-*.tar.gz
 *keystore*backup*
 *.wif
 Local Storage/
+.phase1-work/

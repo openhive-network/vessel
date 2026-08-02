@@ -16,6 +16,12 @@ let mainWindow: BrowserWindow | null = null;
 let promptWindow: BrowserWindow | null = null;
 let customURI: string | string[] | undefined;
 
+// Phase 1 test harness (EXECUTION_STRATEGY §5): point Electron at a DISPOSABLE profile copy, never
+// the real one. Must run before any app wiring reads userData.
+if (process.env.VESSEL_USER_DATA) {
+  app.setPath('userData', process.env.VESSEL_USER_DATA);
+}
+
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
   sourceMapSupport.install();

@@ -14,6 +14,7 @@ import {
 } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 import rootReducer from '../reducers';
+import { migrateLegacyKeystore } from './legacyKeystoreMigration';
 
 export const history = createHashHistory();
 
@@ -26,6 +27,24 @@ const persistConfig = {
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 
 const configureStore = () => {
+  // Phase 1 · Task 0: migrate a legacy redux-persist v4 keystore into persist:root BEFORE the store
+  // rehydrates, so an existing wallet is never loaded empty. Non-fatal: reduxPersist:* is untouched
+  // on any throw, so a skipped migration loses nothing and the next launch retries.
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const result = migrateLegacyKeystore(window.localStorage);
+      if (result.status === 'migrated') {
+        // eslint-disable-next-line no-console
+        console.log(
+          `[keystore] migrated ${result.copiedAccounts.length} account(s) from legacy storage; backup=${result.backupKey}`,
+        );
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('[keystore] migration skipped (non-fatal):', e && (e as Error).name);
+    }
+  }
+
   // Redux Configuration
   const middleware: any[] = [];
 

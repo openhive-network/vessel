@@ -37,12 +37,54 @@ function flowJsxJs() {
   };
 }
 
+/**
+ * D9b — RIPEMD-160 for the Electron MAIN process. Electron's main uses BoringSSL, which (unlike Node's
+ * OpenSSL and the renderer's browserified crypto) lacks RIPEMD-160. hive-js needs it — via
+ * `create-hash`, which in Node is `require('crypto').createHash` — to verify public-key address
+ * checksums while encoding/decoding memos; without it hive-js's one-time self-test fails and it
+ * PERMANENTLY disables memo encryption for the process ("This environment does not support
+ * encryption."). Signing avoids this primitive, which is why it works in main while memo crypto does
+ * not.
+ *
+ * This prelude serves the one missing hash from @noble/hashes (the wallet's crypto backbone in
+ * keyEnvelope.ts) and delegates every other algorithm to the native implementation — hive-js's
+ * byte-exact memo code is reused unchanged. It is a BANNER (not an importable module) on purpose: it
+ * must run before `create-hash` captures `crypto.createHash`, and rollup hoists the external hive-js
+ * require above all bundled app code, so only a banner is guaranteed to execute first. It patches only
+ * when native rmd160 is genuinely missing, so Node/OpenSSL keeps its native path untouched.
+ */
+const RIPEMD160_MAIN_BANNER = [
+  '(function () {',
+  '  try {',
+  '    var c = require("crypto");',
+  '    try { c.createHash("rmd160"); return; } catch (e) {}',
+  '    var R = require("@noble/hashes/ripemd160").ripemd160;',
+  '    var native = c.createHash.bind(c);',
+  '    Object.defineProperty(c, "createHash", {',
+  '      configurable: true,',
+  '      value: function (algo, opts) {',
+  '        var a = String(algo).toLowerCase();',
+  '        if (a === "rmd160" || a === "ripemd160") {',
+  '          var h = R.create();',
+  '          return {',
+  '            update: function (d, e) { h.update(typeof d === "string" ? Buffer.from(d, e || "utf8") : d); return this; },',
+  '            digest: function (enc) { var b = Buffer.from(h.digest()); return enc ? b.toString(enc) : b; },',
+  '          };',
+  '        }',
+  '        return native(algo, opts);',
+  '      },',
+  '    });',
+  '  } catch (err) { console.error("[ripemd160 shim] failed:", err && err.message); }',
+  '})();',
+].join('\n');
+
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
     build: {
       outDir: 'out/main',
       lib: { entry: resolve(__dirname, 'app/main.dev.ts') },
+      rollupOptions: { output: { banner: RIPEMD160_MAIN_BANNER } },
     },
   },
   preload: {

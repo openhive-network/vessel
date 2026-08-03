@@ -22,7 +22,7 @@ import globals from 'globals';
 import babelParser from '@babel/eslint-parser';
 
 const SOURCE = ['app/**/*.{js,jsx,ts,tsx}'];
-const TS = ['app/**/*.{ts,tsx}', '*.ts'];
+const TS = ['app/**/*.{ts,tsx}', 'e2e/**/*.ts', 'playwright.config.ts', '*.ts'];
 const JSX = ['**/*.{js,jsx}'];
 
 export default tseslint.config(

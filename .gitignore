@@ -67,3 +67,8 @@ vessel-profile-*.tar.gz
 Local Storage/
 .phase1-work/
 out/
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/

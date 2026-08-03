@@ -298,21 +298,27 @@ keystoreHandle('keystore:sign', async (_e, account: string, preparedTx: any, pas
 });
 keystoreHandle(
   'keystore:encodeMemo',
-  (
+  async (
     _e,
     account: string,
     password: string,
     recipientPublicKey: string,
     message: string,
     expectedSenderMemoPublic?: string
-  ) =>
-    getKeystore().encodeMemo(
+  ) => {
+    const encoded = await getKeystore().encodeMemo(
       account,
       password,
       recipientPublicKey,
       message,
       expectedSenderMemoPublic
-    )
+    );
+    // Positive audit line (account name only, no secret) — lets the live test confirm main encoded the
+    // memo rather than the renderer's local fallback. Mirrors the keystore:sign audit line.
+    // eslint-disable-next-line no-console
+    console.log(`[keystore] encoded a memo for @${account} in the main process`);
+    return encoded;
+  }
 );
 keystoreHandle('keystore:decodeMemo', (_e, account: string, password: string, encoded: string) =>
   getKeystore().decodeMemo(account, password, encoded)

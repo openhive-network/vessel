@@ -18,14 +18,43 @@ export interface UnsignedTx {
  * export with a stable shape (prepared tx in, signed tx out).
  */
 
-// The single sign step. hive.auth.signTransaction ignores the key's role LABEL and signs with the WIF
-// value only (it iterates `for (key in keys)`), so a single-entry object reproduces the legacy
-// `{ [roles[0]]: wif }` signature byte-for-byte regardless of which role name we pass.
-export function signTx(preparedTx: any, role: string, wif: string): any {
-  return hive.auth.signTransaction(preparedTx, { [role]: wif });
+/**
+ * A signing credential. Either a raw WIF (local signing — the legacy path and the fallback), or a
+ * main-custody signer `{ account, password, wif }` (D9b Stage B4): sign in the Electron main process,
+ * falling back to the local WIF if main is unavailable or holds stale ciphertext (e.g. the wallet
+ * password was changed after migration). hive-js signs deterministically (same key + chain_id), so a
+ * main-signed tx is byte-identical to what the local path would produce — only WHERE it is signed
+ * changes, not the bytes.
+ */
+export type Signer = string | { account: string; password: string; wif: string };
+
+// The single sign step. A raw WIF signs locally (hive.auth.signTransaction ignores the key's role
+// LABEL and signs with the value only, so a single-entry object reproduces the legacy signature
+// byte-for-byte). A main-custody signer routes to the main-process keystore over IPC.
+export async function signTx(preparedTx: any, role: string, signer: Signer): Promise<any> {
+  if (typeof signer === 'string') {
+    return hive.auth.signTransaction(preparedTx, { [role]: signer });
+  }
+  const api = typeof window !== 'undefined' ? (window as any).electronAPI?.keystore : undefined;
+  if (api && signer.account) {
+    try {
+      // Main defaults to mainnet; sync the renderer's selected chain or signatures target the wrong one.
+      await api.setChainConfig(hive.config.get('chain_id'), hive.config.get('address_prefix'));
+      return await api.sign(signer.account, preparedTx, signer.password);
+    } catch (e) {
+      // Main unavailable / stale ciphertext -> fall back to the local WIF (dual-store read).
+      // Deterministic signing makes the fallback tx byte-identical to the main-signed one.
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[keystore] main sign failed, signing locally:',
+        e instanceof Error ? e.message : 'error'
+      );
+    }
+  }
+  return hive.auth.signTransaction(preparedTx, { [role]: signer.wif });
 }
 
-export async function signAndBroadcast(tx: UnsignedTx, role: string, wif: string): Promise<any> {
+export async function signAndBroadcast(tx: UnsignedTx, role: string, signer: Signer): Promise<any> {
   const prepared = await hive.broadcast._prepareTransaction({
     operations: tx.operations,
     extensions: tx.extensions || [],
@@ -42,7 +71,7 @@ export async function signAndBroadcast(tx: UnsignedTx, role: string, wif: string
     );
   }
 
-  const signed = signTx(prepared, role, wif);
+  const signed = await signTx(prepared, role, signer);
   const result = await hive.api.broadcastTransactionAsync(signed);
   // Legacy send() returns `Object.assign({ id: trxId }, result, signed)`. No caller reads `.id`
   // (verified across account.js), so we omit the client-side trxId reconstruction; `signed` (which
@@ -60,20 +89,21 @@ const op = (name: string, fields: Record<string, any>): UnsignedTx => ({
  * One builder per operation the wallet broadcasts. Each maps the caller's plainly-named fields to the
  * exact hive-js operation field names (the error-prone part) and picks the operation's canonical role
  * (roles[0] — the same one the legacy named helper used). Both account.js and the parity test call
- * THESE functions, so the parity test guards the construction account.js actually ships.
+ * THESE functions, so the parity test guards the construction account.js actually ships. The first arg
+ * is a Signer (a raw WIF, or a main-custody { account, password, wif }) forwarded opaquely to the seam.
  */
 export const broadcastOps = {
-  transfer: (wif: string, p: any) =>
+  transfer: (wif: Signer, p: any) =>
     signAndBroadcast(op('transfer', { from: p.from, to: p.to, amount: p.amount, memo: p.memo }), 'active', wif),
 
-  transferToSavings: (wif: string, p: any) =>
+  transferToSavings: (wif: Signer, p: any) =>
     signAndBroadcast(
       op('transfer_to_savings', { from: p.from, to: p.to, amount: p.amount, memo: p.memo }),
       'active',
       wif
     ),
 
-  transferFromSavings: (wif: string, p: any) =>
+  transferFromSavings: (wif: Signer, p: any) =>
     signAndBroadcast(
       op('transfer_from_savings', {
         from: p.from,
@@ -86,10 +116,10 @@ export const broadcastOps = {
       wif
     ),
 
-  transferToVesting: (wif: string, p: any) =>
+  transferToVesting: (wif: Signer, p: any) =>
     signAndBroadcast(op('transfer_to_vesting', { from: p.from, to: p.to, amount: p.amount }), 'active', wif),
 
-  delegateVestingShares: (wif: string, p: any) =>
+  delegateVestingShares: (wif: Signer, p: any) =>
     signAndBroadcast(
       op('delegate_vesting_shares', {
         delegator: p.delegator,
@@ -100,14 +130,14 @@ export const broadcastOps = {
       wif
     ),
 
-  withdrawVesting: (wif: string, p: any) =>
+  withdrawVesting: (wif: Signer, p: any) =>
     signAndBroadcast(
       op('withdraw_vesting', { account: p.account, vesting_shares: p.vestingShares }),
       'active',
       wif
     ),
 
-  setWithdrawVestingRoute: (wif: string, p: any) =>
+  setWithdrawVestingRoute: (wif: Signer, p: any) =>
     signAndBroadcast(
       op('set_withdraw_vesting_route', {
         from_account: p.fromAccount,
@@ -119,27 +149,27 @@ export const broadcastOps = {
       wif
     ),
 
-  accountWitnessVote: (wif: string, p: any) =>
+  accountWitnessVote: (wif: Signer, p: any) =>
     signAndBroadcast(
       op('account_witness_vote', { account: p.account, witness: p.witness, approve: p.approve }),
       'active',
       wif
     ),
 
-  accountWitnessProxy: (wif: string, p: any) =>
+  accountWitnessProxy: (wif: Signer, p: any) =>
     signAndBroadcast(op('account_witness_proxy', { account: p.account, proxy: p.proxy }), 'active', wif),
 
-  convert: (wif: string, p: any) =>
+  convert: (wif: Signer, p: any) =>
     signAndBroadcast(op('convert', { owner: p.owner, requestid: p.requestid, amount: p.amount }), 'active', wif),
 
-  collateralizedConvert: (wif: string, p: any) =>
+  collateralizedConvert: (wif: Signer, p: any) =>
     signAndBroadcast(
       op('collateralized_convert', { owner: p.owner, requestid: p.requestid, amount: p.amount }),
       'active',
       wif
     ),
 
-  customJson: (wif: string, p: any) =>
+  customJson: (wif: Signer, p: any) =>
     signAndBroadcast(
       op('custom_json', {
         required_auths: p.requiredAuths,
@@ -151,7 +181,7 @@ export const broadcastOps = {
       wif
     ),
 
-  claimRewardBalance: (wif: string, p: any) =>
+  claimRewardBalance: (wif: Signer, p: any) =>
     signAndBroadcast(
       op('claim_reward_balance', {
         account: p.account,

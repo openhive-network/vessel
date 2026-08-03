@@ -284,9 +284,14 @@ const keystoreHandle = (
 
 keystoreHandle('keystore:list', () => getKeystore().listAccounts());
 keystoreHandle('keystore:hasAccount', (_e, account: string) => getKeystore().hasAccount(account));
-keystoreHandle('keystore:sign', (_e, account: string, preparedTx: any, password: string) =>
-  getKeystore().signTransaction(preparedTx, account, password)
-);
+keystoreHandle('keystore:sign', async (_e, account: string, preparedTx: any, password: string) => {
+  const signed = await getKeystore().signTransaction(preparedTx, account, password);
+  // Positive audit line (account name only, no secret) so a main-signed broadcast is observable in
+  // the main-process log — lets the live test confirm main signed rather than the local fallback.
+  // eslint-disable-next-line no-console
+  console.log(`[keystore] signed a transaction for @${account} in the main process`);
+  return signed;
+});
 keystoreHandle(
   'keystore:encodeMemo',
   (_e, account: string, password: string, recipientPublicKey: string, message: string) =>

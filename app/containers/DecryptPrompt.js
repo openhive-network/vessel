@@ -32,8 +32,23 @@ class DecryptPrompt extends Component {
       this.props.actions.keyReencrypted({ account: auth.account, ...reenc });
     }
 
-    // ---- proceed with the operation; cleartext WIF lives ONLY in this local object ----
-    const localAuth = { ...auth, encrypted: false, key: wif };
+    // ---- proceed with the operation ----
+    // D9b Stage B4: if this account's key lives in the main-process keystore, route signing THERE by
+    // passing a main signer { account, password, wif }; the sign step (broadcast.ts) prefers main and
+    // falls back to the local WIF if main is unavailable or its ciphertext is stale. Otherwise sign
+    // locally with the cleartext WIF, exactly as before.
+    let signer = wif;
+    const keystore = window.electronAPI && window.electronAPI.keystore;
+    if (keystore) {
+      try {
+        if (await keystore.hasAccount(auth.account)) {
+          signer = { account: auth.account, password, wif };
+        }
+      } catch (e) {
+        // main unavailable -> keep the local WIF signer
+      }
+    }
+    const localAuth = { ...auth, encrypted: false, key: signer };
     this.props.actions.useKey(operation, params, localAuth);
     this.props.actions.useKeyRequestDecryptClose();
   };

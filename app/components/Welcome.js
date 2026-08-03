@@ -7,9 +7,9 @@ import KeysGenerate from './Keys/Generate';
 import KeysImport from './Keys/Import';
 import KeysLogin from './Keys/Login';
 import PreferredNode from './global/PreferredNode';
+import logo from '../img/hive.png';
 
 const { shell } = require('electron');
-const logo = require('../img/hive.png');
 
 export default class Welcome extends Component {
   state = {

@@ -8,8 +8,8 @@ import * as AccountActions from '../actions/account';
 import * as HiveActions from '../actions/hive';
 import * as PreferencesActions from '../actions/preferences';
 
-const srcHive = require('../img/hive.png');
-const srcTestnet = require('../img/testnet.png');
+import srcHive from '../img/hive.png';
+import srcTestnet from '../img/testnet.png';
 
 class MenuBar extends Component {
   state = {

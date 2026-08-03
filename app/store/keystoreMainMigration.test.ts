@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { buildMigrationRecords } from './keystoreMainMigration';
+import { describe, it, expect, afterEach } from 'vitest';
+import { buildMigrationRecords, runKeystoreMigration } from './keystoreMainMigration';
 
 /**
  * Phase 3 · D9b Stage B (step 3) — the pure record-builder that decides what the renderer hands to
@@ -34,5 +34,39 @@ describe('buildMigrationRecords', () => {
   it('returns empty for undefined/empty state (never a vacuous migration)', () => {
     expect(buildMigrationRecords(undefined)).toEqual([]);
     expect(buildMigrationRecords({ permissions: {} })).toEqual([]);
+  });
+});
+
+describe('runKeystoreMigration (reconcile glue)', () => {
+  afterEach(() => {
+    delete (globalThis as any).window;
+  });
+
+  it('copies records over IPC, then prunes tombstoned accounts (F1)', async () => {
+    const seen: { migrated?: string[]; pruned?: string[] } = {};
+    (globalThis as any).window = {
+      electronAPI: {
+        keystore: {
+          migrateRecords: async (recs: any[]) => {
+            seen.migrated = recs.map((r) => r.account);
+            return { migrated: seen.migrated, skipped: [] };
+          },
+          pruneAccounts: async (accs: string[]) => {
+            seen.pruned = accs;
+            return accs;
+          },
+        },
+      },
+    };
+    await runKeystoreMigration({
+      permissions: { alice: { account: 'alice', key: 'ENV_A', encrypted: true, type: 'active' } },
+      removedLegacy: ['ghost'],
+    });
+    expect(seen.migrated).toEqual(['alice']);
+    expect(seen.pruned).toEqual(['ghost']);
+  });
+
+  it('is a safe no-op outside Electron (no electronAPI)', async () => {
+    await expect(runKeystoreMigration({ permissions: {} })).resolves.toBeUndefined();
   });
 });

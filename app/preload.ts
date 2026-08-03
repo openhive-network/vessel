@@ -24,6 +24,8 @@ const electronAPI = {
     setChainConfig: (chainId: string, addressPrefix?: string) =>
       ipcRenderer.invoke('keystore:setChainConfig', chainId, addressPrefix),
     migrateRecords: (records: unknown[]) => ipcRenderer.invoke('keystore:migrateRecords', records),
+    removeAccount: (account: string) => ipcRenderer.invoke('keystore:removeAccount', account),
+    pruneAccounts: (accounts: string[]) => ipcRenderer.invoke('keystore:pruneAccounts', accounts),
   },
 };
 
@@ -60,6 +62,8 @@ export interface KeystoreBridge {
   migrateRecords: (
     records: unknown[]
   ) => Promise<{ migrated: string[]; skipped: string[] }>;
+  removeAccount: (account: string) => Promise<void>;
+  pruneAccounts: (accounts: string[]) => Promise<string[]>;
 }
 
 export interface ElectronAPI {

@@ -50,14 +50,26 @@ export async function runKeystoreMigration(keysState: any): Promise<void> {
   if (!api || typeof api.migrateRecords !== 'function') return;
 
   const records = buildMigrationRecords(keysState);
-  if (!records.length) return;
+  const tombstones: string[] = Array.isArray(keysState?.removedLegacy) ? keysState.removedLegacy : [];
 
   try {
-    const result = await api.migrateRecords(records);
-    // eslint-disable-next-line no-console
-    console.log(
-      `[keystore] main-process migration: ${result.migrated.length} copied, ${result.skipped.length} already present`
-    );
+    if (records.length) {
+      const result = await api.migrateRecords(records);
+      // eslint-disable-next-line no-console
+      console.log(
+        `[keystore] main-process migration: ${result.migrated.length} copied, ${result.skipped.length} already present`
+      );
+    }
+    // Reconcile removals: delete any tombstoned account that a PRIOR run copied into main before it was
+    // removed (buildMigrationRecords already excludes tombstones from new copies). Without this, a
+    // removed account would linger in keystore.json and resurrect once main becomes authoritative.
+    if (tombstones.length && typeof api.pruneAccounts === 'function') {
+      const pruned = await api.pruneAccounts(tombstones);
+      if (pruned.length) {
+        // eslint-disable-next-line no-console
+        console.log(`[keystore] main-process migration: pruned ${pruned.length} removed account(s)`);
+      }
+    }
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error(

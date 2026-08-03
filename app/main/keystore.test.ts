@@ -162,3 +162,48 @@ describe('main keystore — migrateRecords (Stage B ciphertext copy)', () => {
     expect(ks.listAccounts()).toEqual([]);
   });
 });
+
+describe('main keystore — Stage B hardening (review follow-ups)', () => {
+  it('importKey refuses to overwrite an existing account (F2)', async () => {
+    const ks = await seedAlice();
+    await expect(ks.importKey('alice', ACTIVE_WIF, WALLET_PW, 'active')).rejects.toThrow();
+    expect(await ks.decryptWif('alice', WALLET_PW)).toBe(ACTIVE_WIF); // original untouched
+  });
+
+  it('importKey rejects an invalid WIF (F5)', async () => {
+    const ks = new Keystore(file);
+    await expect(ks.importKey('bob', 'not-a-valid-wif', WALLET_PW, 'active')).rejects.toThrow();
+    expect(ks.hasAccount('bob')).toBe(false);
+  });
+
+  it('importKey stores a valid WIF as an envelope', async () => {
+    const ks = new Keystore(file);
+    await ks.importKey('carol', ACTIVE_WIF, WALLET_PW, 'active');
+    expect(ks.listAccounts()[0]).toMatchObject({ account: 'carol', encrypted: true });
+    expect(await ks.decryptWif('carol', WALLET_PW)).toBe(ACTIVE_WIF);
+  });
+
+  it('rejects unsafe account names and never pollutes the prototype (F4)', () => {
+    const ks = new Keystore(file);
+    expect(() =>
+      ks.putRecord({ account: '__proto__', key: 'x', encrypted: false, type: 'active' })
+    ).toThrow();
+    const res = ks.migrateRecords([
+      { account: '__proto__', key: 'x', encrypted: false, type: 'active' },
+      { account: 'constructor', key: 'y', encrypted: false, type: 'active' },
+    ]);
+    expect(res.migrated).toEqual([]);
+    expect(ks.listAccounts()).toEqual([]);
+    expect(({} as any).x).toBeUndefined(); // no prototype pollution
+  });
+
+  it('pruneAccounts removes tombstoned accounts and leaves others (F1)', async () => {
+    const ks = new Keystore(file);
+    ks.putRecord({ account: 'alice', key: await encryptKey(ACTIVE_WIF, WALLET_PW), encrypted: true, type: 'active' });
+    ks.putRecord({ account: 'bob', key: await encryptKey(ACTIVE_WIF, WALLET_PW), encrypted: true, type: 'active' });
+    const removed = ks.pruneAccounts(['bob', 'never-existed']);
+    expect(removed).toEqual(['bob']);
+    expect(ks.listAccounts().map((a) => a.account)).toEqual(['alice']);
+    expect(new Keystore(file).hasAccount('bob')).toBe(false); // persisted
+  });
+});

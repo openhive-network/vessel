@@ -267,11 +267,17 @@ const keystoreHandle = (
     try {
       return await fn(event, ...args);
     } catch (err) {
+      const code =
+        err instanceof WrongPasswordError
+          ? 'WRONG_PASSWORD'
+          : err instanceof InvalidCiphertextError
+            ? 'INVALID_CIPHERTEXT'
+            : 'KEYSTORE_ERROR';
+      // Log only the derived code, never err.message (which could embed a WIF). The custom error
+      // classes set no `.name` (it is always 'Error'), so the instanceof-derived code is the signal.
       // eslint-disable-next-line no-console
-      console.error(`[keystore] ${channel} failed:`, err instanceof Error ? err.name : 'error');
-      if (err instanceof WrongPasswordError) throw new Error('WRONG_PASSWORD');
-      if (err instanceof InvalidCiphertextError) throw new Error('INVALID_CIPHERTEXT');
-      throw new Error('KEYSTORE_ERROR');
+      console.error(`[keystore] ${channel} failed: ${code}`);
+      throw new Error(code);
     }
   });
 };
@@ -299,6 +305,12 @@ keystoreHandle('keystore:setChainConfig', (_e, chainId: string, addressPrefix?: 
 );
 keystoreHandle('keystore:migrateRecords', (_e, records: any[]) =>
   getKeystore().migrateRecords(Array.isArray(records) ? records : [])
+);
+keystoreHandle('keystore:removeAccount', (_e, account: string) =>
+  getKeystore().removeAccount(account)
+);
+keystoreHandle('keystore:pruneAccounts', (_e, accounts: string[]) =>
+  getKeystore().pruneAccounts(Array.isArray(accounts) ? accounts : [])
 );
 
 // Set as default protocol client

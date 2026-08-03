@@ -51,6 +51,10 @@ export interface AccountSummary {
 
 const EMPTY: KeystoreFile = { version: 1, accounts: {} };
 
+// Reserved JS object keys a hostile renderer could send to corrupt the account map — never store them.
+const UNSAFE_ACCOUNT_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+const isUnsafeAccount = (account: string): boolean => UNSAFE_ACCOUNT_KEYS.has(account);
+
 export class Keystore {
   readonly filePath: string;
 
@@ -74,12 +78,22 @@ export class Keystore {
     return { version: 1, accounts: {} };
   }
 
-  /** Atomic write: serialize to a temp file in the same dir, then rename over the target. */
+  /**
+   * Atomic durable write: write to a temp file, fsync it to disk, then rename over the target (rename
+   * is atomic on POSIX). The fsync matters once main becomes the authoritative custody store — without
+   * it a power-loss between write and rename could leave a torn/zero-length keystore, i.e. key loss.
+   */
   private persist(): void {
     const dir = path.dirname(this.filePath);
     fs.mkdirSync(dir, { recursive: true });
     const tmp = `${this.filePath}.${process.pid}.tmp`;
-    fs.writeFileSync(tmp, JSON.stringify(this.data), { mode: 0o600 });
+    const fd = fs.openSync(tmp, 'w', 0o600);
+    try {
+      fs.writeSync(fd, JSON.stringify(this.data));
+      fs.fsyncSync(fd);
+    } finally {
+      fs.closeSync(fd);
+    }
     fs.renameSync(tmp, this.filePath);
   }
 
@@ -89,6 +103,7 @@ export class Keystore {
 
   /** Insert/replace a record verbatim (envelope ciphertext is copied as-is; never decrypted here). */
   putRecord(rec: KeyRecord): void {
+    if (isUnsafeAccount(rec.account)) throw new Error('unsafe account name');
     this.data.accounts[rec.account] = {
       account: rec.account,
       key: rec.key,
@@ -107,6 +122,23 @@ export class Keystore {
   }
 
   /**
+   * Reconcile against the renderer's removal tombstones: delete any tombstoned account still present in
+   * main. Without this, an account removed after it was migrated would linger in keystore.json and
+   * resurrect once main becomes authoritative. Persists once for the batch; returns what was removed.
+   */
+  pruneAccounts(accounts: string[]): string[] {
+    const removed: string[] = [];
+    for (const account of accounts) {
+      if (this.hasAccount(account)) {
+        delete this.data.accounts[account];
+        removed.push(account);
+      }
+    }
+    if (removed.length) this.persist();
+    return removed;
+  }
+
+  /**
    * The Stage B migration: a DUMB, IDEMPOTENT, CIPHERTEXT-ONLY copy. Insert any record whose account
    * is not already present; existing records are never overwritten (main-side wins, so re-running can
    * never clobber a newer value). Records are copied VERBATIM — nothing is decrypted, no password is
@@ -116,7 +148,7 @@ export class Keystore {
     const migrated: string[] = [];
     const skipped: string[] = [];
     for (const rec of records) {
-      if (!rec || !rec.account || typeof rec.key !== 'string') continue;
+      if (!rec || !rec.account || typeof rec.key !== 'string' || isUnsafeAccount(rec.account)) continue;
       if (this.hasAccount(rec.account)) {
         skipped.push(rec.account);
         continue;
@@ -204,6 +236,11 @@ export class Keystore {
    * newly added key never lands in the redux keys slice (which redux-persist would write to disk).
    */
   async importKey(account: string, wif: string, password: string, type: string): Promise<void> {
+    if (isUnsafeAccount(account)) throw new Error('unsafe account name');
+    // Refuse to clobber an existing record — a re-encrypt/rotate is a separate, explicit path. Under
+    // the D9b threat model a hostile renderer with the password must not be able to overwrite a key.
+    if (this.hasAccount(account)) throw new Error('account already exists');
+    if (!hive.auth.isWif(wif)) throw new Error('invalid wif');
     const envelope = await encryptKey(wif, password);
     this.putRecord({ account, key: envelope, encrypted: true, type });
   }

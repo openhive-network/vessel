@@ -8,7 +8,7 @@
  * When running `npm run build` or `npm run build-main`, this file is compiled to
  * `./app/main.prod.js` using webpack. This gives us some performance wins.
  */
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, session, shell } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import MenuBuilder from './menu';
@@ -82,7 +82,36 @@ if (!singleInstance) {
   });
 }
 
+// Content-Security-Policy: production locks the renderer to same-origin code (no remote scripts, no
+// eval) — the bundle has no inline scripts and no eval, so this is safe. Dev is relaxed because the
+// Vite HMR client needs inline/eval + a ws connection to the localhost dev server.
+const CSP_IS_DEV = process.env.NODE_ENV === 'development' || !!process.env.ELECTRON_RENDERER_URL;
+const CSP_POLICY = CSP_IS_DEV
+  ? "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https: ws: http://localhost:*"
+  : [
+      "default-src 'self'",
+      "script-src 'self'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' https: data:",
+      "font-src 'self' data:",
+      "connect-src 'self' https:",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "frame-src 'none'",
+    ].join('; ');
+
 async function createWindow() {
+  // Attach the CSP to every response (only the last onHeadersReceived listener is used, so calling
+  // this again on `activate` simply replaces it).
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [CSP_POLICY],
+      },
+    });
+  });
+
   if (process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true') {
     await installExtensions();
   }

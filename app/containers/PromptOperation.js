@@ -14,6 +14,7 @@ import {
   MixedAuthorityError,
   NoOperationsError,
 } from '../utils/authorityRoles';
+import { parseAndValidateSignOps } from '../utils/signPayload';
 
 import OperationsPrompt from '../components/sign/operations/prompt';
 
@@ -44,22 +45,20 @@ class PromptOperation extends Component {
   constructor(props) {
     super(props);
     let meta = {};
-    let ops = [];
     try {
       meta = JSON.parse(window.atob(props.query.meta));
     } catch (exception) {
       console.log(exception);
     }
-    try {
-      ops = JSON.parse(window.atob(props.query.ops));
-    } catch (exception) {
-      console.log(exception);
-    }
+    // Task 5 — the ops come from an untrusted URI. Validate SHAPE + SIZE before anything renders,
+    // edits, or signs them; a bad payload sets payloadError and blocks the sign UI entirely.
+    const validated = parseAndValidateSignOps(props.query.ops);
     this.state = {
       account: null,
       authorityError: null,
+      payloadError: validated.ok ? null : validated.error,
       meta,
-      ops,
+      ops: validated.ops,
       opsString: props.query.ops,
     };
   }
@@ -72,6 +71,8 @@ class PromptOperation extends Component {
 
   submitOps = (e) => {
     e.preventDefault();
+    // Never sign an invalid/oversized payload, even if something re-enabled the button.
+    if (this.state.payloadError) return;
     const { account, ops } = this.state;
     const { permissions } = this.props.keys;
     // Resolve the single authority the whole tx needs BEFORE any key selection or broadcast.
@@ -131,8 +132,19 @@ class PromptOperation extends Component {
   }
 
   render() {
-    const { ops, meta, authorityError } = this.state;
+    const { ops, meta, authorityError, payloadError } = this.state;
     const { account, keys } = this.props;
+    // A malformed/oversized/malicious URI payload is refused outright — never rendered or signable.
+    if (payloadError) {
+      return (
+        <Message
+          error
+          icon="warning sign"
+          header="This signing request can't be shown"
+          content={payloadError}
+        />
+      );
+    }
     return (
       <>
         {authorityError ? (

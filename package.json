@@ -35,16 +35,7 @@
     "postinstall": "electron-builder install-app-deps",
     "dev:vite": "electron-vite dev",
     "build:vite": "electron-vite build",
-    "preview:vite": "electron-vite preview",
-    "dev:webpack": "cross-env NODE_ENV=development START_HOT=1 npm run hot-updates-server",
-    "build:webpack": "concurrently \"npm run build-main\" \"npm run build-renderer\"",
-    "start:webpack": "cross-env NODE_ENV=production DEBUG_PROD=true electron ./app/",
-    "hot-updates-server": "cross-env NODE_ENV=development webpack serve --config webpack.config.renderer.dev.js",
-    "build-dll": "cross-env NODE_ENV=development webpack --config webpack.config.renderer.dev.dll.js --progress --color",
-    "build-main": "cross-env NODE_ENV=production webpack --config webpack.config.main.prod.js --progress --color",
-    "build-renderer": "cross-env NODE_ENV=production webpack --config webpack.config.renderer.prod.js --progress --color",
-    "build-main-dev": "cross-env NODE_ENV=development webpack --config webpack.config.main.prod.js",
-    "start-hot-renderer": "npm run build-main-dev && cross-env HOT=1 NODE_ENV=development electron ./app/main.prod.js"
+    "preview:vite": "electron-vite preview"
   },
   "browserslist": "chrome 120",
   "build": {

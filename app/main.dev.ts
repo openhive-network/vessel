@@ -235,6 +235,8 @@ async function createPrompt(
 
 // IPC handlers for renderer process
 ipcMain.handle('shell:openExternal', async (event, url: string) => {
+  // C4 — only our own top frame may open external links (defense-in-depth).
+  if (!isAllowedSender(event)) return;
   // Only ever hand http(s) links to the OS handler — never file:, javascript:, etc. (Phase 3 hardening).
   try {
     const { protocol } = new URL(url);
@@ -255,6 +257,21 @@ const getKeystore = (): Keystore => {
   return keystore;
 };
 
+// D9b Stage C4 — sender-frame allowlist. Only the TOP frame of our OWN windows (the main app window and
+// the sign window) may invoke privileged IPC. Rejects an injected sub-frame (non-null parent) and any
+// other WebContents (a rogue/opened window, devtools, a detached view). Defense-in-depth beneath the CSP
+// (frame-src 'none'), the will-navigate guards, and setWindowOpenHandler:'deny' already on both windows.
+function isAllowedSender(event: Electron.IpcMainInvokeEvent): boolean {
+  const wc = event.sender;
+  const fromKnownWindow =
+    (mainWindow != null && wc === mainWindow.webContents) ||
+    (promptWindow != null && wc === promptWindow.webContents);
+  if (!fromKnownWindow) return false;
+  const frame = event.senderFrame;
+  // Only the top frame may call privileged IPC — a nested frame has a non-null parent.
+  return frame != null && frame.parent == null;
+}
+
 // Wrap every keystore handler so errors crossing to the renderer are SANITIZED: log the real cause in
 // main, surface only a coarse code. A WIF/password can never leak through an error message (reviewer
 // note), while the renderer can still distinguish a wrong password from other failures. Classify by
@@ -264,6 +281,11 @@ const keystoreHandle = (
   fn: (event: Electron.IpcMainInvokeEvent, ...args: any[]) => any
 ) => {
   ipcMain.handle(channel, async (event, ...args) => {
+    if (!isAllowedSender(event)) {
+      // eslint-disable-next-line no-console
+      console.error(`[keystore] ${channel} rejected: sender not on the frame allowlist`);
+      throw new Error('FORBIDDEN_SENDER');
+    }
     try {
       return await fn(event, ...args);
     } catch (err) {

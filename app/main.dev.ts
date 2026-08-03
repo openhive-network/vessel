@@ -12,6 +12,8 @@ import { app, BrowserWindow, ipcMain, session, shell } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import MenuBuilder from './menu';
+import { Keystore } from './main/keystore';
+import { WrongPasswordError, InvalidCiphertextError } from './utils/errors';
 
 // Resolve the renderer entry for BOTH build systems until MR-B removes webpack: electron-vite dev
 // server URL, else the electron-vite prod build (out/renderer/index.html), else the legacy webpack
@@ -243,6 +245,58 @@ ipcMain.handle('shell:openExternal', async (event, url: string) => {
     // malformed URL — ignore
   }
 });
+
+// --- D9b Stage B · main-process keystore IPC (ADDITIVE — no renderer code invokes these yet) ---
+let keystore: Keystore | null = null;
+const getKeystore = (): Keystore => {
+  // Lazy so nothing touches disk at startup; app.getPath('userData') already honors the
+  // VESSEL_USER_DATA test override set at the top of this file.
+  if (!keystore) keystore = new Keystore(path.join(app.getPath('userData'), 'keystore.json'));
+  return keystore;
+};
+
+// Wrap every keystore handler so errors crossing to the renderer are SANITIZED: log the real cause in
+// main, surface only a coarse code. A WIF/password can never leak through an error message (reviewer
+// note), while the renderer can still distinguish a wrong password from other failures. Classify by
+// `instanceof` (the error classes don't set `.name`, and minification would mangle constructor names).
+const keystoreHandle = (
+  channel: string,
+  fn: (event: Electron.IpcMainInvokeEvent, ...args: any[]) => any
+) => {
+  ipcMain.handle(channel, async (event, ...args) => {
+    try {
+      return await fn(event, ...args);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(`[keystore] ${channel} failed:`, err instanceof Error ? err.name : 'error');
+      if (err instanceof WrongPasswordError) throw new Error('WRONG_PASSWORD');
+      if (err instanceof InvalidCiphertextError) throw new Error('INVALID_CIPHERTEXT');
+      throw new Error('KEYSTORE_ERROR');
+    }
+  });
+};
+
+keystoreHandle('keystore:list', () => getKeystore().listAccounts());
+keystoreHandle('keystore:hasAccount', (_e, account: string) => getKeystore().hasAccount(account));
+keystoreHandle('keystore:sign', (_e, account: string, preparedTx: any, password: string) =>
+  getKeystore().signTransaction(preparedTx, account, password)
+);
+keystoreHandle(
+  'keystore:encodeMemo',
+  (_e, account: string, password: string, recipientPublicKey: string, message: string) =>
+    getKeystore().encodeMemo(account, password, recipientPublicKey, message)
+);
+keystoreHandle('keystore:decodeMemo', (_e, account: string, password: string, encoded: string) =>
+  getKeystore().decodeMemo(account, password, encoded)
+);
+keystoreHandle(
+  'keystore:importKey',
+  (_e, account: string, wif: string, password: string, type: string) =>
+    getKeystore().importKey(account, wif, password, type)
+);
+keystoreHandle('keystore:setChainConfig', (_e, chainId: string, addressPrefix?: string) =>
+  Keystore.setChainConfig(chainId, addressPrefix)
+);
 
 // Set as default protocol client
 if (process.defaultApp) {

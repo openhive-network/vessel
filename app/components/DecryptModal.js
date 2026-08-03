@@ -8,45 +8,79 @@ import { decryptKey, WrongPasswordError } from '../utils/keyEnvelope';
 
 /**
  * §7.3 — the single password-unlock modal, shared by the redux-driven `DecryptPrompt` container
- * and by `Send`'s memo-decrypt path. It captures the password, decrypts ONE ciphertext, and
- * validates the result is a WIF, then hands the cleartext WIF (plus the entered password, which
- * the caller needs to lazily re-encrypt) to `onDecrypted` — NEVER through redux.
+ * and by `Send`'s memo-decrypt path. It captures the password, decrypts ONE ciphertext, validates
+ * the result is a WIF, then hands the cleartext WIF (plus the entered password, which the caller
+ * needs to lazily re-encrypt) to `onDecrypted` — NEVER through redux.
+ *
+ * Live button feedback (restores the pre-2026 UX): the Unlock button enables only once the typed
+ * password actually decrypts the ciphertext. The probe is DEBOUNCED (250 ms) and format-aware —
+ * effectively instant for legacy crypto-js keys, one scrypt attempt per typing pause for v2
+ * envelopes — never one decryption per keystroke.
  *
  * Security invariants:
- *  - No decryption per keystroke (scrypt is ~1 s; per-keystroke would be a password oracle + unusable).
- *  - The decrypted WIF lives ONLY inside `handleSubmit`'s scope and the synchronous `onDecrypted` call.
+ *  - The probe WIF (live check) and the real WIF (submit) live ONLY inside a local scope and are
+ *    discarded as it returns; neither is stored in state or passed through redux.
+ *  - The local live check is no weaker than the encrypted blob already on disk (offline
+ *    brute-forceable regardless), so validating client-side leaks nothing new.
  *  - On a wrong password the password is CLEARED from component state (spec C8 / §6).
  *
  * Props: { ciphertext, header, onDecrypted(wif, password), onCancel }.
  * `onDecrypted` may be async (it performs the field-aware lazy re-encrypt in the caller); the modal
  * stays busy until it settles so any failure surfaces here.
  */
+const DEBOUNCE_MS = 250;
+
 export default class DecryptModal extends Component {
   constructor(props) {
     super(props);
-    this.state = { password: '', busy: false, error: null };
+    this.state = { password: '', busy: false, error: null, valid: false, checking: false };
     this.mounted = true;
+    this.checkToken = 0;
+    this.debounce = null;
   }
 
   componentWillUnmount() {
     this.mounted = false;
+    if (this.debounce) clearTimeout(this.debounce);
   }
 
   handlePasswordChange = (e: SyntheticEvent, { value }: { value: string }) => {
-    // NO decryption here — just track the input and clear any prior error.
-    this.setState({ password: value, error: null });
+    // Track the input, drop any prior error/validity, then (debounced) probe whether it decrypts.
+    this.setState({ password: value, error: null, valid: false });
+    if (this.debounce) clearTimeout(this.debounce);
+    if (!value) {
+      this.setState({ checking: false });
+      return;
+    }
+    this.debounce = setTimeout(() => this.validate(value), DEBOUNCE_MS);
+  };
+
+  validate = async (candidate: string) => {
+    const token = (this.checkToken += 1);
+    const { ciphertext } = this.props;
+    this.setState({ checking: true });
+    let ok = false;
+    try {
+      const wif = await decryptKey(ciphertext, candidate);
+      ok = hive.auth.isWif(wif); // probe WIF is discarded as this scope returns
+    } catch (err) {
+      ok = false;
+    }
+    // Ignore stale probes (the user kept typing) and post-unmount updates.
+    if (!this.mounted || token !== this.checkToken) return;
+    this.setState({ valid: ok, checking: false });
   };
 
   handleKeyUp = (e: SyntheticEvent) => {
-    if (e.key === 'Enter' && this.state.password && !this.state.busy) {
+    if (e.key === 'Enter' && this.state.valid && !this.state.busy) {
       this.handleSubmit(e);
     }
   };
 
   handleSubmit = async (e: SyntheticEvent) => {
     if (e && e.preventDefault) e.preventDefault();
-    const { password, busy } = this.state;
-    if (!password || busy) return;
+    const { password, busy, valid } = this.state;
+    if (!password || busy || !valid) return;
     const { ciphertext, onDecrypted } = this.props;
     this.setState({ busy: true, error: null });
     try {
@@ -54,12 +88,13 @@ export default class DecryptModal extends Component {
       const wif = await decryptKey(ciphertext, password);
       if (!hive.auth.isWif(wif)) throw new WrongPasswordError();
       await onDecrypted(wif, password);
-      if (this.mounted) this.setState({ password: '', busy: false, error: null });
+      if (this.mounted) this.setState({ password: '', busy: false, error: null, valid: false });
     } catch (err) {
       if (this.mounted) {
         this.setState({
           busy: false,
           password: '', // clear the password on any failure (C8)
+          valid: false,
           error:
             err instanceof WrongPasswordError
               ? 'Incorrect password.'
@@ -71,7 +106,7 @@ export default class DecryptModal extends Component {
 
   render() {
     const { header, onCancel } = this.props;
-    const { password, busy, error } = this.state;
+    const { password, busy, error, valid, checking } = this.state;
     return (
       <Modal
         size="small"
@@ -115,8 +150,8 @@ export default class DecryptModal extends Component {
             content: 'Unlock',
             color: 'purple',
             onClick: this.handleSubmit,
-            disabled: !password || busy,
-            loading: busy,
+            disabled: !valid || busy,
+            loading: busy || checking,
           },
         ]}
       />

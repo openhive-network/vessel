@@ -8,7 +8,7 @@
  * When running `npm run build` or `npm run build-main`, this file is compiled to
  * `./app/main.prod.js` using webpack. This gives us some performance wins.
  */
-import { app, BrowserWindow, ipcMain, session, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, nativeImage, session, shell } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import MenuBuilder from './menu';
@@ -352,7 +352,28 @@ if (process.defaultApp) {
   app.setAsDefaultProtocolClient('vessel');
 }
 
-app.on('ready', createWindow);
+// Dev/unpackaged macOS launches (`npm start`, the e2e/profile-copy harness) otherwise show the generic
+// Electron dock icon — the packaged app gets its icon from electron-builder and is unaffected. Set the
+// Vessel icon for dev using the STYLED image extracted from the packaged .icns (dock-icon.png — a
+// rounded-square with transparent corners; the raw .icns is unreadable by nativeImage and the bare
+// png/ logos have no macOS treatment, which is why the earlier attempt was reverted). __dirname is
+// out/main under the vite build, so the repo's assets/ sit two levels up.
+function setDevDockIcon(): void {
+  if (app.isPackaged || process.platform !== 'darwin' || !app.dock) return;
+  try {
+    const iconPath = path.join(__dirname, '..', '..', 'assets', 'icons', 'mac', 'dock-icon.png');
+    if (!fs.existsSync(iconPath)) return;
+    const image = nativeImage.createFromPath(iconPath);
+    if (!image.isEmpty()) app.dock.setIcon(image);
+  } catch {
+    // non-fatal — dev cosmetics only
+  }
+}
+
+app.on('ready', () => {
+  setDevDockIcon();
+  createWindow();
+});
 app.on('open-url', (event, url) => createPrompt(event, url));
 app.on('activate', () => {
   if (mainWindow === null) {

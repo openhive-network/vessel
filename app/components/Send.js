@@ -652,9 +652,16 @@ export default class Send extends Component {
       (isEncrypted(keys.permissions[this.state.from].memo) ||
         hive.auth.isWif(keys.permissions[this.state.from].memo))
     ) {
+      // Offer memo encryption to any Hive-account recipient (another user / same account / saved
+      // contact) — all have a memo key that can decrypt it. Exchanges are excluded (they need the
+      // PLAINTEXT memo to credit the deposit) except those historically supporting it (Bittrex). The
+      // old check compared against 'account', a destination value no radio sets ("another user" is
+      // 'account_liquid'), so this option was unreachable for user-to-user transfers.
       if (
         exchangeSupportingEncryption.indexOf(this.state.to) >= 0 ||
-        this.state.destination === 'account'
+        this.state.destination === 'account_liquid' ||
+        this.state.destination === 'same_account' ||
+        this.state.destination === 'contact'
       ) {
         encryptedField = (
           <Form.Field>

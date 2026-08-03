@@ -42,9 +42,6 @@ export default tseslint.config(
       'app/semantic-ui/**',
       'app/img/**',
       'flow-typed/**',
-      // legacy webpack build tooling (removed in MR-B) — not worth linting on its way out
-      'webpack.config.*.js',
-      'internals/**',
       // tooling configs whose ESM-only imports the parser can't resolve
       'electron.vite.config.ts',
       'vitest.config.ts',

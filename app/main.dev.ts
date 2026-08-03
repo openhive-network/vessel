@@ -96,8 +96,9 @@ async function createWindow() {
     width: 970,
     height: 750,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
       preload: preloadPath(),
     },
   });
@@ -154,8 +155,10 @@ async function createPrompt(
     width: 500,
     height: 600,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+      preload: preloadPath(),
     },
   });
 

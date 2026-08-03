@@ -58,8 +58,6 @@ export default defineConfig({
       outDir: resolve(__dirname, 'out/renderer'),
       rollupOptions: {
         input: resolve(__dirname, 'app/index.html'),
-        // 6 legacy require('electron') call sites + nodeIntegration:true remain until Phase 3.
-        external: ['electron'],
       },
     },
     plugins: [

@@ -106,6 +106,34 @@ export class Keystore {
     }
   }
 
+  /**
+   * The Stage B migration: a DUMB, IDEMPOTENT, CIPHERTEXT-ONLY copy. Insert any record whose account
+   * is not already present; existing records are never overwritten (main-side wins, so re-running can
+   * never clobber a newer value). Records are copied VERBATIM — nothing is decrypted, no password is
+   * involved. Persists once for the whole batch. Returns which accounts were added vs already present.
+   */
+  migrateRecords(records: KeyRecord[]): { migrated: string[]; skipped: string[] } {
+    const migrated: string[] = [];
+    const skipped: string[] = [];
+    for (const rec of records) {
+      if (!rec || !rec.account || typeof rec.key !== 'string') continue;
+      if (this.hasAccount(rec.account)) {
+        skipped.push(rec.account);
+        continue;
+      }
+      this.data.accounts[rec.account] = {
+        account: rec.account,
+        key: rec.key,
+        encrypted: rec.encrypted,
+        type: rec.type,
+        ...(rec.memo !== undefined ? { memo: rec.memo } : {}),
+      };
+      migrated.push(rec.account);
+    }
+    if (migrated.length) this.persist();
+    return { migrated, skipped };
+  }
+
   /** Metadata only — no key/memo material ever crosses this boundary. */
   listAccounts(): AccountSummary[] {
     return Object.values(this.data.accounts)

@@ -23,6 +23,7 @@ const electronAPI = {
       ipcRenderer.invoke('keystore:importKey', account, wif, password, type),
     setChainConfig: (chainId: string, addressPrefix?: string) =>
       ipcRenderer.invoke('keystore:setChainConfig', chainId, addressPrefix),
+    migrateRecords: (records: unknown[]) => ipcRenderer.invoke('keystore:migrateRecords', records),
   },
 };
 
@@ -56,6 +57,9 @@ export interface KeystoreBridge {
   decodeMemo: (account: string, password: string, encoded: string) => Promise<string>;
   importKey: (account: string, wif: string, password: string, type: string) => Promise<void>;
   setChainConfig: (chainId: string, addressPrefix?: string) => Promise<void>;
+  migrateRecords: (
+    records: unknown[]
+  ) => Promise<{ migrated: string[]; skipped: string[] }>;
 }
 
 export interface ElectronAPI {

@@ -117,3 +117,48 @@ describe('main keystore — memo custody in main', () => {
     expect(decoded).toBe('#hello vessel');
   });
 });
+
+describe('main keystore — migrateRecords (Stage B ciphertext copy)', () => {
+  it('copies records verbatim and is idempotent (second run skips, file unchanged)', async () => {
+    const ks = new Keystore(file);
+    const env = await encryptKey(ACTIVE_WIF, WALLET_PW);
+    const memoEnv = await encryptKey(MEMO_WIF, WALLET_PW);
+    const records = [
+      { account: 'alice', key: env, encrypted: true, type: 'active', memo: memoEnv },
+      { account: 'bob', key: 'plaintext-wif-placeholder', encrypted: false, type: 'posting' },
+    ];
+
+    const first = ks.migrateRecords(records);
+    expect(first.migrated.sort()).toEqual(['alice', 'bob']);
+    expect(first.skipped).toEqual([]);
+
+    const reopened = new Keystore(file);
+    expect(reopened.listAccounts().map((a) => a.account)).toEqual(['alice', 'bob']);
+    expect(await reopened.decryptWif('alice', WALLET_PW)).toBe(ACTIVE_WIF); // ciphertext intact
+
+    const before = fs.readFileSync(file, 'utf8');
+    const second = ks.migrateRecords(records);
+    expect(second.migrated).toEqual([]);
+    expect(second.skipped.sort()).toEqual(['alice', 'bob']);
+    expect(fs.readFileSync(file, 'utf8')).toBe(before); // idempotent: no rewrite
+  });
+
+  it('never overwrites a record main already holds (main-side wins)', async () => {
+    const ks = new Keystore(file);
+    ks.putRecord({ account: 'alice', key: await encryptKey(ACTIVE_WIF, WALLET_PW), encrypted: true, type: 'active' });
+    const res = ks.migrateRecords([{ account: 'alice', key: 'DIFFERENT', encrypted: false, type: 'owner' }]);
+    expect(res.migrated).toEqual([]);
+    expect(res.skipped).toEqual(['alice']);
+    expect(await ks.decryptWif('alice', WALLET_PW)).toBe(ACTIVE_WIF); // original untouched
+  });
+
+  it('drops malformed records (missing account or key)', () => {
+    const ks = new Keystore(file);
+    const res = ks.migrateRecords([
+      { account: '', key: 'x', encrypted: false, type: 'active' } as any,
+      { account: 'nokey', encrypted: false, type: 'active' } as any,
+    ]);
+    expect(res.migrated).toEqual([]);
+    expect(ks.listAccounts()).toEqual([]);
+  });
+});

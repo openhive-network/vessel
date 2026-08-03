@@ -16,6 +16,7 @@ import storage from 'redux-persist/lib/storage';
 import rootReducer from '../reducers';
 import { migrateLegacyKeystore } from './legacyKeystoreMigration';
 import { keysSurfaceTransform } from './keysPersistTransform';
+import { runKeystoreMigration } from './keystoreMainMigration';
 
 export const history = createHashHistory();
 
@@ -79,7 +80,12 @@ const configureStore = () => {
 };
 
 export const store = configureStore();
-export const persistor = persistStore(store);
+export const persistor = persistStore(store, null, () => {
+  // Phase 3 · D9b Stage B — once rehydration is complete, copy existing encrypted key records into
+  // the main-process keystore (non-destructive, idempotent, ciphertext-only; no-op outside Electron).
+  // Runs here (not in configureStore) so `permissions` is populated, never an empty pre-rehydration slice.
+  runKeystoreMigration(store.getState().keys);
+});
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

@@ -297,6 +297,9 @@ keystoreHandle(
 keystoreHandle('keystore:setChainConfig', (_e, chainId: string, addressPrefix?: string) =>
   Keystore.setChainConfig(chainId, addressPrefix)
 );
+keystoreHandle('keystore:migrateRecords', (_e, records: any[]) =>
+  getKeystore().migrateRecords(Array.isArray(records) ? records : [])
+);
 
 // Set as default protocol client
 if (process.defaultApp) {

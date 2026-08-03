@@ -136,6 +136,7 @@ declare module '@hiveio/hive-js' {
     wifToPublic(wif: string): string;
     toWif(name: string, password: string, type: string): string;
     getPrivateKeys(name: string, password: string, roles?: string[]): any;
+    signTransaction(trx: any, keys: string[]): any;
   };
 
   export const memo: {

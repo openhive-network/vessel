@@ -122,6 +122,9 @@ async function createWindow() {
     }
   });
 
+  // Security: never open new windows from renderer content (external links go via shell:openExternal).
+  mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+
   mainWindow.on('closed', () => {
     mainWindow = null;
     promptWindow = null;
@@ -154,6 +157,15 @@ async function createPrompt(
       nodeIntegration: true,
       contextIsolation: false,
     },
+  });
+
+  // Security: the sign window renders externally-supplied URI payloads — deny new windows and block
+  // navigation off the local app (Phase 3 hardening; the isolation flip + preload land with D9b).
+  promptWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  promptWindow.webContents.on('will-navigate', (event, navUrl) => {
+    if (!navUrl.startsWith('file://') && !navUrl.startsWith('http://localhost')) {
+      event.preventDefault();
+    }
   });
 
   const urlString = Array.isArray(url) ? url[0] : url;
@@ -189,7 +201,15 @@ async function createPrompt(
 
 // IPC handlers for renderer process
 ipcMain.handle('shell:openExternal', async (event, url: string) => {
-  await shell.openExternal(url);
+  // Only ever hand http(s) links to the OS handler — never file:, javascript:, etc. (Phase 3 hardening).
+  try {
+    const { protocol } = new URL(url);
+    if (protocol === 'https:' || protocol === 'http:') {
+      await shell.openExternal(url);
+    }
+  } catch {
+    // malformed URL — ignore
+  }
 });
 
 // Set as default protocol client
@@ -218,10 +238,3 @@ app.on('will-quit', () => {
   mainWindow = null;
   promptWindow = null;
 });
-
-function devToolsLog(s: string) {
-  console.log(s);
-  if (mainWindow && mainWindow.webContents) {
-    mainWindow.webContents.executeJavaScript(`console.log("${s}")`);
-  }
-}

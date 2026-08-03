@@ -353,15 +353,47 @@ export default class Send extends Component {
     }
   };
 
-  // §7.3 — invoked by DecryptModal once the memo key is decrypted and validated as a WIF. The
-  // decrypted WIF (and password) are scoped to this handler: the memo is ENCODED immediately and
-  // only the encoded string is kept in state — the WIF is never stored or held across renders.
-  handleMemoDecrypted = async (memoWif: string, password: string) => {
+  // §7.3 / D9b B4-2b — invoked by DecryptModal once the wallet password is captured. Two paths:
+  //  - REMOTE (Electron, memoWif === null): main holds the memo key and both decrypts AND encodes the
+  //    memo internally, so the memo WIF NEVER enters the renderer. The password was already validated
+  //    against main by the modal's onVerify; `memoPublic` re-enforces the stale-memo-key guard in main.
+  //  - LOCAL (non-Electron): the modal decrypted the memo WIF; encode it here, exactly as before. The
+  //    decrypted WIF is scoped to this handler — encoded immediately, never stored across renders.
+  handleMemoDecrypted = async (memoWif: string | null, password: string) => {
     const { from, memoDecrypt } = this.state;
     if (!memoDecrypt) return;
     const { toMemoPublic, cleaned } = memoDecrypt;
-    const memoStored = this.props.keys.permissions[from].memo;
     const memoPublic = this.props.account.accounts[from].memo_key;
+    const keystore = window.electronAPI && window.electronAPI.keystore;
+
+    if (memoWif == null && keystore) {
+      try {
+        let encoded;
+        try {
+          encoded = await keystore.encodeMemo(from, password, toMemoPublic, `#${cleaned}`, memoPublic);
+        } catch (e) {
+          // Main missing/stale for this account (e.g. the memo key was added after migration) -> push
+          // the renderer's current record and retry once.
+          await this.syncRecordToMain(from);
+          encoded = await keystore.encodeMemo(from, password, toMemoPublic, `#${cleaned}`, memoPublic);
+        }
+        this.setState({
+          memo: cleaned,
+          memoEncrypted: encoded,
+          modalPreview: true,
+          memoDecryptPrompt: false,
+          memoDecrypt: null,
+        });
+      } catch (e) {
+        // Could not encode in main (e.g. the stored memo key no longer matches on chain). Abort the
+        // encrypt path without surfacing anything sensitive; the user can retry or send unencrypted.
+        this.setState({ memoDecryptPrompt: false, memoDecrypt: null });
+      }
+      return;
+    }
+
+    // LOCAL path.
+    const memoStored = this.props.keys.permissions[from].memo;
     // The decrypted memo key must still match the account's on-file memo public key.
     if (hive.auth.wifToPublic(memoWif) !== memoPublic) {
       this.setState({ memoDecryptPrompt: false, memoDecrypt: null });
@@ -381,6 +413,44 @@ export default class Send extends Component {
       modalPreview: true,
       memoDecryptPrompt: false,
       memoDecrypt: null,
+    });
+  };
+
+  // REMOTE memo probe: the memo key shares the account's wallet password (C6), so validate against the
+  // main key via keystore.verify; self-heal a missing/stale main record (incl. the memo envelope) once.
+  handleMemoVerify = async (password: string) => {
+    const { from } = this.state;
+    const keystore = window.electronAPI && window.electronAPI.keystore;
+    if (!keystore) return false;
+    let ok = false;
+    try {
+      ok = await keystore.verify(from, password);
+    } catch (e) {
+      ok = false;
+    }
+    if (!ok) {
+      try {
+        await this.syncRecordToMain(from);
+        ok = await keystore.verify(from, password);
+      } catch (e) {
+        ok = false;
+      }
+    }
+    return ok;
+  };
+
+  // Push the renderer's current record (main key + memo envelope) into main, overwrite-allowed, to
+  // repair a record that is missing or stale. Ciphertext only — no WIF crosses the boundary.
+  syncRecordToMain = async (account: string) => {
+    const keystore = window.electronAPI && window.electronAPI.keystore;
+    const rec = this.props.keys.permissions[account];
+    if (!keystore || !rec) return;
+    await keystore.putEnvelope({
+      account,
+      key: rec.key,
+      encrypted: true,
+      type: rec.type,
+      ...(rec.memo !== undefined ? { memo: rec.memo } : {}),
     });
   };
 
@@ -709,12 +779,14 @@ export default class Send extends Component {
     }
     let memoDecryptModal = false;
     if (this.state.memoDecryptPrompt && keys.permissions[this.state.from]) {
+      const remoteMemo = !!(window.electronAPI && window.electronAPI.keystore);
       memoDecryptModal = (
         <DecryptModal
           ciphertext={keys.permissions[this.state.from].memo}
           header="Unlock Encrypted Memo Key"
           onDecrypted={this.handleMemoDecrypted}
           onCancel={this.handleMemoDecryptCancel}
+          onVerify={remoteMemo ? this.handleMemoVerify : undefined}
         />
       );
     }

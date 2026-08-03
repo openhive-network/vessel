@@ -18,8 +18,21 @@ const electronAPI = {
     putEnvelope: (rec: unknown) => ipcRenderer.invoke('keystore:putEnvelope', rec),
     sign: (account: string, preparedTx: unknown, password: string) =>
       ipcRenderer.invoke('keystore:sign', account, preparedTx, password),
-    encodeMemo: (account: string, password: string, recipientPublicKey: string, message: string) =>
-      ipcRenderer.invoke('keystore:encodeMemo', account, password, recipientPublicKey, message),
+    encodeMemo: (
+      account: string,
+      password: string,
+      recipientPublicKey: string,
+      message: string,
+      expectedSenderMemoPublic?: string
+    ) =>
+      ipcRenderer.invoke(
+        'keystore:encodeMemo',
+        account,
+        password,
+        recipientPublicKey,
+        message,
+        expectedSenderMemoPublic
+      ),
     decodeMemo: (account: string, password: string, encoded: string) =>
       ipcRenderer.invoke('keystore:decodeMemo', account, password, encoded),
     importKey: (account: string, wif: string, password: string, type: string) =>
@@ -65,7 +78,8 @@ export interface KeystoreBridge {
     account: string,
     password: string,
     recipientPublicKey: string,
-    message: string
+    message: string,
+    expectedSenderMemoPublic?: string
   ) => Promise<string>;
   decodeMemo: (account: string, password: string, encoded: string) => Promise<string>;
   importKey: (account: string, wif: string, password: string, type: string) => Promise<void>;

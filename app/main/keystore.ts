@@ -251,14 +251,24 @@ export class Keystore {
     return hive.auth.signTransaction(preparedTx, { [rec.type || 'active']: wif });
   }
 
-  /** Encrypt an outgoing memo with the account's memo key (never exposes the memo WIF). */
+  /**
+   * Encrypt an outgoing memo with the account's memo key (never exposes the memo WIF). If
+   * `expectedSenderMemoPublic` is supplied (the account's on-chain memo_key), the stored memo key must
+   * still derive to it — this preserves the renderer's pre-B4-2b guard that refused to encode with a
+   * rotated/stale memo key (which the recipient could not decrypt), now enforced in main where the WIF
+   * lives instead of the renderer.
+   */
   async encodeMemo(
     account: string,
     password: string,
     recipientPublicKey: string,
-    message: string
+    message: string,
+    expectedSenderMemoPublic?: string
   ): Promise<string> {
     const memoWif = await this.decryptMemoWif(account, password);
+    if (expectedSenderMemoPublic && hive.auth.wifToPublic(memoWif) !== expectedSenderMemoPublic) {
+      throw new Error('stored memo key does not match the account memo key on chain');
+    }
     return hive.memo.encode(memoWif, recipientPublicKey, message);
   }
 

@@ -298,8 +298,21 @@ keystoreHandle('keystore:sign', async (_e, account: string, preparedTx: any, pas
 });
 keystoreHandle(
   'keystore:encodeMemo',
-  (_e, account: string, password: string, recipientPublicKey: string, message: string) =>
-    getKeystore().encodeMemo(account, password, recipientPublicKey, message)
+  (
+    _e,
+    account: string,
+    password: string,
+    recipientPublicKey: string,
+    message: string,
+    expectedSenderMemoPublic?: string
+  ) =>
+    getKeystore().encodeMemo(
+      account,
+      password,
+      recipientPublicKey,
+      message,
+      expectedSenderMemoPublic
+    )
 );
 keystoreHandle('keystore:decodeMemo', (_e, account: string, password: string, encoded: string) =>
   getKeystore().decodeMemo(account, password, encoded)

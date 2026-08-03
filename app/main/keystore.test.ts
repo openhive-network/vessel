@@ -116,6 +116,34 @@ describe('main keystore — memo custody in main', () => {
     const decoded = await ks.decodeMemo('alice', WALLET_PW, encoded);
     expect(decoded).toBe('#hello vessel');
   });
+
+  it('encodes when the stored memo key matches the expected on-chain pubkey (D9b B4-2b guard)', async () => {
+    const ks = new Keystore(file);
+    ks.putRecord({
+      account: 'alice',
+      key: await encryptKey(ACTIVE_WIF, WALLET_PW),
+      encrypted: true,
+      type: 'active',
+      memo: await encryptKey(MEMO_WIF, WALLET_PW),
+    });
+    // expectedSenderMemoPublic === the memo key's own pubkey -> encodes, and never leaks the memo WIF.
+    const encoded = await ks.encodeMemo('alice', WALLET_PW, MEMO_PUB, '#hi', MEMO_PUB);
+    expect(encoded.startsWith('#')).toBe(true);
+    expect(encoded).not.toContain(MEMO_WIF);
+  });
+
+  it('refuses to encode when the stored memo key no longer matches on chain (rotated key)', async () => {
+    const ks = new Keystore(file);
+    ks.putRecord({
+      account: 'alice',
+      key: await encryptKey(ACTIVE_WIF, WALLET_PW),
+      encrypted: true,
+      type: 'active',
+      memo: await encryptKey(MEMO_WIF, WALLET_PW),
+    });
+    const wrongPub = hiveAuth.wifToPublic(ACTIVE_WIF); // a valid pubkey, but not the memo key's
+    await expect(ks.encodeMemo('alice', WALLET_PW, MEMO_PUB, '#hi', wrongPub)).rejects.toThrow();
+  });
 });
 
 describe('main keystore — migrateRecords (Stage B ciphertext copy)', () => {

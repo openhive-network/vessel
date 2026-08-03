@@ -35,6 +35,7 @@ declare module '@hiveio/hive-js' {
       permlink: string,
       callback: (err: Error | null, result: any) => void
     ): void;
+    broadcastTransactionAsync(signedTransaction: any): Promise<any>;
   };
 
   export const broadcast: {
@@ -124,6 +125,7 @@ declare module '@hiveio/hive-js' {
       keys: string[],
       callback: (err: Error | null, result: any) => void
     ): void;
+    _prepareTransaction(tx: { operations: any[]; extensions?: any[] }): Promise<any>;
   };
 
   export const config: {
@@ -136,7 +138,7 @@ declare module '@hiveio/hive-js' {
     wifToPublic(wif: string): string;
     toWif(name: string, password: string, type: string): string;
     getPrivateKeys(name: string, password: string, roles?: string[]): any;
-    signTransaction(trx: any, keys: string[]): any;
+    signTransaction(trx: any, keys: string[] | Record<string, string>): any;
   };
 
   export const memo: {

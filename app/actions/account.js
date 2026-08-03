@@ -3,6 +3,7 @@ import hive from '@hiveio/hive-js';
 import type { accountStateType } from '../reducers/account';
 import * as ProcessingActions from './processing';
 import { requiredRoleForOps } from '../utils/authorityRoles';
+import { broadcastOps, signAndBroadcast } from '../utils/broadcast';
 
 export const ACCOUNT_CUSTOM_JSON_STARTED = 'ACCOUNT_CUSTOM_JSON_STARTED';
 export const ACCOUNT_CUSTOM_JSON_RESOLVED = 'ACCOUNT_CUSTOM_JSON_RESOLVED';
@@ -81,31 +82,14 @@ export function claimRewardBalance(wif: string, params: object) {
       reward_hive = reward_hive.replace('HIVE', 'TESTS');
       reward_hbd = reward_hbd.replace('HBD', 'TBD');
     }
-    const ops = [
-      [
-        'claim_reward_balance',
-        {
-          account,
-          reward_hive,
-          reward_hbd,
-          reward_vests,
-        },
-      ],
-    ];
-    console.error(JSON.stringify(ops));
-    hive.broadcast.send(
-      {
-        operations: ops,
-        extensions: [],
-      },
-      {
-        posting: wif,
-      },
-      () => {
-        dispatch(ProcessingActions.processingRewardClaimComplete());
-        dispatch(refreshAccountData([account]));
-      }
-    );
+    // Legacy callback ignored err/result and ran on both outcomes; reproduce that with .then(done, done).
+    const done = () => {
+      dispatch(ProcessingActions.processingRewardClaimComplete());
+      dispatch(refreshAccountData([account]));
+    };
+    broadcastOps
+      .claimRewardBalance(wif, { account, reward_hive, reward_hbd, reward_vests })
+      .then(done, done);
     dispatch(ProcessingActions.processingRewardClaim());
   };
 }
@@ -296,19 +280,20 @@ export function convert(wif, params) {
       amount = amount.replace('HBD', 'TBD');
     }
     if (!requestid) requestid = Math.floor(Date.now() / 1000);
-    hive.broadcast.convert(wif, owner, requestid, amount, (err, result) => {
-      if (err) {
-        dispatch({
-          type: ACCOUNT_CONVERT_FAILED,
-          payload: err,
-        });
-      } else {
+    broadcastOps
+      .convert(wif, { owner, requestid, amount })
+      .then(() => {
         refreshAccountData([owner]);
         dispatch({
           type: ACCOUNT_CONVERT_RESOLVED,
         });
-      }
-    });
+      })
+      .catch((err) => {
+        dispatch({
+          type: ACCOUNT_CONVERT_FAILED,
+          payload: err,
+        });
+      });
   };
 }
 
@@ -330,20 +315,20 @@ export function collateralizedConvert(wif, params) {
       amount = amount.replace('HBD', 'TBD');
     }
     if (!requestid) requestid = Math.floor(Date.now() / 1000);
-    console.log('hive', hive);
-    hive.broadcast.collateralizedConvert(wif, owner, requestid, amount, (err, result) => {
-      if (err) {
-        dispatch({
-          type: ACCOUNT_COLLATERALIZED_CONVERT_FAILED,
-          payload: err,
-        });
-      } else {
+    broadcastOps
+      .collateralizedConvert(wif, { owner, requestid, amount })
+      .then(() => {
         refreshAccountData([owner]);
         dispatch({
           type: ACCOUNT_COLLATERALIZED_CONVERT_RESOLVED,
         });
-      }
-    });
+      })
+      .catch((err) => {
+        dispatch({
+          type: ACCOUNT_COLLATERALIZED_CONVERT_FAILED,
+          payload: err,
+        });
+      });
   };
 }
 
@@ -364,19 +349,20 @@ export function transfer(wif, params) {
       amount = amount.replace('HIVE', 'TESTS');
       amount = amount.replace('HBD', 'TBD');
     }
-    hive.broadcast.transfer(wif, from, to, amount, memo, (err, result) => {
-      if (err) {
-        dispatch({
-          type: ACCOUNT_TRANSFER_FAILED,
-          payload: err,
-        });
-      } else {
+    broadcastOps
+      .transfer(wif, { from, to, amount, memo })
+      .then(() => {
         refreshAccountData([from, to]);
         dispatch({
           type: ACCOUNT_TRANSFER_RESOLVED,
         });
-      }
-    });
+      })
+      .catch((err) => {
+        dispatch({
+          type: ACCOUNT_TRANSFER_FAILED,
+          payload: err,
+        });
+      });
   };
 }
 
@@ -397,19 +383,20 @@ export function transferFromSavings(wif, params) {
       amount = amount.replace('HIVE', 'TESTS');
       amount = amount.replace('HBD', 'TBD');
     }
-    hive.broadcast.transferFromSavings(wif, from, requestId, to, amount, memo, (err, result) => {
-      if (err) {
-        dispatch({
-          type: ACCOUNT_TRANSFER_FAILED,
-          payload: err,
-        });
-      } else {
+    broadcastOps
+      .transferFromSavings(wif, { from, requestId, to, amount, memo })
+      .then(() => {
         refreshAccountData([from, to]);
         dispatch({
           type: ACCOUNT_TRANSFER_RESOLVED,
         });
-      }
-    });
+      })
+      .catch((err) => {
+        dispatch({
+          type: ACCOUNT_TRANSFER_FAILED,
+          payload: err,
+        });
+      });
   };
 }
 
@@ -430,19 +417,20 @@ export function transferToSavings(wif, params) {
     dispatch({
       type: ACCOUNT_TRANSFER_STARTED,
     });
-    hive.broadcast.transferToSavings(wif, from, to, amount, memo, (err, result) => {
-      if (err) {
-        dispatch({
-          type: ACCOUNT_TRANSFER_FAILED,
-          payload: err,
-        });
-      } else {
+    broadcastOps
+      .transferToSavings(wif, { from, to, amount, memo })
+      .then(() => {
         refreshAccountData([from, to]);
         dispatch({
           type: ACCOUNT_TRANSFER_RESOLVED,
         });
-      }
-    });
+      })
+      .catch((err) => {
+        dispatch({
+          type: ACCOUNT_TRANSFER_FAILED,
+          payload: err,
+        });
+      });
   };
 }
 
@@ -459,25 +447,20 @@ export function setDelegateVestingShares(wif, params) {
       type: ACCOUNT_DELEGATE_VESTING_SHARES_STARTED,
     });
     const formattedVestingShares = [parseFloat(vestingShares).toFixed(6), 'VESTS'].join(' ');
-    hive.broadcast.delegateVestingShares(
-      wif,
-      delegator,
-      delegatee,
-      formattedVestingShares,
-      (err, result) => {
-        if (err) {
-          dispatch({
-            type: ACCOUNT_DELEGATE_VESTING_SHARES_FAILED,
-            payload: err,
-          });
-        } else {
-          dispatch(refreshAccountData([delegator]));
-          dispatch({
-            type: ACCOUNT_DELEGATE_VESTING_SHARES_RESOLVED,
-          });
-        }
-      }
-    );
+    broadcastOps
+      .delegateVestingShares(wif, { delegator, delegatee, vestingShares: formattedVestingShares })
+      .then(() => {
+        dispatch(refreshAccountData([delegator]));
+        dispatch({
+          type: ACCOUNT_DELEGATE_VESTING_SHARES_RESOLVED,
+        });
+      })
+      .catch((err) => {
+        dispatch({
+          type: ACCOUNT_DELEGATE_VESTING_SHARES_FAILED,
+          payload: err,
+        });
+      });
   };
 }
 
@@ -493,26 +476,25 @@ export function setWithdrawVestingRoute(wif, params) {
     dispatch({
       type: ACCOUNT_SET_WITHDRAW_VESTING_ROUTE_STARTED,
     });
-    hive.broadcast.setWithdrawVestingRoute(
-      wif,
-      account,
-      target,
-      percent * 100,
-      autoVest,
-      (err, result) => {
-        if (err) {
-          dispatch({
-            type: ACCOUNT_SET_WITHDRAW_VESTING_ROUTE_FAILED,
-            payload: err,
-          });
-        } else {
-          dispatch(refreshAccountData([account]));
-          dispatch({
-            type: ACCOUNT_SET_WITHDRAW_VESTING_ROUTE_RESOLVED,
-          });
-        }
-      }
-    );
+    broadcastOps
+      .setWithdrawVestingRoute(wif, {
+        fromAccount: account,
+        toAccount: target,
+        percent: percent * 100,
+        autoVest,
+      })
+      .then(() => {
+        dispatch(refreshAccountData([account]));
+        dispatch({
+          type: ACCOUNT_SET_WITHDRAW_VESTING_ROUTE_RESOLVED,
+        });
+      })
+      .catch((err) => {
+        dispatch({
+          type: ACCOUNT_SET_WITHDRAW_VESTING_ROUTE_FAILED,
+          payload: err,
+        });
+      });
   };
 }
 
@@ -528,19 +510,20 @@ export function setVotingProxy(wif, params) {
     dispatch({
       type: ACCOUNT_SET_VOTING_PROXY_STARTED,
     });
-    hive.broadcast.accountWitnessProxy(wif, account, proxy, (err, result) => {
-      if (err) {
-        dispatch({
-          type: ACCOUNT_SET_VOTING_PROXY_FAILED,
-          payload: err,
-        });
-      } else {
+    broadcastOps
+      .accountWitnessProxy(wif, { account, proxy })
+      .then(() => {
         dispatch(refreshAccountData([account]));
         dispatch({
           type: ACCOUNT_SET_VOTING_PROXY_RESOLVED,
         });
-      }
-    });
+      })
+      .catch((err) => {
+        dispatch({
+          type: ACCOUNT_SET_VOTING_PROXY_FAILED,
+          payload: err,
+        });
+      });
   };
 }
 
@@ -556,19 +539,20 @@ export function voteWitness(wif, params) {
     dispatch({
       type: ACCOUNT_VOTE_WITNESS_STARTED,
     });
-    hive.broadcast.accountWitnessVote(wif, account, witness, approve, (err, result) => {
-      if (err) {
-        dispatch({
-          type: ACCOUNT_VOTE_WITNESS_FAILED,
-          payload: err,
-        });
-      } else {
+    broadcastOps
+      .accountWitnessVote(wif, { account, witness, approve })
+      .then(() => {
         dispatch(refreshAccountData([account]));
         dispatch({
           type: ACCOUNT_VOTE_WITNESS_RESOLVED,
         });
-      }
-    });
+      })
+      .catch((err) => {
+        dispatch({
+          type: ACCOUNT_VOTE_WITNESS_FAILED,
+          payload: err,
+        });
+      });
   };
 }
 
@@ -585,19 +569,20 @@ export function withdrawVesting(wif, params) {
     dispatch({
       type: ACCOUNT_VESTING_WITHDRAW_STARTED,
     });
-    hive.broadcast.withdrawVesting(wif, account, vestsFormat, (err, result) => {
-      if (err) {
-        dispatch({
-          type: ACCOUNT_VESTING_WITHDRAW_FAILED,
-          payload: err,
-        });
-      } else {
+    broadcastOps
+      .withdrawVesting(wif, { account, vestingShares: vestsFormat })
+      .then(() => {
         dispatch(refreshAccountData([account]));
         dispatch({
           type: ACCOUNT_VESTING_WITHDRAW_RESOLVED,
         });
-      }
-    });
+      })
+      .catch((err) => {
+        dispatch({
+          type: ACCOUNT_VESTING_WITHDRAW_FAILED,
+          payload: err,
+        });
+      });
   };
 }
 
@@ -613,19 +598,20 @@ export function cancelWithdrawVesting(wif, params) {
     dispatch({
       type: ACCOUNT_VESTING_WITHDRAW_STARTED,
     });
-    hive.broadcast.withdrawVesting(wif, account, '0.000000 VESTS', (err, result) => {
-      if (err) {
-        dispatch({
-          type: ACCOUNT_VESTING_WITHDRAW_FAILED,
-          payload: err,
-        });
-      } else {
+    broadcastOps
+      .withdrawVesting(wif, { account, vestingShares: '0.000000 VESTS' })
+      .then(() => {
         dispatch(refreshAccountData([account]));
         dispatch({
           type: ACCOUNT_VESTING_WITHDRAW_RESOLVED,
         });
-      }
-    });
+      })
+      .catch((err) => {
+        dispatch({
+          type: ACCOUNT_VESTING_WITHDRAW_FAILED,
+          payload: err,
+        });
+      });
   };
 }
 
@@ -640,20 +626,20 @@ export function powerUp(wif, params) {
     dispatch({
       type: ACCOUNT_POWER_UP_STARTED,
     });
-    // fix
-    hive.broadcast.transferToVesting(wif, from_account, to_account, hiveFormat, (err, result) => {
-      if (err) {
-        dispatch({
-          type: ACCOUNT_POWER_UP_FAILED,
-          payload: err,
-        });
-      } else {
+    broadcastOps
+      .transferToVesting(wif, { from: from_account, to: to_account, amount: hiveFormat })
+      .then(() => {
         dispatch(refreshAccountData([from_account]));
         dispatch({
           type: ACCOUNT_POWER_UP_RESOLVED,
         });
-      }
-    });
+      })
+      .catch((err) => {
+        dispatch({
+          type: ACCOUNT_POWER_UP_FAILED,
+          payload: err,
+        });
+      });
   };
 }
 
@@ -675,19 +661,24 @@ export function customJson(wif, params) {
     dispatch({
       type: ACCOUNT_CUSTOM_JSON_STARTED,
     });
-    hive.broadcast.customJson(wif, auths, postingAuths, id, json, (err, result) => {
-      if (result) {
+    broadcastOps
+      .customJson(wif, {
+        requiredAuths: auths,
+        requiredPostingAuths: postingAuths,
+        id,
+        json,
+      })
+      .then(() => {
         dispatch({
           type: ACCOUNT_CUSTOM_JSON_RESOLVED,
         });
-      }
-      if (err) {
+      })
+      .catch((err) => {
         dispatch({
           type: ACCOUNT_CUSTOM_JSON_FAILED,
           payload: err,
         });
-      }
-    });
+      });
   };
 }
 
@@ -708,19 +699,18 @@ export function send(wif, params) {
     dispatch({
       type: ACCOUNT_CUSTOM_OPS_STARTED,
     });
-    hive.broadcast.send({ operations, extensions }, { [role]: wif }, (err, result) => {
-      if (result) {
+    signAndBroadcast({ operations, extensions }, role, wif)
+      .then(() => {
         dispatch({
           type: ACCOUNT_CUSTOM_OPS_RESOLVED,
         });
-      }
-      if (err) {
+      })
+      .catch((err) => {
         dispatch({
           type: ACCOUNT_CUSTOM_OPS_FAILED,
           payload: err,
         });
-      }
-    });
+      });
   };
 }
 

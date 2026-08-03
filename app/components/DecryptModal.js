@@ -8,25 +8,34 @@ import { decryptKey, WrongPasswordError } from '../utils/keyEnvelope';
 
 /**
  * §7.3 — the single password-unlock modal, shared by the redux-driven `DecryptPrompt` container
- * and by `Send`'s memo-decrypt path. It captures the password, decrypts ONE ciphertext, validates
- * the result is a WIF, then hands the cleartext WIF (plus the entered password, which the caller
- * needs to lazily re-encrypt) to `onDecrypted` — NEVER through redux.
+ * and by `Send`'s memo-decrypt path. It captures the password and gates the Unlock button on whether
+ * that password actually unlocks the key, then hands the entered password to `onDecrypted` — NEVER
+ * through redux.
+ *
+ * Two modes, chosen by whether an `onVerify` prop is supplied:
+ *  - LOCAL (no `onVerify`): decrypt ONE ciphertext in the renderer, validate the result is a WIF, and
+ *    pass the cleartext WIF (plus the password, which the caller needs to lazily re-encrypt) to
+ *    `onDecrypted(wif, password)`. Used where main custody is unavailable (non-Electron) and by Send's
+ *    memo path until D9b B4-2b relocates it.
+ *  - REMOTE (D9b B4-2a, `onVerify` supplied): validate the password by calling `onVerify(password)`,
+ *    which checks it against the MAIN-process keystore over IPC and returns a boolean — the WIF never
+ *    enters the renderer. On submit, `onDecrypted(null, password)` is called; the caller signs in main.
  *
  * Live button feedback (restores the pre-2026 UX): the Unlock button enables only once the typed
- * password actually decrypts the ciphertext. The probe is DEBOUNCED (250 ms) and format-aware —
- * effectively instant for legacy crypto-js keys, one scrypt attempt per typing pause for v2
- * envelopes — never one decryption per keystroke.
+ * password validates. The probe is DEBOUNCED (250 ms) — one attempt per typing pause, never one per
+ * keystroke (a scrypt decrypt locally, or one IPC round-trip in remote mode).
  *
  * Security invariants:
- *  - The probe WIF (live check) and the real WIF (submit) live ONLY inside a local scope and are
- *    discarded as it returns; neither is stored in state or passed through redux.
- *  - The local live check is no weaker than the encrypted blob already on disk (offline
- *    brute-forceable regardless), so validating client-side leaks nothing new.
+ *  - LOCAL: the probe WIF and the real WIF live ONLY inside a local scope and are discarded as the
+ *    function returns; neither is stored in state nor passed through redux. The client-side check is no
+ *    weaker than the encrypted blob already on disk (offline brute-forceable regardless).
+ *  - REMOTE: no key material ever reaches the renderer — validation and signing both happen in main.
  *  - On a wrong password the password is CLEARED from component state (spec C8 / §6).
  *
- * Props: { ciphertext, header, onDecrypted(wif, password), onCancel }.
- * `onDecrypted` may be async (it performs the field-aware lazy re-encrypt in the caller); the modal
- * stays busy until it settles so any failure surfaces here.
+ * Props: { ciphertext, header, onDecrypted, onCancel, onVerify? }.
+ *  - LOCAL: onDecrypted(wif, password); REMOTE: onDecrypted(null, password).
+ * `onDecrypted` may be async (it performs the field-aware lazy re-encrypt in the local caller); the
+ * modal stays busy until it settles so any failure surfaces here.
  */
 const DEBOUNCE_MS = 250;
 
@@ -57,12 +66,17 @@ export default class DecryptModal extends Component {
 
   validate = async (candidate: string) => {
     const token = (this.checkToken += 1);
-    const { ciphertext } = this.props;
+    const { ciphertext, onVerify } = this.props;
     this.setState({ checking: true });
     let ok = false;
     try {
-      const wif = await decryptKey(ciphertext, candidate);
-      ok = hive.auth.isWif(wif); // probe WIF is discarded as this scope returns
+      if (onVerify) {
+        // REMOTE: main validates the password (and self-heals a stale/missing record); no WIF here.
+        ok = await onVerify(candidate);
+      } else {
+        const wif = await decryptKey(ciphertext, candidate);
+        ok = hive.auth.isWif(wif); // probe WIF is discarded as this scope returns
+      }
     } catch (err) {
       ok = false;
     }
@@ -81,13 +95,19 @@ export default class DecryptModal extends Component {
     if (e && e.preventDefault) e.preventDefault();
     const { password, busy, valid } = this.state;
     if (!password || busy || !valid) return;
-    const { ciphertext, onDecrypted } = this.props;
+    const { ciphertext, onDecrypted, onVerify } = this.props;
     this.setState({ busy: true, error: null });
     try {
-      // The decrypted WIF is scoped to this function; it is passed to onDecrypted and never stored.
-      const wif = await decryptKey(ciphertext, password);
-      if (!hive.auth.isWif(wif)) throw new WrongPasswordError();
-      await onDecrypted(wif, password);
+      if (onVerify) {
+        // REMOTE: the password was already validated against main; hand it over with NO WIF — the
+        // caller signs in the main process. Nothing is decrypted in the renderer.
+        await onDecrypted(null, password);
+      } else {
+        // LOCAL: the decrypted WIF is scoped to this function; passed to onDecrypted, never stored.
+        const wif = await decryptKey(ciphertext, password);
+        if (!hive.auth.isWif(wif)) throw new WrongPasswordError();
+        await onDecrypted(wif, password);
+      }
       if (this.mounted) this.setState({ password: '', busy: false, error: null, valid: false });
     } catch (err) {
       if (this.mounted) {

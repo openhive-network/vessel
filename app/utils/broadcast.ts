@@ -19,14 +19,20 @@ export interface UnsignedTx {
  */
 
 /**
- * A signing credential. Either a raw WIF (local signing — the legacy path and the fallback), or a
- * main-custody signer `{ account, password, wif }` (D9b Stage B4): sign in the Electron main process,
- * falling back to the local WIF if main is unavailable or holds stale ciphertext (e.g. the wallet
- * password was changed after migration). hive-js signs deterministically (same key + chain_id), so a
- * main-signed tx is byte-identical to what the local path would produce — only WHERE it is signed
- * changes, not the bytes.
+ * A signing credential. Either:
+ *  - a raw WIF (legacy local signing), or
+ *  - a main-custody signer `{ account, password, wif? }` (D9b Stage B):
+ *      · WITHOUT `wif` (the isolated path, B4-2): sign ONLY in the Electron main process — the WIF
+ *        never materializes in the renderer. There is no local fallback, so a main failure surfaces
+ *        rather than silently signing with a key the renderer should not hold. The unlock modal
+ *        already validated the password against main (`verify`) and self-healed a stale/missing
+ *        record, so by the time we sign, main can decrypt.
+ *      · WITH `wif` (the dual-store path, B4-1, and non-Electron): prefer main, fall back to the local
+ *        WIF if main is unavailable or holds stale ciphertext.
+ * hive-js signs deterministically (same key + chain_id), so a main-signed tx is byte-identical to what
+ * the local path would produce — only WHERE it is signed changes, not the bytes.
  */
-export type Signer = string | { account: string; password: string; wif: string };
+export type Signer = string | { account: string; password: string; wif?: string };
 
 // The single sign step. A raw WIF signs locally (hive.auth.signTransaction ignores the key's role
 // LABEL and signs with the value only, so a single-entry object reproduces the legacy signature
@@ -42,16 +48,27 @@ export async function signTx(preparedTx: any, role: string, signer: Signer): Pro
       await api.setChainConfig(hive.config.get('chain_id'), hive.config.get('address_prefix'));
       return await api.sign(signer.account, preparedTx, signer.password);
     } catch (e) {
-      // Main unavailable / stale ciphertext -> fall back to the local WIF (dual-store read).
+      if (signer.wif === undefined) {
+        // Isolated path: no local WIF to fall back to. Surface the failure — never sign with a key the
+        // renderer was not supposed to hold, and never swallow a genuine main-side signing error.
+        throw e;
+      }
+      // Dual-store path: main unavailable / stale ciphertext -> fall back to the local WIF.
       // Deterministic signing makes the fallback tx byte-identical to the main-signed one.
       // eslint-disable-next-line no-console
       console.warn(
         '[keystore] main sign failed, signing locally:',
         e instanceof Error ? e.message : 'error'
       );
+      return hive.auth.signTransaction(preparedTx, { [role]: signer.wif });
     }
   }
-  return hive.auth.signTransaction(preparedTx, { [role]: signer.wif });
+  if (signer.wif !== undefined) {
+    // No main bridge (non-Electron) but we hold a WIF -> sign locally, as before.
+    return hive.auth.signTransaction(preparedTx, { [role]: signer.wif });
+  }
+  // Isolated signer with no reachable main and no WIF: genuinely nothing to sign with.
+  throw new Error('no signing method available for main-custody account');
 }
 
 export async function signAndBroadcast(tx: UnsignedTx, role: string, signer: Signer): Promise<any> {

@@ -72,4 +72,41 @@ describe('signTx — signer routing (D9b B4)', () => {
     const signed = await signTx(TX, 'active', { account: 'alice', password: 'pw', wif: WIF });
     expect(signed.signatures[0]).toMatch(SIG_HEX);
   });
+
+  // D9b B4-2: the isolated signer carries NO wif — main is the only place a signature can be made.
+  it('routes an isolated signer (no wif) to main and returns the main signature', async () => {
+    (globalThis as any).window = {
+      electronAPI: {
+        keystore: {
+          setChainConfig: async () => {},
+          sign: async (_a: string, tx: any) => ({ ...tx, signatures: ['MAINSIG'] }),
+        },
+      },
+    };
+    const signed = await signTx(TX, 'active', { account: 'alice', password: 'pw' });
+    expect(signed.signatures).toEqual(['MAINSIG']);
+  });
+
+  it('REJECTS when main signing fails for an isolated signer (no local fallback)', async () => {
+    (globalThis as any).window = {
+      electronAPI: {
+        keystore: {
+          setChainConfig: async () => {},
+          sign: async () => {
+            throw new Error('WRONG_PASSWORD');
+          },
+        },
+      },
+    };
+    // No wif to fall back to -> the failure must surface, never a silent local sign.
+    await expect(signTx(TX, 'active', { account: 'alice', password: 'pw' })).rejects.toThrow(
+      'WRONG_PASSWORD'
+    );
+  });
+
+  it('REJECTS an isolated signer when there is no keystore bridge (nothing can sign)', async () => {
+    await expect(signTx(TX, 'active', { account: 'alice', password: 'pw' })).rejects.toThrow(
+      /no signing method/i
+    );
+  });
 });

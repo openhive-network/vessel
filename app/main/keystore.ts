@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import hive from '@hiveio/hive-js';
-import { decryptKey, encryptKey, isEncrypted } from '../utils/keyEnvelope';
+import { decryptKey, encryptKey, isEncrypted, WrongPasswordError } from '../utils/keyEnvelope';
 
 /**
  * Phase 3 · D9b Stage B (step 1) — the MAIN-PROCESS keystore.
@@ -114,6 +114,24 @@ export class Keystore {
     this.persist();
   }
 
+  /**
+   * D9b Stage B4 — overwrite-allowed sync of ONE record from the renderer's localStorage into main.
+   * Unlike migrateRecords (insert-if-absent, main-wins) this REPLACES an existing record. The renderer's
+   * unlock self-heal relies on it: if main is missing an account or holds a stale envelope (e.g. the
+   * wallet password was changed by re-importing the key after migration), the renderer re-pushes the
+   * envelope it holds so main can then verify/sign. Ciphertext ONLY — it refuses a plaintext or
+   * non-envelope key so a compromised renderer can never stash a bare WIF in the keystore file. No
+   * password, no decrypt. (localStorage is never staler than main under the dual store, so pushing
+   * localStorage -> main is monotonic and cannot regress a newer main record.)
+   */
+  putEnvelope(rec: KeyRecord): void {
+    if (isUnsafeAccount(rec.account)) throw new Error('unsafe account name');
+    if (typeof rec.key !== 'string' || !isEncrypted(rec.key)) {
+      throw new Error('putEnvelope requires an encrypted envelope');
+    }
+    this.putRecord({ ...rec, encrypted: true });
+  }
+
   removeAccount(account: string): void {
     if (this.hasAccount(account)) {
       delete this.data.accounts[account];
@@ -186,6 +204,26 @@ export class Keystore {
   static setChainConfig(chainId: string, addressPrefix?: string): void {
     if (chainId) hive.config.set('chain_id', chainId);
     if (addressPrefix) hive.config.set('address_prefix', addressPrefix);
+  }
+
+  /**
+   * D9b Stage B4 — validate a password against an account's stored envelope WITHOUT returning any key
+   * material. The renderer's unlock modal calls this (per debounced keystroke) to gate its Unlock
+   * button for main-custody accounts, so it can confirm the password unlocks the key while the WIF
+   * stays inside main. Returns true iff the password decrypts to a valid WIF. A wrong password (or an
+   * unknown account) returns false rather than throwing, so the modal shows a disabled button, not an
+   * error; corrupt ciphertext and other faults propagate (the IPC layer sanitizes them to a code).
+   */
+  async verify(account: string, password: string): Promise<boolean> {
+    const rec = this.data.accounts[account];
+    if (!rec) return false;
+    try {
+      const wif = isEncrypted(rec.key) ? await decryptKey(rec.key, password) : rec.key;
+      return hive.auth.isWif(wif);
+    } catch (e) {
+      if (e instanceof WrongPasswordError) return false;
+      throw e;
+    }
   }
 
   /** Decrypt the signing WIF for an account. Plaintext records return as-is; ciphertext is decrypted. */

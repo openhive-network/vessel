@@ -284,6 +284,10 @@ const keystoreHandle = (
 
 keystoreHandle('keystore:list', () => getKeystore().listAccounts());
 keystoreHandle('keystore:hasAccount', (_e, account: string) => getKeystore().hasAccount(account));
+keystoreHandle('keystore:verify', (_e, account: string, password: string) =>
+  getKeystore().verify(account, password)
+);
+keystoreHandle('keystore:putEnvelope', (_e, rec: any) => getKeystore().putEnvelope(rec));
 keystoreHandle('keystore:sign', async (_e, account: string, preparedTx: any, password: string) => {
   const signed = await getKeystore().signTransaction(preparedTx, account, password);
   // Positive audit line (account name only, no secret) so a main-signed broadcast is observable in

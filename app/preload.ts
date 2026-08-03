@@ -13,6 +13,9 @@ const electronAPI = {
   keystore: {
     list: () => ipcRenderer.invoke('keystore:list'),
     hasAccount: (account: string) => ipcRenderer.invoke('keystore:hasAccount', account),
+    verify: (account: string, password: string) =>
+      ipcRenderer.invoke('keystore:verify', account, password),
+    putEnvelope: (rec: unknown) => ipcRenderer.invoke('keystore:putEnvelope', rec),
     sign: (account: string, preparedTx: unknown, password: string) =>
       ipcRenderer.invoke('keystore:sign', account, preparedTx, password),
     encodeMemo: (account: string, password: string, recipientPublicKey: string, message: string) =>
@@ -49,6 +52,14 @@ export interface KeystoreAccountSummary {
 export interface KeystoreBridge {
   list: () => Promise<KeystoreAccountSummary[]>;
   hasAccount: (account: string) => Promise<boolean>;
+  verify: (account: string, password: string) => Promise<boolean>;
+  putEnvelope: (rec: {
+    account: string;
+    key: string;
+    encrypted: boolean;
+    type: string;
+    memo?: string;
+  }) => Promise<void>;
   sign: (account: string, preparedTx: unknown, password: string) => Promise<any>;
   encodeMemo: (
     account: string,

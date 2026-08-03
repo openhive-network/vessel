@@ -207,3 +207,89 @@ describe('main keystore — Stage B hardening (review follow-ups)', () => {
     expect(new Keystore(file).hasAccount('bob')).toBe(false); // persisted
   });
 });
+
+describe('main keystore — verify (D9b B4-2: password check, no key material)', () => {
+  it('returns true for the right password, false for the wrong one — a boolean, never the WIF', async () => {
+    const ks = await seedAlice();
+    const ok = await ks.verify('alice', WALLET_PW);
+    expect(ok).toBe(true);
+    expect(typeof ok).toBe('boolean'); // no key material can ride out on a boolean
+    expect(await ks.verify('alice', 'wrong-password')).toBe(false);
+  });
+
+  it('returns false for an unknown account (no throw)', async () => {
+    expect(await new Keystore(file).verify('nobody', WALLET_PW)).toBe(false);
+  });
+});
+
+describe('main keystore — putEnvelope (D9b B4-2: self-heal sync from the renderer)', () => {
+  it('inserts a missing record from a ciphertext envelope', async () => {
+    const ks = new Keystore(file);
+    ks.putEnvelope({ account: 'alice', key: await encryptKey(ACTIVE_WIF, WALLET_PW), encrypted: true, type: 'active' });
+    expect(await ks.verify('alice', WALLET_PW)).toBe(true);
+  });
+
+  it('OVERWRITES a stale record (unlike migrateRecords) so a re-imported password re-validates', async () => {
+    const ks = await seedAlice(); // envelope bound to WALLET_PW
+    const NEW_PW = 'a-different-wallet-password-throwaway';
+    ks.putEnvelope({ account: 'alice', key: await encryptKey(ACTIVE_WIF, NEW_PW), encrypted: true, type: 'active' });
+    expect(await ks.verify('alice', NEW_PW)).toBe(true); // new envelope took effect
+    expect(await ks.verify('alice', WALLET_PW)).toBe(false); // old password no longer unlocks
+    expect(await ks.decryptWif('alice', NEW_PW)).toBe(ACTIVE_WIF); // same key, re-wrapped
+  });
+
+  it('refuses a plaintext / non-envelope key — no bare WIF may be stashed in main', async () => {
+    const ks = new Keystore(file);
+    expect(() =>
+      ks.putEnvelope({ account: 'mallory', key: ACTIVE_WIF, encrypted: false, type: 'active' })
+    ).toThrow();
+    expect(() =>
+      ks.putEnvelope({ account: 'mallory', key: 'not-an-envelope', encrypted: true, type: 'active' })
+    ).toThrow();
+    expect(ks.hasAccount('mallory')).toBe(false);
+  });
+
+  it('refuses unsafe account names (F4)', async () => {
+    const ks = new Keystore(file);
+    const env = await encryptKey(ACTIVE_WIF, WALLET_PW);
+    expect(() => ks.putEnvelope({ account: '__proto__', key: env, encrypted: true, type: 'active' })).toThrow();
+    expect(({} as any).account).toBeUndefined();
+  });
+});
+
+describe('main keystore — no WIF crosses the main->renderer boundary (D9b B4-2 contract)', () => {
+  it('no value returned to the renderer carries a WIF; verify yields only a boolean', async () => {
+    const ks = new Keystore(file);
+    ks.putRecord({
+      account: 'alice',
+      key: await encryptKey(ACTIVE_WIF, WALLET_PW),
+      encrypted: true,
+      type: 'active',
+      memo: await encryptKey(MEMO_WIF, WALLET_PW),
+    });
+    const carries = (v: unknown, secret: string) => JSON.stringify(v ?? null).includes(secret);
+
+    // Every value an IPC handler can return to the renderer must be free of key material:
+    const verified = await ks.verify('alice', WALLET_PW);
+    expect(verified).toBe(true);
+    expect(carries(verified, ACTIVE_WIF)).toBe(false);
+
+    const summaries = ks.listAccounts();
+    expect(carries(summaries, ACTIVE_WIF)).toBe(false);
+    expect(carries(summaries, MEMO_WIF)).toBe(false);
+
+    const signed = await ks.signTransaction(FIXED_TX, 'alice', WALLET_PW);
+    expect(signed.signatures[0]).toMatch(SIG_HEX);
+    expect(carries(signed, ACTIVE_WIF)).toBe(false);
+
+    const encoded = await ks.encodeMemo('alice', WALLET_PW, MEMO_PUB, '#secret memo');
+    expect(carries(encoded, MEMO_WIF)).toBe(false);
+    const decoded = await ks.decodeMemo('alice', WALLET_PW, encoded);
+    expect(carries(decoded, MEMO_WIF)).toBe(false);
+
+    // Belt-and-braces: at rest is ciphertext, never the raw keys.
+    const onDisk = fs.readFileSync(file, 'utf8');
+    expect(onDisk).not.toContain(ACTIVE_WIF);
+    expect(onDisk).not.toContain(MEMO_WIF);
+  });
+});

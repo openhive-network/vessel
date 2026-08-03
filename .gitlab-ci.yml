@@ -1,0 +1,78 @@
+# GitLab CI for Vessel — Phase 2 D11 (replaces .travis.yml).
+#
+# Pipeline: verify → build (electron-vite) → e2e (Playwright _electron under xvfb) → package (tags only).
+#
+# Notes:
+#  • `npm ci --legacy-peer-deps` mirrors how the mid-modernization dependency tree was installed
+#    (eslint 9 + plugins whose peer ranges lag). Drop the flag once the ecosystem catches up.
+#  • package:* still build via webpack (the `package-*` scripts) until MR-B repoints electron-builder
+#    from dist/ to out/. They are tag-gated, so they never run on ordinary pushes.
+#  • macOS packaging is a manual local `npm run package` step — there is no hosted mac runner
+#    (MODERNIZATION_PLAN Open Question). Add a `package:mac` job here if/when a tagged mac runner exists.
+
+stages:
+  - verify
+  - build
+  - e2e
+  - package
+
+default:
+  image: node:24
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - .npm/
+  before_script:
+    - npm ci --legacy-peer-deps --cache .npm --prefer-offline
+
+verify:
+  stage: verify
+  interruptible: true
+  script:
+    - npm run verify # typecheck && lint && test
+
+build:
+  stage: build
+  interruptible: true
+  script:
+    - npm run build:vite
+  artifacts:
+    paths:
+      - out/
+    expire_in: 1 day
+
+e2e:
+  stage: e2e
+  interruptible: true
+  needs: ['build']
+  script:
+    - npx playwright install-deps # OS libraries electron/chromium need
+    - apt-get update && apt-get install -y --no-install-recommends xvfb
+    - xvfb-run --auto-servernum npm run test-e2e
+  artifacts:
+    when: on_failure
+    paths:
+      - test-results/
+    expire_in: 1 week
+
+.package:
+  stage: package
+  image: electronuserland/builder:wine
+  rules:
+    - if: '$CI_COMMIT_TAG'
+  artifacts:
+    paths:
+      - release/
+    expire_in: 1 week
+
+package:linux:
+  extends: .package
+  script:
+    - npm run package-linux
+
+package:win:
+  extends: .package
+  script:
+    - npm run package-win

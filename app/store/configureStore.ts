@@ -75,12 +75,6 @@ const configureStore = () => {
   // Create Store
   const store = createStore(persistedReducer, enhancer);
 
-  if (process.env.NODE_ENV === 'development' && (module as any).hot) {
-    (module as any).hot.accept('../reducers', () => {
-      store.replaceReducer(persistReducer(persistConfig, require('../reducers').default));
-    });
-  }
-
   return store;
 };
 

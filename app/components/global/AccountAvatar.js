@@ -1,12 +1,10 @@
 // @flow
 import React, { Component } from 'react';
 
-const { shell } = require('electron');
-
 export default class AccountAvatar extends Component {
   handleLink = () => {
     const { name } = this.props;
-    shell.openExternal(`https://hive.blog/@${name}`);
+    window.electronAPI?.openExternal(`https://hive.blog/@${encodeURIComponent(name)}`);
   };
 
   render() {

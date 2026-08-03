@@ -1,12 +1,12 @@
 // @flow
 import React, { Component } from 'react';
 
-const { shell } = require('electron');
-
 export default class PostLink extends Component {
   handleLink = () => {
     const { author, permlink } = this.props;
-    shell.openExternal(`https://hive.blog/category/@${author}/${permlink}`);
+    window.electronAPI?.openExternal(
+      `https://hive.blog/category/@${encodeURIComponent(author)}/${encodeURIComponent(permlink)}`
+    );
   };
 
   render() {

@@ -18,8 +18,6 @@ import hive from '@hiveio/hive-js';
 import DecryptModal from './DecryptModal';
 import { encryptKey, isEncrypted, needsReencrypt } from '../utils/keyEnvelope';
 
-const { shell } = require('electron');
-
 const exchangeOptions = [
   {
     key: 'binance_bdhivesteem',
@@ -266,7 +264,7 @@ export default class Send extends Component {
   };
 
   handleExternalLink = (e: SyntheticEvent) => {
-    shell.openExternal(exchangeLinks[this.state.to]);
+    window.electronAPI?.openExternal(exchangeLinks[this.state.to]);
   };
 
   handleFromChange = (e: SyntheticEvent, { value }: { value: any }) => {

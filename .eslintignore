@@ -55,3 +55,8 @@ main.js.map
 .idea
 npm-debug.log.*
 __snapshots__
+
+# electron-vite build output + tooling configs (ESM-only; legacy node resolver cannot follow)
+out/
+electron.vite.config.ts
+vitest.config.ts

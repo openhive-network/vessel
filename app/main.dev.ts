@@ -10,8 +10,8 @@
  */
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import * as path from 'path';
-import MenuBuilder from './menu';
 import * as fs from 'fs';
+import MenuBuilder from './menu';
 
 // Resolve the renderer entry for BOTH build systems until MR-B removes webpack: electron-vite dev
 // server URL, else the electron-vite prod build (out/renderer/index.html), else the legacy webpack

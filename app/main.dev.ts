@@ -51,6 +51,11 @@ if (process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true')
 }
 
 const installExtensions = async () => {
+  // React/Redux DevTools ship as Manifest V3 and fail to load under Electron 28, spamming the console
+  // with "sandboxed_renderer.bundle.js script failed to run" / "object null is not iterable". They add
+  // nothing here until Phase 5 swaps electron-devtools-installer for an Electron-28-compatible loader,
+  // so the load is opt-in via LOAD_DEVTOOLS=1.
+  if (!process.env.LOAD_DEVTOOLS) return;
   const installer = require('electron-devtools-installer');
   const forceDownload = !!process.env.UPGRADE_EXTENSIONS;
   const extensions = ['REACT_DEVELOPER_TOOLS', 'REDUX_DEVTOOLS'];

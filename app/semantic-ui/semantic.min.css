@@ -8,7 +8,8 @@
  * http://opensource.org/licenses/MIT
  *
  */
-@import url(https://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic&subset=latin);/*!
+/* Lato is self-hosted via @fontsource (imported in App.tsx); remote Google Fonts @import removed so the Phase 3 CSP (style-src 'self') does not block it */
+/*!
  * # Semantic UI 2.4.0 - Reset
  * http://github.com/semantic-org/semantic-ui/
  *

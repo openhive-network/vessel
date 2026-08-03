@@ -15,9 +15,10 @@ const PASSWORD = 'P5-throwaway-do-not-use-this-anywhere';
 const WALLET_PW = 'wallet-unlock-pw-throwaway';
 const SIG_HEX = /^[0-9a-f]{130}$/i;
 
-const keys = hiveAuth.getPrivateKeys(NAME, PASSWORD, ['active', 'memo']);
+const keys = hiveAuth.getPrivateKeys(NAME, PASSWORD, ['active', 'memo', 'posting']);
 const ACTIVE_WIF = keys.active;
 const MEMO_WIF = keys.memo;
+const POSTING_WIF = keys.posting;
 const MEMO_PUB = hiveAuth.wifToPublic(MEMO_WIF);
 
 const FIXED_TX = {
@@ -25,6 +26,20 @@ const FIXED_TX = {
   ref_block_prefix: 5678901,
   expiration: '2030-01-01T00:00:00',
   operations: [['transfer', { from: 'alice', to: 'bob', amount: '0.001 HIVE', memo: '' }]],
+  extensions: [],
+};
+
+// A posting-authority operation, for the main-side authority gate tests.
+const CLAIM_TX = {
+  ref_block_num: 1234,
+  ref_block_prefix: 5678901,
+  expiration: '2030-01-01T00:00:00',
+  operations: [
+    [
+      'claim_reward_balance',
+      { account: 'alice', reward_hive: '0.000 HIVE', reward_hbd: '0.000 HBD', reward_vests: '0.000000 VESTS' },
+    ],
+  ],
   extensions: [],
 };
 
@@ -95,6 +110,41 @@ describe('main keystore — unlock + sign in main', () => {
     expect(signed.signatures).toHaveLength(1);
     expect(signed.signatures[0]).toMatch(SIG_HEX);
     expect(JSON.stringify(signed)).not.toContain(ACTIVE_WIF);
+  });
+});
+
+describe('main keystore — authority gate recomputed in main (D9b Stage C)', () => {
+  async function seedAliceWith(type: string, wif: string): Promise<Keystore> {
+    const ks = new Keystore(file);
+    ks.putRecord({ account: 'alice', key: await encryptKey(wif, WALLET_PW), encrypted: true, type });
+    return ks;
+  }
+
+  it('signs an active op (transfer) with an active key', async () => {
+    const ks = await seedAlice();
+    expect((await ks.signTransaction(FIXED_TX, 'alice', WALLET_PW)).signatures[0]).toMatch(SIG_HEX);
+  });
+
+  it('REFUSES to sign an active op with a posting key (renderer-independent)', async () => {
+    const ks = await seedAliceWith('posting', POSTING_WIF);
+    await expect(ks.signTransaction(FIXED_TX, 'alice', WALLET_PW)).rejects.toThrow(/authority/i);
+  });
+
+  it('signs a posting op (claim_reward_balance) with a posting key', async () => {
+    const ks = await seedAliceWith('posting', POSTING_WIF);
+    expect((await ks.signTransaction(CLAIM_TX, 'alice', WALLET_PW)).signatures[0]).toMatch(SIG_HEX);
+  });
+
+  it('REFUSES a posting op with an active key (HF28: active no longer satisfies posting)', async () => {
+    const ks = await seedAlice();
+    await expect(ks.signTransaction(CLAIM_TX, 'alice', WALLET_PW)).rejects.toThrow(/authority/i);
+  });
+
+  it('rejects on the authority gate BEFORE decrypting the key (fail-fast, even on a wrong password)', async () => {
+    const ks = await seedAliceWith('posting', POSTING_WIF);
+    // transfer needs active; the posting key fails the gate, which runs before decryption — so the error
+    // is the authority refusal, not a wrong-password error.
+    await expect(ks.signTransaction(FIXED_TX, 'alice', 'the-wrong-password')).rejects.toThrow(/authority/i);
   });
 });
 

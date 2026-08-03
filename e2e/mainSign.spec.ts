@@ -92,4 +92,47 @@ test.describe('D9b B4 — transaction signing runs in the real main process', ()
       fs.rmSync(profile, { recursive: true, force: true });
     }
   });
+
+  test('main REFUSES to sign an active op with a posting key (authority gate, no broadcast)', async () => {
+    const postingWif: string = hive.auth.getPrivateKeys(SEED, PW, ['posting']).posting;
+    const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'vessel-e2e-sign-gate-'));
+    fs.writeFileSync(
+      path.join(profile, 'keystore.json'),
+      JSON.stringify({
+        version: 1,
+        accounts: {
+          // a POSTING key, but the tx below is a transfer (active authority)
+          [SEED]: { account: SEED, key: await encryptKey(postingWif, PW), encrypted: true, type: 'posting' },
+        },
+      })
+    );
+
+    const app = await electron.launch({
+      args: [MAIN],
+      env: { ...process.env, NODE_ENV: 'production', VESSEL_USER_DATA: profile },
+    });
+    try {
+      const win = await app.firstWindow();
+      await win.waitForLoadState('domcontentloaded');
+      const result = await win.evaluate(
+        async ({ account, password, chainId, tx }) => {
+          const ks = (window as any).electronAPI?.keystore;
+          try {
+            await ks.setChainConfig(chainId);
+            const signed = await ks.sign(account, tx, password);
+            return { signed: !!(signed && signed.signatures) };
+          } catch (e: any) {
+            return { error: e && e.message ? e.message : String(e) };
+          }
+        },
+        { account: SEED, password: PW, chainId: CHAIN_ID, tx: JSON.parse(JSON.stringify(TX)) }
+      );
+      // main must refuse — a posting key cannot sign an active transfer, regardless of the renderer.
+      expect(result.signed).toBeUndefined();
+      expect(result.error).toBeTruthy();
+    } finally {
+      await app.close();
+      fs.rmSync(profile, { recursive: true, force: true });
+    }
+  });
 });

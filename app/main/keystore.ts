@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import hive from '@hiveio/hive-js';
 import { decryptKey, encryptKey, isEncrypted, WrongPasswordError } from '../utils/keyEnvelope';
+import { requiredRoleForOps, keySatisfiesRole } from '../utils/authorityRoles';
 
 /**
  * Phase 3 · D9b Stage B (step 1) — the MAIN-PROCESS keystore.
@@ -246,8 +247,27 @@ export class Keystore {
    * value only), so a single-entry object is sufficient.
    */
   async signTransaction(preparedTx: any, account: string, password: string): Promise<any> {
-    const wif = await this.decryptWif(account, password);
     const rec = this.data.accounts[account];
+    if (!rec) throw new Error(`no key for account ${account}`);
+
+    // D9b Stage C — recompute the HF28 authority gate IN MAIN, from the ACTUAL operations in the tx, so
+    // a compromised renderer cannot get main to sign an operation the stored key is not authorized for
+    // (e.g. an `active` transfer signed with a `posting` key). This mirrors the renderer's gate
+    // (authorityRoles) but trusts only the ops present in the tx, never a renderer-supplied role. The
+    // renderer never persists the optional capability object, so its gate also decides on `type` alone —
+    // this main-side check is therefore a faithful mirror and cannot reject an op the renderer allowed.
+    // requiredRoleForOps throws on an empty tx or a posting+active/owner mix (both rejected client-side
+    // already); letting them throw here fails closed. The gate runs BEFORE decryption — an unauthorized
+    // request never even unlocks the key.
+    const ops = Array.isArray(preparedTx?.operations) ? preparedTx.operations : [];
+    const { role } = requiredRoleForOps(ops);
+    if (!keySatisfiesRole(rec.type, role)) {
+      throw new Error(
+        `stored ${rec.type} key for @${account} cannot satisfy the required ${role} authority`
+      );
+    }
+
+    const wif = await this.decryptWif(account, password);
     return hive.auth.signTransaction(preparedTx, { [rec.type || 'active']: wif });
   }
 

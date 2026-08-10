@@ -76,7 +76,7 @@ test.describe('D9b Stage B — live migration of the real profile copy', () => {
         expect(ks.accounts[account]).toBeUndefined();
       }
 
-      // eslint-disable-next-line no-console
+       
       console.log(`[migration test] verified ${expected.length} accounts copied verbatim`);
     } finally {
       await app.close();

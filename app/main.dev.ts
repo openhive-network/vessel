@@ -282,7 +282,7 @@ const keystoreHandle = (
 ) => {
   ipcMain.handle(channel, async (event, ...args) => {
     if (!isAllowedSender(event)) {
-      // eslint-disable-next-line no-console
+       
       console.error(`[keystore] ${channel} rejected: sender not on the frame allowlist`);
       throw new Error('FORBIDDEN_SENDER');
     }
@@ -297,7 +297,7 @@ const keystoreHandle = (
             : 'KEYSTORE_ERROR';
       // Log only the derived code, never err.message (which could embed a WIF). The custom error
       // classes set no `.name` (it is always 'Error'), so the instanceof-derived code is the signal.
-      // eslint-disable-next-line no-console
+       
       console.error(`[keystore] ${channel} failed: ${code}`);
       throw new Error(code);
     }
@@ -314,7 +314,7 @@ keystoreHandle('keystore:sign', async (_e, account: string, preparedTx: any, pas
   const signed = await getKeystore().signTransaction(preparedTx, account, password);
   // Positive audit line (account name only, no secret) so a main-signed broadcast is observable in
   // the main-process log — lets the live test confirm main signed rather than the local fallback.
-  // eslint-disable-next-line no-console
+   
   console.log(`[keystore] signed a transaction for @${account} in the main process`);
   return signed;
 });
@@ -337,7 +337,7 @@ keystoreHandle(
     );
     // Positive audit line (account name only, no secret) — lets the live test confirm main encoded the
     // memo rather than the renderer's local fallback. Mirrors the keystore:sign audit line.
-    // eslint-disable-next-line no-console
+     
     console.log(`[keystore] encoded a memo for @${account} in the main process`);
     return encoded;
   }

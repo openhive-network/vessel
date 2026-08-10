@@ -77,7 +77,7 @@ export default class SignConfirmModal extends Component {
             </p>
             <List bulleted>
               {(ops || []).map((op, i) => (
-                // eslint-disable-next-line react/no-array-index-key
+                 
                 <List.Item key={`op-${i}`}>{describeOp(op)}</List.Item>
               ))}
             </List>

@@ -90,7 +90,7 @@ describe('migrateLegacyKeystore', () => {
     expect(slice.permissions.bob).toEqual(bobV4);
     expect(slice.isUser).toBe(true);
     // _persist preserved verbatim
-    // eslint-disable-next-line no-underscore-dangle
+     
     expect(JSON.parse(s.getItem(ROOT_KEY) as string)._persist).toBe(
       JSON.stringify({ version: -1, rehydrated: true }),
     );

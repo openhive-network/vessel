@@ -55,7 +55,7 @@ export async function runKeystoreMigration(keysState: any): Promise<void> {
   try {
     if (records.length) {
       const result = await api.migrateRecords(records);
-      // eslint-disable-next-line no-console
+       
       console.log(
         `[keystore] main-process migration: ${result.migrated.length} copied, ${result.skipped.length} already present`
       );
@@ -66,12 +66,12 @@ export async function runKeystoreMigration(keysState: any): Promise<void> {
     if (tombstones.length && typeof api.pruneAccounts === 'function') {
       const pruned = await api.pruneAccounts(tombstones);
       if (pruned.length) {
-        // eslint-disable-next-line no-console
+         
         console.log(`[keystore] main-process migration: pruned ${pruned.length} removed account(s)`);
       }
     }
   } catch (e) {
-    // eslint-disable-next-line no-console
+     
     console.error(
       '[keystore] main-process migration failed (non-fatal):',
       e instanceof Error ? e.message : 'error'

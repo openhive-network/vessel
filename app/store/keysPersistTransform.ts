@@ -9,7 +9,7 @@ import { createTransform } from 'redux-persist';
  * what the shipped app persisted; old readers rehydrate it fine (I-2). `removedLegacy` (the removal
  * tombstone, 13.3) MUST be in this allowlist or a removed legacy account resurrects on next launch.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 type KeysSlice = any;
 
 export const keysSurfaceTransform = createTransform<KeysSlice, KeysSlice>(

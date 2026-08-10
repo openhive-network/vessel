@@ -2,7 +2,6 @@ import { resolve } from 'path';
 import { transformSync } from '@babel/core';
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 import react from '@vitejs/plugin-react';
-import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 /**
  * Phase 2 · MR-A — electron-vite build (main / preload / renderer), ADDED alongside the still-working
@@ -63,10 +62,8 @@ export default defineConfig({
     plugins: [
       flowJsxJs(),
       react({ include: /\.[jt]sx$/ }), // the .tsx/.jsx entry + modern files
-      nodePolyfills({
-        include: ['crypto', 'stream', 'buffer', 'util', 'events'],
-        globals: { Buffer: true, process: true },
-      }),
+      // No node polyfills: hive-tx is pure @noble, keyEnvelope is @noble, mnemonics are @scure/bip39
+      // (Uint8Array) — nothing in the renderer needs crypto/stream/buffer/process shims post-swap.
     ],
     optimizeDeps: {
       esbuildOptions: {

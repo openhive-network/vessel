@@ -1,0 +1,10 @@
+/* Phase 7 (M0): make the app shell follow Mantine's light/dark color scheme.
+ * Mantine's own body styles live in @layer mantine, which the unlayered vendored Semantic CSS
+ * overrides during the incremental migration — so set the dark shell explicitly (unlayered, and
+ * imported LAST so it wins), keyed on the data-mantine-color-scheme attribute Mantine puts on <html>.
+ * Light is left to Semantic's existing white until the shell components are migrated. */
+html[data-mantine-color-scheme='dark'],
+html[data-mantine-color-scheme='dark'] body {
+  background-color: var(--mantine-color-body);
+  color: var(--mantine-color-text);
+}

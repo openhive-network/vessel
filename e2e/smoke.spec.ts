@@ -39,3 +39,16 @@ test('window title is Vessel', async () => {
 test('renders the Getting Started onboarding on an empty profile', async () => {
   await expect(page.getByText('Getting Started')).toBeVisible();
 });
+
+test('dark/light color-scheme toggle flips the scheme (Phase 7 M0)', async () => {
+  const root = page.locator('html');
+  const toggle = page.getByRole('button', { name: 'Toggle color scheme' });
+  await expect(toggle).toBeVisible();
+  await toggle.click();
+  const first = await root.getAttribute('data-mantine-color-scheme');
+  expect(['light', 'dark']).toContain(first);
+  // a second click flips to the other scheme — proves the toggle drives Mantine's color scheme
+  await toggle.click();
+  await expect.poll(() => root.getAttribute('data-mantine-color-scheme')).not.toBe(first);
+  expect(['light', 'dark']).toContain(await root.getAttribute('data-mantine-color-scheme'));
+});

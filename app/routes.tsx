@@ -17,6 +17,7 @@ import WelcomePage from './containers/WelcomePage';
 import VestingPage from './containers/VestingPage';
 import ConvertPage from './containers/ConvertPage';
 import DecryptPrompt from './containers/DecryptPrompt';
+import ColorSchemeToggle from './components/global/ColorSchemeToggle';
 
 const isURL = (str: string): boolean => {
   const pattern = new RegExp(
@@ -89,6 +90,7 @@ const AppRoutes: React.FC = () => {
 
   return (
     <AppContainer>
+      <ColorSchemeToggle />
       <DecryptPrompt />
       <Routes>
         <Route path="/" element={keys?.isUser ? <TransactionsPage /> : <WelcomePage />} />

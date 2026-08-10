@@ -23,7 +23,13 @@ const persistConfig = {
   transforms: [keysSurfaceTransform],
 };
 
-const persistedReducer = persistReducer(persistConfig, rootReducer);
+// redux 5's combineReducers returns a 3-param Reducer (adds PreloadedState); redux-persist 6's types
+// still expect redux-4's 2-param Reducer. Behavior-neutral: pin S explicitly so RootState stays precise
+// and cast the base reducer past the stale persistReducer signature.
+const persistedReducer = persistReducer<ReturnType<typeof rootReducer>>(
+  persistConfig,
+  rootReducer as any
+);
 
 const configureStore = () => {
   // Phase 1 · Task 0: migrate a legacy redux-persist v4 keystore into persist:root BEFORE the store

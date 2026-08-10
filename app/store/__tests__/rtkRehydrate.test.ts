@@ -29,7 +29,8 @@ const persistedReducer = persistReducer(
     whitelist: ['account', 'keys', 'preferences', 'hive'],
     transforms: [keysSurfaceTransform],
   },
-  rootReducer,
+  // redux 5 Reducer (3-param) vs redux-persist 6's stale 2-param signature — behavior-neutral cast.
+  rootReducer as any,
 );
 
 const makeStore = () =>

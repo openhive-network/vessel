@@ -117,7 +117,7 @@ describe('three-layer round trip (the decisive keystore test)', () => {
           whitelist: ['keys'],
           transforms: [keysSurfaceTransform],
         },
-        combineReducers({ keys: stubKeysReducer }),
+        combineReducers({ keys: stubKeysReducer }) as any,
       ),
     );
     let persistor: any = null;

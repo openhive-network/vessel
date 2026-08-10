@@ -17,6 +17,7 @@ import {
 import { parseAndValidateSignOps } from '../utils/signPayload';
 
 import OperationsPrompt from '../components/sign/operations/prompt';
+import SignConfirmModal from '../components/sign/SignConfirmModal';
 
 const accountFields = {
   account_create: ['creator'],
@@ -99,8 +100,28 @@ class PromptOperation extends Component {
       });
       return;
     }
-    this.setState({ authorityError: null });
-    this.props.actions.useKey('send', { operations: ops, extensions: [], role }, auth);
+    // Task 5 — don't dispatch straight to signing. Open the confirm-and-sign modal, which shows the
+    // plain-language summary and (for an encrypted key) collects + verifies the wallet password first.
+    this.setState({ authorityError: null, confirming: { role, auth } });
+  };
+
+  // Approved in the confirm modal. For an encrypted key the modal already verified `password` against
+  // main; sign there via a main signer { account, password } (encrypted:false so useKey won't re-prompt).
+  // A plaintext legacy key signs with its stored WIF, exactly as before — the modal was just a confirm.
+  handleConfirmSign = (password) => {
+    const { confirming, ops } = this.state;
+    if (!confirming) return;
+    const { role, auth } = confirming;
+    const params = { operations: ops, extensions: [], role };
+    const localAuth = auth.encrypted
+      ? { ...auth, encrypted: false, key: { account: auth.account, password } }
+      : auth;
+    this.props.actions.useKey('send', params, localAuth);
+    this.setState({ confirming: null });
+  };
+
+  handleCancelSign = () => {
+    this.setState({ confirming: null });
   };
 
   modifyOpsPrompt(e, data) {
@@ -132,7 +153,7 @@ class PromptOperation extends Component {
   }
 
   render() {
-    const { ops, meta, authorityError, payloadError } = this.state;
+    const { ops, meta, authorityError, payloadError, confirming } = this.state;
     const { account, keys } = this.props;
     // A malformed/oversized/malicious URI payload is refused outright — never rendered or signable.
     if (payloadError) {
@@ -147,6 +168,15 @@ class PromptOperation extends Component {
     }
     return (
       <>
+        {confirming ? (
+          <SignConfirmModal
+            account={confirming.auth.account}
+            ops={ops}
+            record={confirming.auth}
+            onCancel={this.handleCancelSign}
+            onConfirm={this.handleConfirmSign}
+          />
+        ) : null}
         {authorityError ? (
           <Message
             error

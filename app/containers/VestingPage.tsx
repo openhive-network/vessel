@@ -1,4 +1,3 @@
-// @flow
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { Navigate } from 'react-router';
@@ -10,7 +9,7 @@ import VestingAccounts from '../components/VestingAccounts';
 import * as AccountActions from '../actions/account';
 import * as KeysActions from '../actions/keys';
 
-class VestingsPage extends Component {
+class VestingsPage extends Component<any, any> {
   render() {
     if (!this.props.keys.isUser) {
       return <Navigate to="/" replace />;
@@ -58,7 +57,7 @@ function mapDispatchToProps(dispatch) {
       {
         ...AccountActions,
         ...KeysActions,
-      },
+      } as any,
       dispatch
     ),
   };

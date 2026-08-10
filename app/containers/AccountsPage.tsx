@@ -1,4 +1,3 @@
-// @flow
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { Navigate } from 'react-router';
@@ -20,18 +19,18 @@ import KeysCreate from '../components/Keys/Create';
 import KeysMemo from '../components/Keys/Memo';
 import KeysAuth from '../components/Keys/Auth';
 
-class AccountsPage extends Component {
+class AccountsPage extends Component<any, any> {
   state = {
     activeItem: 'keys',
     addAccount: false,
   };
 
-  constructor(props) {
+  constructor(props: any) {
     super(props);
     // props.actions.getMinimumAccountDelegation(props.preferences);
   }
 
-  handleItemClick = (e, { name }) => this.setState({ activeItem: name });
+  handleItemClick = (e: any, { name }: any) => this.setState({ activeItem: name });
 
   handleAddAccount = () => {
     this.props.actions.addKeyPrompt();
@@ -78,7 +77,7 @@ class AccountsPage extends Component {
       return <Navigate to="/" replace />;
     }
     const { activeItem } = this.state;
-    let modal = false;
+    let modal: any = false;
     if (this.props.keys.addPrompt) {
       modal = (
         <Modal
@@ -210,7 +209,7 @@ class AccountsPage extends Component {
               key: 'no',
               content: 'Cancel',
               color: 'red',
-              onClick: this.handleRemoveAuthCancel,
+              onClick: (this as any).handleRemoveAuthCancel,
             },
           ]}
         />
@@ -281,7 +280,7 @@ class AccountsPage extends Component {
   }
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: any) {
   return {
     account: state.account,
     keys: state.keys,
@@ -291,14 +290,14 @@ function mapStateToProps(state) {
   };
 }
 
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch: any) {
   return {
     actions: bindActionCreators(
       {
         ...AccountActions,
         ...KeyActions,
         ...ProcessingActions,
-      },
+      } as any,
       dispatch
     ),
   };

@@ -26,3 +26,21 @@ declare module 'redux-logger' {
 
   export function createLogger(options?: LoggerOptions): Middleware;
 }
+
+// Static image imports — Vite resolves these to a URL string at build; tsc needs the ambient module.
+declare module '*.png' {
+  const src: string;
+  export default src;
+}
+declare module '*.jpg' {
+  const src: string;
+  export default src;
+}
+declare module '*.gif' {
+  const src: string;
+  export default src;
+}
+declare module '*.svg' {
+  const src: string;
+  export default src;
+}

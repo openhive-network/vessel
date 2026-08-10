@@ -1,4 +1,3 @@
-// @flow
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -11,7 +10,7 @@ import * as PreferencesActions from '../actions/preferences';
 import srcHive from '../img/hive.png';
 import srcTestnet from '../img/testnet.png';
 
-class MenuBar extends Component {
+class MenuBar extends Component<any, any> {
   state = {
     intervalId: 0,
   };
@@ -27,7 +26,7 @@ class MenuBar extends Component {
     clearInterval(this.interval);
   }
 
-  interval = 0;
+  interval: any = 0;
 
   timer = () => {
     // console.log('tick');
@@ -118,7 +117,7 @@ class MenuBar extends Component {
   }
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: any) {
   return {
     keys: state.keys,
     hive: state.hive,
@@ -126,14 +125,14 @@ function mapStateToProps(state) {
   };
 }
 
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch: any) {
   return {
     actions: bindActionCreators(
       {
         ...AccountActions,
         ...HiveActions,
         ...PreferencesActions,
-      },
+      } as any,
       dispatch
     ),
   };

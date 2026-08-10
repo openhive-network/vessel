@@ -1,4 +1,3 @@
-// @flow
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { Navigate } from 'react-router';
@@ -15,7 +14,7 @@ import * as ProcessingActions from '../actions/processing';
 import * as KeysActions from '../actions/keys';
 import * as HiveActions from '../actions/hive';
 
-class TransactionsPage extends Component {
+class TransactionsPage extends Component<any, any> {
   render() {
     let account_data = (
       <Dimmer inverted active style={{ minHeight: '100px', display: 'block' }}>
@@ -66,7 +65,7 @@ function mapDispatchToProps(dispatch) {
         ...KeysActions,
         ...ProcessingActions,
         ...HiveActions,
-      },
+      } as any,
       dispatch
     ),
   };

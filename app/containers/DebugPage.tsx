@@ -1,4 +1,3 @@
-// @flow
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { Navigate } from 'react-router';
@@ -11,12 +10,12 @@ import ContentBar from '../components/ContentBar';
 import * as PreferencesActions from '../actions/preferences';
 import * as KeysActions from '../actions/keys';
 
-class DebugPage extends Component {
-  unlock = (e, props) => {
+class DebugPage extends Component<any, any> {
+  unlock = (e: any, props: any) => {
     console.log('unlock', props.value);
   };
 
-  send = (e, props) => {
+  send = (e: any, props: any) => {
     // const wif = this.props.actions.getKey(props.value);
     const account = props.value;
     const { permissions } = this.props.keys;
@@ -68,7 +67,7 @@ class DebugPage extends Component {
   }
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: any) {
   return {
     account: state.account,
     keys: state.keys,
@@ -76,13 +75,13 @@ function mapStateToProps(state) {
   };
 }
 
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch: any) {
   return {
     actions: bindActionCreators(
       {
         ...KeysActions,
         ...PreferencesActions,
-      },
+      } as any,
       dispatch
     ),
   };

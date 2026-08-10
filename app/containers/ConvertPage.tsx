@@ -1,4 +1,3 @@
-// @flow
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { Navigate } from 'react-router';
@@ -35,8 +34,8 @@ const defaultState = {
   modalPreview: false,
 };
 
-class ConvertPage extends Component {
-  constructor(props) {
+class ConvertPage extends Component<any, any> {
+  constructor(props: any) {
     super(props);
     this.state = {
       ...defaultState,
@@ -107,7 +106,7 @@ class ConvertPage extends Component {
     };
 
     const errorLabel = <Label color="red" pointing />;
-    let modal = false;
+    let modal: any = false;
     if (!this.props.keys.isUser) {
       return <Navigate to="/" replace />;
     }
@@ -308,13 +307,13 @@ class ConvertPage extends Component {
     );
   }
 
-  handleRequestIDChange = (e: SyntheticEvent, { value }: { value: any }) => {
+  handleRequestIDChange = (e: any, { value }: any) => {
     this.setState({
       requestid: value,
     });
   };
 
-  handleAccountChange = (e: SyntheticEvent, { value }: { value: any }) => {
+  handleAccountChange = (e: any, { value }: any) => {
     this.setState({
       account: value,
     });
@@ -326,12 +325,12 @@ class ConvertPage extends Component {
     // })
   };
 
-  handleAmountChange = (e: SyntheticEvent, { value }: { value: any }) => {
+  handleAmountChange = (e: any, { value }: any) => {
     const cleaned = value.replace(/[a-z\s]+/gim, '');
     this.setState({ amount: cleaned });
   };
 
-  setAmountMaximum = (e: SyntheticEvent) => {
+  setAmountMaximum = (e: any) => {
     const { accounts } = this.props.account;
     const { account, symbol } = this.state;
     const field = symbol === 'HBD' ? 'hbd_balance' : 'balance';
@@ -339,7 +338,7 @@ class ConvertPage extends Component {
     this.setState({ amount });
   };
 
-  handleConversionTypeChange = (e: SyntheticEvent, { value }: { value: any }) => {
+  handleConversionTypeChange = (e: any, { value }: any) => {
     this.setState({
       conversionType: value,
       symbol: value === 'HIVEtoHBD' ? 'HIVE' : 'HBD',
@@ -348,7 +347,7 @@ class ConvertPage extends Component {
 
   isFormValid = () => true;
 
-  handlePreview = (e: SyntheticEvent) => {
+  handlePreview = (e: any) => {
     if (this.isFormValid()) {
       this.setState({
         generatedRequestId: Math.floor(Date.now() / 1000),
@@ -360,14 +359,14 @@ class ConvertPage extends Component {
     e.preventDefault();
   };
 
-  handleCancel = (e: SyntheticEvent) => {
+  handleCancel = (e: any) => {
     this.setState({
       modalPreview: false,
     });
     e.preventDefault();
   };
 
-  handleConfirm = (e: SyntheticEvent) => {
+  handleConfirm = (e: any) => {
     let { account, conversionType, requestid, generatedRequestId, amount } = this.state;
     // symbol = symbol.replace("HIVE","STEEM");
     // symbol = symbol.replace("HBD","SBD");
@@ -402,7 +401,7 @@ function mapDispatchToProps(dispatch) {
       {
         ...AccountActions,
         ...KeysActions,
-      },
+      } as any,
       dispatch
     ),
   };

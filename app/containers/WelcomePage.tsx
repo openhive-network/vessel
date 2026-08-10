@@ -1,4 +1,3 @@
-// @flow
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -6,7 +5,7 @@ import Welcome from '../components/Welcome';
 import * as KeyActions from '../actions/keys';
 import * as PreferencesActions from '../actions/preferences';
 
-class WelcomePage extends Component {
+class WelcomePage extends Component<any, any> {
   render() {
     return (
       <div>
@@ -16,7 +15,7 @@ class WelcomePage extends Component {
   }
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: any) {
   return {
     account: state.account,
     keys: state.keys,
@@ -25,13 +24,13 @@ function mapStateToProps(state) {
   };
 }
 
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch: any) {
   return {
     actions: bindActionCreators(
       {
         ...KeyActions,
         ...PreferencesActions,
-      },
+      } as any,
       dispatch
     ),
   };

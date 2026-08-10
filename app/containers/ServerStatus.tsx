@@ -8,10 +8,12 @@ import ServerReconnect from '../components/global/ServerReconnect';
 import * as PreferencesActions from '../actions/preferences';
 import * as HiveActions from '../actions/hive';
 
-class ServerStatus extends Component {
+class ServerStatus extends Component<any, any> {
   state = {
     now: Date.now(),
   };
+
+  interval: any;
 
   componentDidMount() {
     this.interval = setInterval(this.currentTime.bind(this), 3000);
@@ -26,7 +28,7 @@ class ServerStatus extends Component {
   };
 
   render() {
-    let message = false;
+    let message: any = false;
     const lastUpdated = new Date(`${this.props.hive.props.time}Z`).getTime();
     const { now } = this.state;
     if ((Date.now() - lastUpdated) / 1000 > 30) {
@@ -45,19 +47,19 @@ class ServerStatus extends Component {
   }
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: any) {
   return {
     account: state.account,
   };
 }
 
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch: any) {
   return {
     actions: bindActionCreators(
       {
         ...PreferencesActions,
         ...HiveActions,
-      },
+      } as any,
       dispatch
     ),
   };

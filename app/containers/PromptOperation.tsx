@@ -1,4 +1,3 @@
-// @flow
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -41,7 +40,7 @@ const accountFields = {
   witness_update: ['owner'],
 };
 
-class PromptOperation extends Component {
+class PromptOperation extends Component<any, any> {
   constructor(props) {
     super(props);
     let meta = {};
@@ -217,7 +216,7 @@ function mapDispatchToProps(dispatch) {
         ...AccountActions,
         ...KeysActions,
         ...ProcessingActions,
-      },
+      } as any,
       dispatch
     ),
   };

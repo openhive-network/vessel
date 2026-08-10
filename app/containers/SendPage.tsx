@@ -1,4 +1,3 @@
-// @flow
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { Navigate } from 'react-router';
@@ -12,7 +11,7 @@ import Send from '../components/Send';
 import MenuBar from './MenuBar';
 import ContentBar from '../components/ContentBar';
 
-class SendPage extends Component {
+class SendPage extends Component<any, any> {
   state = {
     intervalId: 0,
   };
@@ -71,7 +70,7 @@ function mapDispatchToProps(dispatch) {
         ...AccountActions,
         ...KeysActions,
         ...ProcessingActions,
-      },
+      } as any,
       dispatch
     ),
   };

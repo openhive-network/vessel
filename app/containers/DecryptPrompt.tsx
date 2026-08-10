@@ -1,4 +1,3 @@
-// @flow
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -21,7 +20,7 @@ import { encryptKey, isEncrypted, needsReencrypt } from '../utils/keyEnvelope';
  *
  * The props `auth` object is NEVER mutated (mutating it was the old cleartext-at-rest leak, §6a).
  */
-class DecryptPrompt extends Component {
+class DecryptPrompt extends Component<any, any> {
   // The ciphertext envelope last pushed into main by the self-heal, so a stale/missing record is
   // repaired at most once per distinct envelope (not on every failed keystroke probe).
   syncedKey = null;
@@ -31,7 +30,7 @@ class DecryptPrompt extends Component {
   // password was changed by re-importing after migration) — push the renderer's current ciphertext
   // envelope into main ONCE, then re-check. localStorage is never staler than main under the dual store,
   // so this only repairs main forward, and only the envelope (never a WIF) crosses the boundary.
-  handleVerify = async (password: string) => {
+  handleVerify = async (password) => {
     const { auth } = this.props.keys.decrypt;
     const keystore = window.electronAPI && window.electronAPI.keystore;
     if (!keystore) return false;
@@ -59,7 +58,7 @@ class DecryptPrompt extends Component {
     return ok;
   };
 
-  handleDecrypted = async (wif: string | null, password: string) => {
+  handleDecrypted = async (wif, password) => {
     const { operation, params, auth } = this.props.keys.decrypt;
 
     let signer;
@@ -72,7 +71,7 @@ class DecryptPrompt extends Component {
     } else {
       // LOCAL: the modal decrypted the WIF. Field-aware lazy re-encrypt under the just-verified
       // password, then sign locally with the cleartext WIF.
-      const reenc = {};
+      const reenc: any = {};
       if (needsReencrypt(auth.key)) {
         reenc.key = await encryptKey(wif, password);
       }
@@ -126,7 +125,7 @@ function mapDispatchToProps(dispatch) {
     actions: bindActionCreators(
       {
         ...KeysActions,
-      },
+      } as any,
       dispatch
     ),
   };

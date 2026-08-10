@@ -1,4 +1,3 @@
-// @flow
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { Navigate } from 'react-router';
@@ -12,12 +11,12 @@ import * as ProcessingActions from '../actions/processing';
 import MenuBar from './MenuBar';
 import ContentBar from '../components/ContentBar';
 
-class AccountsPage extends Component {
+class AccountsPage extends Component<any, any> {
   state = {
     activeItem: 'custom_json',
   };
 
-  handleItemClick = (e, { name }) => this.setState({ activeItem: name });
+  handleItemClick = (e: any, { name }: any) => this.setState({ activeItem: name });
 
   render() {
     if (!this.props.keys.isUser) {
@@ -61,7 +60,7 @@ class AccountsPage extends Component {
   }
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: any) {
   return {
     account: state.account,
     keys: state.keys,
@@ -70,14 +69,14 @@ function mapStateToProps(state) {
   };
 }
 
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch: any) {
   return {
     actions: bindActionCreators(
       {
         ...AccountActions,
         ...KeyActions,
         ...ProcessingActions,
-      },
+      } as any,
       dispatch
     ),
   };

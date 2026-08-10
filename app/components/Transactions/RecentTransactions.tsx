@@ -1,0 +1,33 @@
+import React, { Component } from 'react';
+import { Link } from 'react-router-dom';
+import { Button, Divider, Grid, Header, Segment, Statistic, Table } from 'semantic-ui-react';
+
+export default class RecentTransactions extends Component<any, any> {
+  render() {
+    const { transactions } = this.props;
+    const header = (
+      <Table.Row>
+        <Table.Header>Test</Table.Header>
+      </Table.Row>
+    );
+    const items: any[] = [];
+    transactions.forEach((tx) => {
+      items.push(
+        <Table.Row>
+          <Table.Cell>{tx.type}</Table.Cell>
+          <Table.Cell>{tx.amount.hbd}</Table.Cell>
+          <Table.Cell>{tx.amount.vest}</Table.Cell>
+          <Table.Cell>{tx.amount.hive}</Table.Cell>
+        </Table.Row>
+      );
+      console.log(tx);
+    });
+    // console.log(this.props)
+    return (
+      <Segment textAlign="left" attached>
+        <Header>Recent Transactions</Header>
+        <Table unstackable children={items} headerRow={header} />
+      </Segment>
+    );
+  }
+}

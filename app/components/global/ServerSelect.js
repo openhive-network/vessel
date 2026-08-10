@@ -3,7 +3,17 @@ import React, { Component } from 'react';
 
 import { Button, Header, Modal, Segment, Table } from 'semantic-ui-react';
 
-const servers = ['https://api.hive.blog'];
+// Kept in sync with hive-tx's shipped, maintained config.nodes (api.hive.blog stays the default; node
+// selection pins hive-tx to the chosen one via hiveApi.setOptions -> config.nodes = [selected]).
+const servers = [
+  'https://api.hive.blog',
+  'https://api.deathwing.me',
+  'https://api.openhive.network',
+  'https://rpc.mahdiyari.info',
+  'https://techcoderx.com',
+  'https://hiveapi.actifit.io',
+  'https://api.c0ff33a.uk',
+];
 
 export default class ServerSelect extends Component {
   state = {

@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import hive from '@hiveio/hive-js';
+import { hiveTx, hiveAuth, hiveMemo, hiveConfig } from '../utils/hiveApi';
 import { decryptKey, encryptKey, isEncrypted, WrongPasswordError } from '../utils/keyEnvelope';
 import { requiredRoleForOps, keySatisfiesRole } from '../utils/authorityRoles';
 
@@ -203,8 +203,8 @@ export class Keystore {
    * signatures for the wrong chain on Testnet/Mirrornet.
    */
   static setChainConfig(chainId: string, addressPrefix?: string): void {
-    if (chainId) hive.config.set('chain_id', chainId);
-    if (addressPrefix) hive.config.set('address_prefix', addressPrefix);
+    if (chainId) hiveConfig.set('chain_id', chainId);
+    if (addressPrefix) hiveConfig.set('address_prefix', addressPrefix);
   }
 
   /**
@@ -220,7 +220,7 @@ export class Keystore {
     if (!rec) return false;
     try {
       const wif = isEncrypted(rec.key) ? await decryptKey(rec.key, password) : rec.key;
-      return hive.auth.isWif(wif);
+      return hiveAuth.isWif(wif);
     } catch (e) {
       if (e instanceof WrongPasswordError) return false;
       throw e;
@@ -268,7 +268,7 @@ export class Keystore {
     }
 
     const wif = await this.decryptWif(account, password);
-    return hive.auth.signTransaction(preparedTx, { [rec.type || 'active']: wif });
+    return hiveTx.signTransaction(preparedTx, { [rec.type || 'active']: wif });
   }
 
   /**
@@ -286,16 +286,16 @@ export class Keystore {
     expectedSenderMemoPublic?: string
   ): Promise<string> {
     const memoWif = await this.decryptMemoWif(account, password);
-    if (expectedSenderMemoPublic && hive.auth.wifToPublic(memoWif) !== expectedSenderMemoPublic) {
+    if (expectedSenderMemoPublic && hiveAuth.wifToPublic(memoWif) !== expectedSenderMemoPublic) {
       throw new Error('stored memo key does not match the account memo key on chain');
     }
-    return hive.memo.encode(memoWif, recipientPublicKey, message);
+    return hiveMemo.encode(memoWif, recipientPublicKey, message);
   }
 
   /** Decrypt an incoming memo with the account's memo key. */
   async decodeMemo(account: string, password: string, encoded: string): Promise<string> {
     const memoWif = await this.decryptMemoWif(account, password);
-    return hive.memo.decode(memoWif, encoded);
+    return hiveMemo.decode(memoWif, encoded);
   }
 
   /**
@@ -308,7 +308,7 @@ export class Keystore {
     // Refuse to clobber an existing record — a re-encrypt/rotate is a separate, explicit path. Under
     // the D9b threat model a hostile renderer with the password must not be able to overwrite a key.
     if (this.hasAccount(account)) throw new Error('account already exists');
-    if (!hive.auth.isWif(wif)) throw new Error('invalid wif');
+    if (!hiveAuth.isWif(wif)) throw new Error('invalid wif');
     const envelope = await encryptKey(wif, password);
     this.putRecord({ account, key: envelope, encrypted: true, type });
   }

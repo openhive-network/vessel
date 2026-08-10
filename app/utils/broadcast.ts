@@ -1,4 +1,4 @@
-import hive from '@hiveio/hive-js';
+import { hiveTx, hiveConfig } from './hiveApi';
 
 export type Operation = [string, Record<string, any>];
 export interface UnsignedTx {
@@ -39,13 +39,13 @@ export type Signer = string | { account: string; password: string; wif?: string 
 // byte-for-byte). A main-custody signer routes to the main-process keystore over IPC.
 export async function signTx(preparedTx: any, role: string, signer: Signer): Promise<any> {
   if (typeof signer === 'string') {
-    return hive.auth.signTransaction(preparedTx, { [role]: signer });
+    return hiveTx.signTransaction(preparedTx, { [role]: signer });
   }
   const api = typeof window !== 'undefined' ? (window as any).electronAPI?.keystore : undefined;
   if (api && signer.account) {
     try {
       // Main defaults to mainnet; sync the renderer's selected chain or signatures target the wrong one.
-      await api.setChainConfig(hive.config.get('chain_id'), hive.config.get('address_prefix'));
+      await api.setChainConfig(hiveConfig.get('chain_id'), hiveConfig.get('address_prefix'));
       return await api.sign(signer.account, preparedTx, signer.password);
     } catch (e) {
       if (signer.wif === undefined) {
@@ -60,26 +60,26 @@ export async function signTx(preparedTx: any, role: string, signer: Signer): Pro
         '[keystore] main sign failed, signing locally:',
         e instanceof Error ? e.message : 'error'
       );
-      return hive.auth.signTransaction(preparedTx, { [role]: signer.wif });
+      return hiveTx.signTransaction(preparedTx, { [role]: signer.wif });
     }
   }
   if (signer.wif !== undefined) {
     // No main bridge (non-Electron) but we hold a WIF -> sign locally, as before.
-    return hive.auth.signTransaction(preparedTx, { [role]: signer.wif });
+    return hiveTx.signTransaction(preparedTx, { [role]: signer.wif });
   }
   // Isolated signer with no reachable main and no WIF: genuinely nothing to sign with.
   throw new Error('no signing method available for main-custody account');
 }
 
 export async function signAndBroadcast(tx: UnsignedTx, role: string, signer: Signer): Promise<any> {
-  const prepared = await hive.broadcast._prepareTransaction({
+  const prepared = await hiveTx.prepareTransaction({
     operations: tx.operations,
     extensions: tx.extensions || [],
   });
 
   // hive.broadcast.send applies this rewrite AFTER _prepareTransaction (lib/broadcast/index.js:67-70);
   // replicate it verbatim or testnet signatures diverge from the legacy path.
-  if (hive.config.get('address_prefix') === 'TST') {
+  if (hiveConfig.get('address_prefix') === 'TST') {
     prepared.operations = JSON.parse(
       JSON.stringify(prepared.operations).replace(/ HIVE/g, ' TESTS')
     );
@@ -89,7 +89,7 @@ export async function signAndBroadcast(tx: UnsignedTx, role: string, signer: Sig
   }
 
   const signed = await signTx(prepared, role, signer);
-  const result = await hive.api.broadcastTransactionAsync(signed);
+  const result = await hiveTx.broadcastTransaction(signed);
   // Legacy send() returns `Object.assign({ id: trxId }, result, signed)`. No caller reads `.id`
   // (verified across account.js), so we omit the client-side trxId reconstruction; `signed` (which
   // always carries a non-empty `signatures` array) keeps the returned object truthy for the

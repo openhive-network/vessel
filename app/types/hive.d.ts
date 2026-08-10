@@ -30,6 +30,10 @@ declare module '@hiveio/hive-js' {
       limit: number,
       callback: (err: Error | null, result: any[]) => void
     ): void;
+    getConversionRequests(
+      account: string,
+      callback: (err: Error | null, result: any[]) => void
+    ): void;
     getContent(
       author: string,
       permlink: string,
@@ -135,6 +139,7 @@ declare module '@hiveio/hive-js' {
 
   export const auth: {
     isWif(key: string): boolean;
+    wifIsValid(wif: string, pubKey: string): boolean;
     wifToPublic(wif: string): string;
     toWif(name: string, password: string, type: string): string;
     getPrivateKeys(name: string, password: string, roles?: string[]): any;

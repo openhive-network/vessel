@@ -1,12 +1,38 @@
 import { defineConfig, configDefaults } from 'vitest/config';
+import { transformSync } from '@babel/core';
 
 /**
- * Phase 2 — Vitest replaces Jest. The Phase 1 test suite imports ONLY pure-TS modules (envelope,
- * migration, authority, mnemonic) plus redux/redux-persist; Vitest runs ESM natively, so the
- * @scure/@noble packages load without the babel-jest transformIgnorePatterns hack Jest needed.
- * Jest-compatible globals (describe/it/expect) are enabled so the specs need no changes.
+ * Phase 2 — Vitest replaces Jest. Phase 5 note: as the RTK slices/tests began importing the legacy
+ * `app/actions/*.js` chain, which is still Flow-annotated `.js`, Vitest needed the same Flow/JSX strip
+ * the electron-vite build applies (that plugin lives only in electron.vite.config.ts). This pre-transform
+ * mirrors it so any test that pulls in a Flow `.js` module parses. Removed once Phase 5 deletes the last
+ * `@flow` file.
  */
+function flowJsxJs() {
+  return {
+    name: 'vessel-flow-jsx-js-test',
+    enforce: 'pre' as const,
+    transform(code: string, id: string) {
+      const file = id.split('?')[0];
+      if (!file.endsWith('.js') || file.includes('node_modules') || !file.includes('/app/')) {
+        return null;
+      }
+      const result = transformSync(code, {
+        filename: file,
+        babelrc: false,
+        configFile: false,
+        presets: [['@babel/preset-react', { runtime: 'automatic' }]],
+        plugins: ['@babel/plugin-transform-flow-strip-types'],
+        sourceMaps: true,
+      });
+      if (!result || result.code == null) return null;
+      return { code: result.code, map: result.map };
+    },
+  };
+}
+
 export default defineConfig({
+  plugins: [flowJsxJs()],
   test: {
     globals: true,
     environment: 'node',

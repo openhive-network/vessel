@@ -1,5 +1,4 @@
-import { createStore, applyMiddleware, compose, Store } from 'redux';
-import thunk from 'redux-thunk';
+import { configureStore as rtkConfigureStore, type Middleware } from '@reduxjs/toolkit';
 import { createHashHistory } from 'history';
 import { createLogger } from 'redux-logger';
 import {
@@ -48,35 +47,25 @@ const configureStore = () => {
     }
   }
 
-  // Redux Configuration
-  const middleware: any[] = [];
-
-  // Thunk Middleware
-  middleware.push(thunk);
-
-  // Logging Middleware (only in development)
-  if (process.env.NODE_ENV === 'development') {
-    const logger = createLogger({
-      level: 'info',
-      collapsed: true,
-    });
-    middleware.push(logger);
-  }
-
-  // Redux DevTools Configuration
-  /* eslint-disable no-underscore-dangle */
-  const composeEnhancers =
-    (typeof window !== 'undefined' && (window as any).__REDUX_DEVTOOLS_EXTENSION_COMPOSE__) ||
-    compose;
-  /* eslint-enable no-underscore-dangle */
-
-  // Apply Middleware & Compose Enhancers
-  const enhancer = composeEnhancers(applyMiddleware(...middleware));
-
-  // Create Store
-  const store = createStore(persistedReducer, enhancer);
-
-  return store;
+  // Phase 5 (D5): RTK configureStore. Thunk + Redux DevTools are built in; redux-persist's lifecycle
+  // actions carry non-serializable payloads (functions/registry), so they are ignored by the
+  // serializability check. redux-logger is kept as a dev-only add-on to preserve prior behavior.
+  return rtkConfigureStore({
+    reducer: persistedReducer,
+    middleware: (getDefaultMiddleware) => {
+      const extra: Middleware[] =
+        process.env.NODE_ENV === 'development'
+          ? // redux-logger's types target legacy redux (AnyAction); cast to RTK's Middleware.
+            [createLogger({ level: 'info', collapsed: true }) as unknown as Middleware]
+          : [];
+      return getDefaultMiddleware({
+        serializableCheck: {
+          ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+        },
+      }).concat(extra);
+    },
+    devTools: process.env.NODE_ENV !== 'production',
+  });
 };
 
 export const store = configureStore();

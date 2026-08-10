@@ -171,6 +171,7 @@
     "@hiveio/hive-js": "^2.0.4",
     "@noble/ciphers": "^2.3.0",
     "@noble/hashes": "^2.3.0",
+    "@reduxjs/toolkit": "^2.12.0",
     "@scure/bip39": "^2.2.0",
     "electron-debug": "^3.2.0",
     "electron-json-storage": "^4.6.0",

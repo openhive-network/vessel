@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Icon, Menu } from 'semantic-ui-react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import * as AccountActions from '../actions/account';
 import * as HiveActions from '../actions/hive';
 import * as PreferencesActions from '../actions/preferences';

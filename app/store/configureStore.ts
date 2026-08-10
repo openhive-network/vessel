@@ -1,5 +1,4 @@
 import { configureStore as rtkConfigureStore, type Middleware } from '@reduxjs/toolkit';
-import { createHashHistory } from 'history';
 import { createLogger } from 'redux-logger';
 import {
   persistStore,
@@ -16,8 +15,6 @@ import rootReducer from '../reducers';
 import { migrateLegacyKeystore } from './legacyKeystoreMigration';
 import { keysSurfaceTransform } from './keysPersistTransform';
 import { runKeystoreMigration } from './keystoreMainMigration';
-
-export const history = createHashHistory();
 
 const persistConfig = {
   key: 'root',
@@ -79,4 +76,4 @@ export const persistor = persistStore(store, null, () => {
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
 
-export default { store, persistor, history };
+export default { store, persistor };

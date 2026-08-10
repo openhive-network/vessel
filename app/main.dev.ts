@@ -13,6 +13,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import MenuBuilder from './menu';
 import { Keystore } from './main/keystore';
+import { parseSignRequest } from './main/signUri';
 import { WrongPasswordError, InvalidCiphertextError } from './utils/errors';
 
 // Resolve the renderer entry for BOTH build systems until MR-B removes webpack: electron-vite dev
@@ -178,7 +179,6 @@ async function createPrompt(
   if (!url) return;
 
   customURI = url;
-  const parse = require('url-parse');
 
   promptWindow = new BrowserWindow({
     alwaysOnTop: true,
@@ -203,9 +203,9 @@ async function createPrompt(
   });
 
   const urlString = Array.isArray(url) ? url[0] : url;
-  const parsed = parse(urlString, true);
-  parsed.query.type = parsed.hostname;
-  parsed.query.action = 'promptOperation';
+  // url-parse -> native URL, extracted to a pure, unit-tested helper (Phase 6). Byte-identical
+  // ops/meta extraction for the sign payload (base64 with + / =); a non-sign/malformed URI no-ops.
+  const signReq = parseSignRequest(urlString ?? '');
 
   promptWindow.webContents.on('did-finish-load', () => {
     if (!promptWindow) {
@@ -215,21 +215,14 @@ async function createPrompt(
     promptWindow.focus();
   });
 
-  if (parsed.host === 'sign') {
-    const exp = /\/tx\/((?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?)/;
-    const match = exp.exec(parsed.pathname);
-    if (match) {
-      const base64encoded = match[1];
-      const metaexp = /^#((?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?)$/;
-      const metamatch = metaexp.exec(parsed.hash);
-      let base64encodedmeta = 'e30=';
-      if (metamatch) {
-        base64encodedmeta = metamatch[1];
-      }
-      promptWindow.loadURL(
-        rendererURL(`?type=sign&action=promptOperation&ops=${base64encoded}&meta=${base64encodedmeta}`)
-      );
-    }
+  if (signReq) {
+    // Percent-encode ops/meta: the renderer reads them with URLSearchParams, which decodes a literal
+    // '+' as a space — standard base64 uses '+', so unencoded interpolation would corrupt the payload.
+    promptWindow.loadURL(
+      rendererURL(
+        `?type=sign&action=promptOperation&ops=${encodeURIComponent(signReq.ops)}&meta=${encodeURIComponent(signReq.meta)}`
+      )
+    );
   }
 }
 

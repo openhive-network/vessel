@@ -18,7 +18,9 @@ const META = Buffer.from('{}').toString('base64');
 
 const signUrl = (base: string, opsB64: string) => {
   const clean = base.split('#')[0].split('?')[0];
-  return `${clean}?type=sign&action=promptOperation&ops=${opsB64}&meta=${META}`;
+  // Mirror production createPrompt: ops/meta are percent-encoded so base64 '+' survives URLSearchParams
+  // (a literal '+' would be decoded to a space and corrupt the payload).
+  return `${clean}?type=sign&action=promptOperation&ops=${encodeURIComponent(opsB64)}&meta=${encodeURIComponent(META)}`;
 };
 
 test.describe('Task 5 — vessel://sign renderer flow (built app)', () => {
@@ -41,6 +43,15 @@ test.describe('Task 5 — vessel://sign renderer flow (built app)', () => {
       // B) a well-formed transfer -> the sign UI with a plain-language summary line
       const ops = b64([['transfer', { from: 'alice', to: 'bob', amount: '1.000 HIVE', memo: 'gm' }]]);
       await win.goto(signUrl(base, ops));
+      await win.waitForLoadState('domcontentloaded');
+      await expect(win.locator('body')).toContainText('Sign Transaction', { timeout: 15000 });
+      await expect(win.locator('body')).not.toContainText(/can.?t be shown/i);
+
+      // C) a valid payload whose base64 contains '+' must still render — regression guard for the
+      // url-parse -> URLSearchParams swap: an unencoded '+' decodes to a space and would be refused.
+      const opsPlus = b64([['transfer', { from: 'alice', to: 'bob', amount: '1.000 HIVE', memo: '~~~' }]]);
+      expect(opsPlus).toContain('+'); // this payload actually exercises the '+' path
+      await win.goto(signUrl(base, opsPlus));
       await win.waitForLoadState('domcontentloaded');
       await expect(win.locator('body')).toContainText('Sign Transaction', { timeout: 15000 });
       await expect(win.locator('body')).not.toContainText(/can.?t be shown/i);

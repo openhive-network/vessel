@@ -1,7 +1,7 @@
 import React from 'react';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
-import { HashRouter } from 'react-router-dom';
+import { HashRouter } from 'react-router';
 import { IntlProvider } from 'react-intl';
 import { store, persistor } from './store/configureStore';
 import Routes from './routes';

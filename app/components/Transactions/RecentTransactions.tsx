@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Button, Divider, Grid, Header, Segment, Statistic, Table } from 'semantic-ui-react';
 
 export default class RecentTransactions extends Component<any, any> {

@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router';
 import { hiveApi, hiveConfig } from './utils/hiveApi';
-import parse from 'url-parse';
 
 import { useAppSelector, useAppDispatch } from './hooks/redux';
 import * as HiveActions from './actions/hive';
@@ -76,12 +75,14 @@ const AppRoutes: React.FC = () => {
     }
   }, [preferences?.hived_node]);
 
-  const parsed = parse(window.location.href, true);
-  if (parsed?.query?.action === 'promptOperation') {
+  // url-parse -> native URLSearchParams (Phase 6). Byte-identical to url-parse's query parsing
+  // (both decode '+' as space), so the sign-window branch behaves exactly as before.
+  const query = Object.fromEntries(new URLSearchParams(window.location.search));
+  if (query.action === 'promptOperation') {
     return (
       <AppContainer>
         <DecryptPrompt />
-        <PromptOperation query={parsed.query} />
+        <PromptOperation query={query} />
       </AppContainer>
     );
   }

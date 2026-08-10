@@ -4,11 +4,9 @@
 // context.getFilename() (removed in ESLint 10), so it cannot run on 10. Pinned to ESLint 9 until
 // eslint-plugin-react ships 10 support; flat-config semantics are identical for this repo.
 //
-// Parsing is split by file type:
-//   • `.js` / `.jsx` carry Flow + JSX → @babel/eslint-parser (espree cannot parse Flow); it reads
-//     babel.config.js (flow-strip-types + preset-react), so Flow prop types also satisfy react rules.
-//   • `.ts` / `.tsx` → the typescript-eslint parser, scoped via `extends` so its rules DON'T leak
-//     onto the Flow `.js` files (which would mis-fire @typescript-eslint/no-* as errors there).
+// Parsing: all source is `.ts`/`.tsx` (Phase 5 removed the last Flow `.js`; Phase 6 dropped babel),
+// handled by the typescript-eslint parser scoped via `extends`. Any stray root `.js`/`.jsx` falls
+// back to espree (js.recommended) — no Flow left to parse, so no babel parser is needed.
 //
 // Rule set: js.recommended + typescript-eslint(recommended) + react + react-hooks, eslint-config-prettier
 // LAST. Airbnb's stylistic churn is intentionally dropped; noisy correctness rules are kept at "warn"
@@ -19,7 +17,6 @@ import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import prettier from 'eslint-config-prettier';
 import globals from 'globals';
-import babelParser from '@babel/eslint-parser';
 
 const SOURCE = ['app/**/*.{js,jsx,ts,tsx}'];
 const TS = ['app/**/*.{ts,tsx}', 'e2e/**/*.ts', 'playwright.config.ts', '*.ts'];
@@ -94,20 +91,6 @@ export default tseslint.config(
   {
     files: ['**/*.{js,jsx,cjs,mjs,ts,tsx}'],
     languageOptions: { globals: { ...globals.browser, ...globals.node } },
-  },
-
-  // ---- .js/.jsx are Flow + JSX → @babel/eslint-parser ----
-  {
-    files: JSX,
-    languageOptions: {
-      parser: babelParser,
-      parserOptions: {
-        requireConfigFile: true,
-        sourceType: 'module',
-        allowImportExportEverywhere: true,
-        ecmaFeatures: { jsx: true },
-      },
-    },
   },
 
   // ---- core-rule calibration for JS/JSX (TS files are governed by the TS block above) ----

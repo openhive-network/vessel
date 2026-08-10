@@ -19,7 +19,7 @@
     "start": "cross-env NODE_ENV=production electron ./out/main/main.dev.js",
     "prestart": "npm run build",
     "test": "vitest run",
-    "test:testnet": "vitest run app/utils/__tests__/testnetBroadcast.smoke.test.ts",
+    "test:testnet": "vitest run --config vitest.testnet.config.ts",
     "test-watch": "vitest",
     "test-e2e": "playwright test",
     "test-all": "npm run lint && npm run test && npm run build",

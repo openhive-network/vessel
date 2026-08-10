@@ -68,6 +68,10 @@ export default tseslint.config(
     rules: {
       'react-hooks/rules-of-hooks': 'warn',
       'react-hooks/exhaustive-deps': 'warn',
+      // Airbnb-style: only flag a destructure if EVERY binding is const-able. Several money-path thunks
+      // do `let { from, amount } = params` where `amount` is legitimately reassigned (the testnet
+      // ' HIVE'->' TESTS' rewrite), so forcing const would be wrong; splitting the destructure is noise.
+      'prefer-const': ['error', { destructuring: 'all', ignoreReadBeforeAssign: true }],
     },
   },
 

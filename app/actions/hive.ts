@@ -1,4 +1,3 @@
-// @flow
 import { hiveApi, hiveConfig } from '../utils/hiveApi';
 import * as ProcessingActions from './processing';
 
@@ -6,8 +5,8 @@ export const HIVE_GLOBALPROPS_UPDATE = 'HIVE_GLOBALPROPS_UPDATE';
 export const HIVE_GLOBALPROPS_UPDATE_RESOLVED = 'HIVE_GLOBALPROPS_UPDATE_RESOLVED';
 
 export function refreshGlobalProps() {
-  return (dispatch: () => void) => {
-    hiveApi.getDynamicGlobalProperties().then((results) => {
+  return (dispatch: any) => {
+    hiveApi.getDynamicGlobalProperties().then((results: any) => {
       if (results.virtual_supply.search('HIVE') >= 0) {
         if (
           hiveConfig.get('chain_id') ===

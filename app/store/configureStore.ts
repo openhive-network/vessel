@@ -36,13 +36,13 @@ const configureStore = () => {
     try {
       const result = migrateLegacyKeystore(window.localStorage);
       if (result.status === 'migrated') {
-        // eslint-disable-next-line no-console
+         
         console.log(
           `[keystore] migrated ${result.copiedAccounts.length} account(s) from legacy storage; backup=${result.backupKey}`,
         );
       }
     } catch (e) {
-      // eslint-disable-next-line no-console
+       
       console.error('[keystore] migration skipped (non-fatal):', e && (e as Error).name);
     }
   }

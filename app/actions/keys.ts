@@ -1,6 +1,4 @@
-// @flow
 import { hiveApi, hiveAuth } from '../utils/hiveApi';
-import type { keysStateType } from '../reducers/keys';
 import * as AccountActions from './account';
 import {
   PROCESSING_ACCOUNT_LOADING,
@@ -45,15 +43,15 @@ export const KEY_ADD_MEMO_FAILED_PLAINTEXT_MAIN = 'KEY_ADD_MEMO_FAILED_PLAINTEXT
 export const KEY_USE_ROLE_MISMATCH = 'KEY_USE_ROLE_MISMATCH';
 export const KEY_REENCRYPTED = 'KEY_REENCRYPTED';
 
-export function addKey(account: string, wif: string) {
+export function addKey(account: any, wif: any) {
   const isValidKey = hiveAuth.isWif(wif);
   if (isValidKey) {
-    return (dispatch: () => void) => {
+    return (dispatch: any) => {
       dispatch({
         type: PROCESSING_ACCOUNT_LOADING,
       });
       hiveApi.getAccounts([account]).then(
-        (result) => {
+        (result: any) => {
           // Account not found
           if (!result.length) {
             dispatch({
@@ -112,8 +110,8 @@ export function addKey(account: string, wif: string) {
 // §5.1 — the main WIF is ALWAYS encrypted (D9a envelope); `key = wif` is never persisted.
 // Async thunk: a wallet password is mandatory. Existing `encrypted:false` records stay readable
 // (useKey's unencrypted branch) and are upgraded via the §5.3 launch modal.
-export function addKeyConfirmed(account: string, wif: string, type: string, password: string) {
-  return async (dispatch: () => void) => {
+export function addKeyConfirmed(account: any, wif: any, type: any, password: any) {
+  return async (dispatch: any) => {
     if (!password) {
       dispatch({ type: KEY_ADD_FAILED_PASSWORD_REQUIRED });
       return;
@@ -151,7 +149,7 @@ export function createKeyCancel() {
 // Given an account and a keys
 // Check if key is encrypted
 
-export function useKeyRequestDecrypt(operation, params, auth) {
+export function useKeyRequestDecrypt(operation: any, params: any, auth: any) {
   return {
     type: KEY_USE_DECRYPT_PROMPT,
     payload: { operation, params, auth },
@@ -167,8 +165,8 @@ export function useKeyRequestDecryptClose() {
 // §7.2 — the client-side HF28 authority gate. FIRST resolve the role the whole request needs; a
 // tx that mixes posting with active/owner (unsatisfiable by one key) or carries no ops is refused
 // here, BEFORE any key selection or network call. Then verify the stored key can satisfy that role.
-export function useKey(operation, params, auth) {
-  return (dispatch: () => void) => {
+export function useKey(operation: any, params: any, auth: any) {
+  return (dispatch: any) => {
     let required;
     try {
       required = requiredRoleForAction(operation, params);
@@ -213,22 +211,22 @@ export function useKey(operation, params, auth) {
 }
 
 // §5.3 / §4.4 — replace a record's main key and/or memo with a freshly-encrypted envelope.
-export function keyReencrypted(payload: { account: string, key?: string, memo?: string }) {
+export function keyReencrypted(payload: any) {
   return {
     type: KEY_REENCRYPTED,
     payload,
   };
 }
 
-export function getKeyType(wif: string, account: object) {
-  const validFor = [];
+export function getKeyType(wif: any, account: any) {
+  const validFor: any = [];
   ['owner', 'active', 'posting'].forEach((keyType) => {
     const keyAuths = account[keyType].key_auths;
     const weightThreshold = account[keyType].weight_threshold;
     const matchingWeight = keyAuths
-      .filter((set) => set[0] === wif)
-      .map((set) => set[1])
-      .reduce((a, b) => a + b, 0);
+      .filter((set: any) => set[0] === wif)
+      .map((set: any) => set[1])
+      .reduce((a: any, b: any) => a + b, 0);
     if (matchingWeight >= weightThreshold) {
       validFor.push(keyType);
     }
@@ -236,14 +234,14 @@ export function getKeyType(wif: string, account: object) {
   return validFor;
 }
 
-export function removeKey(account: string) {
+export function removeKey(account: any) {
   return {
     type: KEY_REMOVE_CONFIRM,
     payload: account,
   };
 }
 
-export function removeKeyConfirmed(account: string) {
+export function removeKeyConfirmed(account: any) {
   return {
     type: KEY_REMOVE_CONFIRMED,
     payload: account,
@@ -259,13 +257,13 @@ export function removeKeyCancel() {
 // §5.2 — store the memo key as a v2 envelope bound to the account's wallet password. C6: refuse
 // unless the main key is already encrypted AND the entered password unlocks it, so the memo always
 // shares the main key's password (else memo decrypt at send time is impossible).
-export function addMemoKey(account: string, wif: string, password: string) {
+export function addMemoKey(account: any, wif: any, password: any) {
   const isValidKey = hiveAuth.isWif(wif);
   if (!isValidKey) {
     return { type: KEY_ADD_FAILED_WIF_INVALID };
   }
-  return (dispatch: () => void, getState: () => Object) => {
-    hiveApi.getAccounts([account]).then(async (result) => {
+  return (dispatch: any, getState: any) => {
+    hiveApi.getAccounts([account]).then(async (result: any) => {
       if (!result || !result.length) return;
       const derivedKey = hiveAuth.wifToPublic(wif);
       if (derivedKey !== result[0].memo_key) {
@@ -290,9 +288,9 @@ export function addMemoKey(account: string, wif: string, password: string) {
   };
 }
 
-export function addMemoKeyPrompt(account: string) {
-  return (dispatch: () => void) => {
-    hiveApi.getAccounts([account]).then((result) => {
+export function addMemoKeyPrompt(account: any) {
+  return (dispatch: any) => {
+    hiveApi.getAccounts([account]).then((result: any) => {
       dispatch({
         type: KEY_ADD_MEMO_PROMPT,
         payload: {
@@ -304,7 +302,7 @@ export function addMemoKeyPrompt(account: string) {
   };
 }
 
-export function addMemoKeyConfirmed(payload) {
+export function addMemoKeyConfirmed(payload: any) {
   return {
     type: KEY_ADD_MEMO_CONFIRMED,
     payload,
@@ -318,13 +316,13 @@ export function addMemoKeyCancel() {
 }
 
 // §5.2 — same treatment as addMemoKey (funnels to the same reducer shape), keyed on the auth flow.
-export function addAuth(account: string, wif: string, password: string) {
+export function addAuth(account: any, wif: any, password: any) {
   const isValidKey = hiveAuth.isWif(wif);
   if (!isValidKey) {
     return { type: KEY_ADD_FAILED_WIF_INVALID };
   }
-  return (dispatch: () => void, getState: () => Object) => {
-    hiveApi.getAccounts([account]).then(async (result) => {
+  return (dispatch: any, getState: any) => {
+    hiveApi.getAccounts([account]).then(async (result: any) => {
       if (!result || !result.length) return;
       const derivedKey = hiveAuth.wifToPublic(wif);
       if (derivedKey !== result[0].memo_key) {
@@ -348,9 +346,9 @@ export function addAuth(account: string, wif: string, password: string) {
   };
 }
 
-export function addAuthPrompt(account: string) {
-  return (dispatch: () => void) => {
-    hiveApi.getAccounts([account]).then((result) => {
+export function addAuthPrompt(account: any) {
+  return (dispatch: any) => {
+    hiveApi.getAccounts([account]).then((result: any) => {
       dispatch({
         type: KEY_ADD_AUTH_PROMPT,
         payload: {
@@ -362,7 +360,7 @@ export function addAuthPrompt(account: string) {
   };
 }
 
-export function addAuthConfirmed(payload) {
+export function addAuthConfirmed(payload: any) {
   return {
     type: KEY_ADD_AUTH_CONFIRMED,
     payload,

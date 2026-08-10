@@ -1,6 +1,3 @@
-// @flow
-import type { processingStateType } from '../reducers/processing';
-
 export const PROCESSING_ACCOUNT_LOADING = 'PROCESSING_ACCOUNT_LOADING';
 export const PROCESSING_ACCOUNT_LOADING_FAILED = 'PROCESSING_ACCOUNT_LOADING_FAILED';
 export const PROCESSING_ACCOUNT_LOADING_COMPLETE = 'PROCESSING_ACCOUNT_LOADING_COMPLETE';
@@ -41,7 +38,7 @@ export function processingAccountCreateComplete() {
   };
 }
 
-export function processingAccountCreateFailed(payload) {
+export function processingAccountCreateFailed(payload: any) {
   return {
     type: PROCESSING_ACCOUNT_CREATE_FAILED,
     payload,

@@ -56,7 +56,7 @@ export async function signTx(preparedTx: any, role: string, signer: Signer): Pro
       }
       // Dual-store path: main unavailable / stale ciphertext -> fall back to the local WIF. The
       // fallback signs the same digest as main would (non-deterministic sig, but chain-equivalent).
-      // eslint-disable-next-line no-console
+       
       console.warn(
         '[keystore] main sign failed, signing locally:',
         e instanceof Error ? e.message : 'error'

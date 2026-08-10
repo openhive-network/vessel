@@ -1,6 +1,4 @@
-// @flow
 import { hiveApi, hiveConfig } from '../utils/hiveApi';
-import type { accountStateType } from '../reducers/account';
 import * as ProcessingActions from './processing';
 import { requiredRoleForOps } from '../utils/authorityRoles';
 import { broadcastOps, signAndBroadcast } from '../utils/broadcast';
@@ -74,8 +72,8 @@ export const ACCOUNT_COLLATERALIZED_CONVERT_STARTED = 'ACCOUNT_COLLATERALIZED_CO
 export const ACCOUNT_COLLATERALIZED_CONVERT_FAILED = 'ACCOUNT_COLLATERALIZED_CONVERT_FAILED';
 export const ACCOUNT_COLLATERALIZED_CONVERT_RESOLVED = 'ACCOUNT_COLLATERALIZED_CONVERT_RESOLVED';
 
-export function claimRewardBalance(wif: string, params: object) {
-  return (dispatch: () => void) => {
+export function claimRewardBalance(wif, params) {
+  return (dispatch) => {
     let { account, reward_hive, reward_hbd, reward_vests } = params;
     if (hiveConfig.get('address_prefix') === 'TST') {
       // if testnet
@@ -96,8 +94,8 @@ export function claimRewardBalance(wif: string, params: object) {
 
 // This function automatically attempts to use the minimal account creation fee
 // and delegation amount.
-export function createAccountDelegated(wif: string, params: object, preferences = {}) {
-  return (dispatch: () => void) => {
+export function createAccountDelegated(wif, params, preferences = {}) {
+  return (dispatch) => {
     // const { creator, username, password } = params;
     // let client
     // if(preferences && preferences.hived_node) {
@@ -153,8 +151,8 @@ export function getMinimumAccountDelegation(preferences = {}) {
   };
 }
 
-export function getVestingDelegations(account: string) {
-  return (dispatch: () => void) => {
+export function getVestingDelegations(account) {
+  return (dispatch) => {
     dispatch({
       type: ACCOUNT_DATA_VESTING_DELEGATIONS_UPDATE_PENDING,
     });
@@ -184,7 +182,7 @@ export function getTransactionsResolved(payload = {}) {
   };
 }
 
-export function getTransactions(accounts: Array) {
+export function getTransactions(accounts) {
   return async (dispatch) => {
     // const { category, author, permlink } = params;
     const response = await fetch(`http://localhost:5001`);
@@ -213,8 +211,8 @@ export function getTransactions(accounts: Array) {
   };
 }
 
-export function getWithdrawRoutes(account: string) {
-  return (dispatch: () => void) => {
+export function getWithdrawRoutes(account) {
+  return (dispatch) => {
     dispatch({
       type: ACCOUNT_DATA_WITHDRAW_ROUTES_UPDATE_PENDING,
     });
@@ -237,8 +235,8 @@ export function getWithdrawRoutes(account: string) {
   };
 }
 
-export function refreshAccountData(accounts: Array) {
-  return (dispatch: () => void) => {
+export function refreshAccountData(accounts) {
+  return (dispatch) => {
     dispatch({
       type: ACCOUNT_DATA_UPDATE_PENDING,
     });
@@ -272,7 +270,7 @@ export function refreshAccountData(accounts: Array) {
 }
 
 export function convert(wif, params) {
-  return (dispatch: () => void) => {
+  return (dispatch) => {
     let { owner, requestid, amount } = params;
     dispatch({
       type: ACCOUNT_CONVERT_STARTED,
@@ -307,7 +305,7 @@ export function convertCompleted() {
 }
 
 export function collateralizedConvert(wif, params) {
-  return (dispatch: () => void) => {
+  return (dispatch) => {
     let { owner, requestid, amount } = params;
     dispatch({
       type: ACCOUNT_COLLATERALIZED_CONVERT_STARTED,
@@ -342,7 +340,7 @@ export function collateralizedConvertCompleted() {
 }
 
 export function transfer(wif, params) {
-  return (dispatch: () => void) => {
+  return (dispatch) => {
     let { from, to, amount, memo } = params;
     dispatch({
       type: ACCOUNT_TRANSFER_STARTED,
@@ -376,7 +374,7 @@ export function transferCompleted() {
 }
 
 export function transferFromSavings(wif, params) {
-  return (dispatch: () => void) => {
+  return (dispatch) => {
     let { from, requestId, to, amount, memo } = params;
     dispatch({
       type: ACCOUNT_TRANSFER_STARTED,
@@ -410,7 +408,7 @@ export function transferFromSavingsCompleted() {
 }
 
 export function transferToSavings(wif, params) {
-  return (dispatch: () => void) => {
+  return (dispatch) => {
     let { from, to, amount, memo } = params;
     if (hiveConfig.get('address_prefix') === 'TST') {
       // if testnet
@@ -444,7 +442,7 @@ export function transferToSavingsCompleted() {
 }
 
 export function setDelegateVestingShares(wif, params) {
-  return (dispatch: () => void) => {
+  return (dispatch) => {
     const { delegator, delegatee, vestingShares } = params;
     dispatch({
       type: ACCOUNT_DELEGATE_VESTING_SHARES_STARTED,
@@ -474,7 +472,7 @@ export function setDelegateVestingSharesCompleted() {
 }
 
 export function setWithdrawVestingRoute(wif, params) {
-  return (dispatch: () => void) => {
+  return (dispatch) => {
     const { account, target, percent, autoVest } = params;
     dispatch({
       type: ACCOUNT_SET_WITHDRAW_VESTING_ROUTE_STARTED,
@@ -508,7 +506,7 @@ export function setWithdrawVestingRouteCompleted() {
 }
 
 export function setVotingProxy(wif, params) {
-  return (dispatch: () => void) => {
+  return (dispatch) => {
     const { account, proxy } = params;
     dispatch({
       type: ACCOUNT_SET_VOTING_PROXY_STARTED,
@@ -537,7 +535,7 @@ export function setVotingProxyCompleted() {
 }
 
 export function voteWitness(wif, params) {
-  return (dispatch: () => void) => {
+  return (dispatch) => {
     const { account, witness, approve } = params;
     dispatch({
       type: ACCOUNT_VOTE_WITNESS_STARTED,
@@ -566,7 +564,7 @@ export function voteWitnessCompleted() {
 }
 
 export function withdrawVesting(wif, params) {
-  return (dispatch: () => void) => {
+  return (dispatch) => {
     const { account, vests } = params;
     const vestsFormat = [vests, 'VESTS'].join(' ');
     dispatch({
@@ -596,7 +594,7 @@ export function withdrawVestingCompleted() {
 }
 
 export function cancelWithdrawVesting(wif, params) {
-  return (dispatch: () => void) => {
+  return (dispatch) => {
     const { account } = params;
     dispatch({
       type: ACCOUNT_VESTING_WITHDRAW_STARTED,
@@ -619,7 +617,7 @@ export function cancelWithdrawVesting(wif, params) {
 }
 
 export function powerUp(wif, params) {
-  return (dispatch: () => void) => {
+  return (dispatch) => {
     const { from_account, to_account, hiveAmount } = params;
     let hiveFormat = [hiveAmount, 'HIVE'].join(' ');
     if (hiveConfig.get('address_prefix') === 'TST') {
@@ -653,9 +651,9 @@ export function powerUpCompleted() {
 }
 
 export function customJson(wif, params) {
-  return (dispatch: () => void) => {
+  return (dispatch) => {
     const { account, id, json, permission } = params;
-    let auths = [];
+    let auths: any[] = [];
     let postingAuths = [account];
     if (permission === 'active') {
       auths = [account];
@@ -692,7 +690,7 @@ export function customJsonCompleted() {
 }
 
 export function send(wif, params) {
-  return (dispatch: () => void) => {
+  return (dispatch) => {
     const { operations, extensions } = params;
     // Route the HF28 authority role onto the broadcast. useKey normally supplies params.role; the
     // requiredRoleForOps fallback covers direct callers and throws on mixed/empty authority (which
@@ -718,7 +716,7 @@ export function send(wif, params) {
 }
 
 export function addContact(username) {
-  return (dispatch: () => void) => {
+  return (dispatch) => {
     dispatch({
       type: ACCOUNT_CONTACTS_ADD,
       payload: username,
@@ -727,7 +725,7 @@ export function addContact(username) {
 }
 
 export function removeContact(username) {
-  return (dispatch: () => void) => {
+  return (dispatch) => {
     dispatch({
       type: ACCOUNT_CONTACTS_REMOVE,
       payload: username,

@@ -138,12 +138,14 @@ declare module '@hiveio/hive-js' {
     wifToPublic(wif: string): string;
     toWif(name: string, password: string, type: string): string;
     getPrivateKeys(name: string, password: string, roles?: string[]): any;
+    generateKeys(name: string, password: string, roles?: string[]): any;
     signTransaction(trx: any, keys: string[] | Record<string, string>): any;
   };
 
   export const memo: {
     encode(privateKey: string, publicKey: string, message: string): string;
     decode(privateKey: string, encoded: string): string;
+    getPubKeys(encoded: string): string[];
   };
 
   export const formatter: {
@@ -161,4 +163,16 @@ declare module '@hiveio/hive-js' {
   };
 
   export default hive;
+}
+
+declare module '@hiveio/hive-js/lib/auth/serializer' {
+  /** The low-level operation serializers. `ops.transaction.toBuffer(tx)` yields the exact preimage
+   * bytes hive-js hashes when signing (used by the Phase 4 parity baseline). */
+  const serializer: {
+    ops: {
+      transaction: { toBuffer(tx: any): Buffer };
+      [op: string]: { toBuffer(value: any): Buffer };
+    };
+  };
+  export default serializer;
 }

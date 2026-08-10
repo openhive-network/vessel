@@ -1,8 +1,8 @@
 // @flow
 import React, { Component } from 'react';
-import hive from '@hiveio/hive-js';
 import { Button, Divider, Form, Grid, Header, Message, Segment } from 'semantic-ui-react';
 import KeysConfirm from './Confirm';
+import { hiveAuth } from '../../utils/hiveApi';
 
 export default class KeysImport extends Component {
   constructor(props) {
@@ -51,7 +51,7 @@ export default class KeysImport extends Component {
     errors.password_error_not_set = !lock1 || !lock2 || lock1 === '' || lock2 === '';
     errors.password_error_no_match = lock1 !== lock2;
     errors.account_name_required = !newState.account || newState.account === '';
-    errors.wif_error_invalid = !hive.auth.isWif(newState.wif);
+    errors.wif_error_invalid = !hiveAuth.isWif(newState.wif);
     return errors;
   };
 

@@ -1,5 +1,5 @@
 // @flow
-import hive from '@hiveio/hive-js';
+import { hiveApi, hiveConfig } from '../utils/hiveApi';
 import type { accountStateType } from '../reducers/account';
 import * as ProcessingActions from './processing';
 import { requiredRoleForOps } from '../utils/authorityRoles';
@@ -77,7 +77,7 @@ export const ACCOUNT_COLLATERALIZED_CONVERT_RESOLVED = 'ACCOUNT_COLLATERALIZED_C
 export function claimRewardBalance(wif: string, params: object) {
   return (dispatch: () => void) => {
     let { account, reward_hive, reward_hbd, reward_vests } = params;
-    if (hive.config.get('address_prefix') === 'TST') {
+    if (hiveConfig.get('address_prefix') === 'TST') {
       // if testnet
       reward_hive = reward_hive.replace('HIVE', 'TESTS');
       reward_hbd = reward_hbd.replace('HBD', 'TBD');
@@ -158,21 +158,22 @@ export function getVestingDelegations(account: string) {
     dispatch({
       type: ACCOUNT_DATA_VESTING_DELEGATIONS_UPDATE_PENDING,
     });
-    hive.api.getVestingDelegations(account, -1, 100, (err, results) => {
-      if (err) {
-        dispatch({
-          type: ACCOUNT_DATA_VESTING_DELEGATIONS_UPDATE_FAILED,
-          payload: err,
-        });
-      } else {
+    hiveApi.getVestingDelegations(account, -1, 100).then(
+      (results) => {
         const payload = {};
         payload[account] = results;
         dispatch({
           type: ACCOUNT_DATA_VESTING_DELEGATIONS_UPDATE,
           payload,
         });
+      },
+      (err) => {
+        dispatch({
+          type: ACCOUNT_DATA_VESTING_DELEGATIONS_UPDATE_FAILED,
+          payload: err,
+        });
       }
-    });
+    );
   };
 }
 
@@ -217,21 +218,22 @@ export function getWithdrawRoutes(account: string) {
     dispatch({
       type: ACCOUNT_DATA_WITHDRAW_ROUTES_UPDATE_PENDING,
     });
-    hive.api.getWithdrawRoutes(account, 'outgoing', (err, results) => {
-      if (err) {
-        dispatch({
-          type: ACCOUNT_DATA_WITHDRAW_ROUTES_UPDATE_FAILED,
-          payload: err,
-        });
-      } else {
+    hiveApi.getWithdrawRoutes(account, 'outgoing').then(
+      (results) => {
         const payload = {};
         payload[account] = results;
         dispatch({
           type: ACCOUNT_DATA_WITHDRAW_ROUTES_UPDATE,
           payload,
         });
+      },
+      (err) => {
+        dispatch({
+          type: ACCOUNT_DATA_WITHDRAW_ROUTES_UPDATE_FAILED,
+          payload: err,
+        });
       }
-    });
+    );
   };
 }
 
@@ -240,13 +242,8 @@ export function refreshAccountData(accounts: Array) {
     dispatch({
       type: ACCOUNT_DATA_UPDATE_PENDING,
     });
-    hive.api.getAccounts(accounts, (err, results) => {
-      if (err) {
-        dispatch({
-          type: ACCOUNT_DATA_UPDATE_FAILED,
-          payload: err,
-        });
-      } else {
+    hiveApi.getAccounts(accounts).then(
+      (results) => {
         const payload = {};
         results.forEach((data) => {
           payload[data.name] = data;
@@ -263,8 +260,14 @@ export function refreshAccountData(accounts: Array) {
           type: ACCOUNT_DATA_UPDATE,
           payload,
         });
+      },
+      (err) => {
+        dispatch({
+          type: ACCOUNT_DATA_UPDATE_FAILED,
+          payload: err,
+        });
       }
-    });
+    );
   };
 }
 
@@ -274,7 +277,7 @@ export function convert(wif, params) {
     dispatch({
       type: ACCOUNT_CONVERT_STARTED,
     });
-    if (hive.config.get('address_prefix') === 'TST') {
+    if (hiveConfig.get('address_prefix') === 'TST') {
       // if testnet
       amount = amount.replace('HIVE', 'TESTS');
       amount = amount.replace('HBD', 'TBD');
@@ -309,7 +312,7 @@ export function collateralizedConvert(wif, params) {
     dispatch({
       type: ACCOUNT_COLLATERALIZED_CONVERT_STARTED,
     });
-    if (hive.config.get('address_prefix') === 'TST') {
+    if (hiveConfig.get('address_prefix') === 'TST') {
       // if testnet
       amount = amount.replace('HIVE', 'TESTS');
       amount = amount.replace('HBD', 'TBD');
@@ -344,7 +347,7 @@ export function transfer(wif, params) {
     dispatch({
       type: ACCOUNT_TRANSFER_STARTED,
     });
-    if (hive.config.get('address_prefix') === 'TST') {
+    if (hiveConfig.get('address_prefix') === 'TST') {
       // if testnet
       amount = amount.replace('HIVE', 'TESTS');
       amount = amount.replace('HBD', 'TBD');
@@ -378,7 +381,7 @@ export function transferFromSavings(wif, params) {
     dispatch({
       type: ACCOUNT_TRANSFER_STARTED,
     });
-    if (hive.config.get('address_prefix') === 'TST') {
+    if (hiveConfig.get('address_prefix') === 'TST') {
       // if testnet
       amount = amount.replace('HIVE', 'TESTS');
       amount = amount.replace('HBD', 'TBD');
@@ -409,7 +412,7 @@ export function transferFromSavingsCompleted() {
 export function transferToSavings(wif, params) {
   return (dispatch: () => void) => {
     let { from, to, amount, memo } = params;
-    if (hive.config.get('address_prefix') === 'TST') {
+    if (hiveConfig.get('address_prefix') === 'TST') {
       // if testnet
       amount = amount.replace('HIVE', 'TESTS');
       amount = amount.replace('HBD', 'TBD');
@@ -619,7 +622,7 @@ export function powerUp(wif, params) {
   return (dispatch: () => void) => {
     const { from_account, to_account, hiveAmount } = params;
     let hiveFormat = [hiveAmount, 'HIVE'].join(' ');
-    if (hive.config.get('address_prefix') === 'TST') {
+    if (hiveConfig.get('address_prefix') === 'TST') {
       // if testnet
       hiveFormat = hiveFormat.replace('HIVE', 'TESTS');
     }

@@ -2,7 +2,7 @@
 import React, { Component } from 'react';
 import { Message, Modal, Segment } from 'semantic-ui-react';
 import { Form, Input } from 'formsy-semantic-ui-react';
-import hive from '@hiveio/hive-js';
+import { hiveAuth } from '../utils/hiveApi';
 
 import { decryptKey, WrongPasswordError } from '../utils/keyEnvelope';
 
@@ -75,7 +75,7 @@ export default class DecryptModal extends Component {
         ok = await onVerify(candidate);
       } else {
         const wif = await decryptKey(ciphertext, candidate);
-        ok = hive.auth.isWif(wif); // probe WIF is discarded as this scope returns
+        ok = hiveAuth.isWif(wif); // probe WIF is discarded as this scope returns
       }
     } catch (err) {
       ok = false;
@@ -105,7 +105,7 @@ export default class DecryptModal extends Component {
       } else {
         // LOCAL: the decrypted WIF is scoped to this function; passed to onDecrypted, never stored.
         const wif = await decryptKey(ciphertext, password);
-        if (!hive.auth.isWif(wif)) throw new WrongPasswordError();
+        if (!hiveAuth.isWif(wif)) throw new WrongPasswordError();
         await onDecrypted(wif, password);
       }
       if (this.mounted) this.setState({ password: '', busy: false, error: null, valid: false });

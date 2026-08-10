@@ -1,6 +1,5 @@
 // @flow
 import React, { Component } from 'react';
-import hive from '@hiveio/hive-js';
 import _ from 'lodash';
 import {
   Button,
@@ -18,6 +17,7 @@ import {
 import KeysConfirm from './Confirm';
 
 import { generateMnemonic12, mnemonicToSeedHex } from '../../utils/mnemonic';
+import { hiveApi, hiveAuth } from '../../utils/hiveApi';
 
 export default class KeysGenerate extends Component {
   constructor(props) {
@@ -44,13 +44,22 @@ export default class KeysGenerate extends Component {
     this.setState({
       checkingUsername: true,
     });
-    hive.api.getAccounts([name], (err, results) => {
-      this.setState({
-        checkingUsername: false,
-        requestedName: !err && !results.length ? name : false,
-        usernameAvailable: !err && !results.length,
-      });
-    });
+    hiveApi.getAccounts([name]).then(
+      (results) => {
+        this.setState({
+          checkingUsername: false,
+          requestedName: !results.length ? name : false,
+          usernameAvailable: !results.length,
+        });
+      },
+      () => {
+        this.setState({
+          checkingUsername: false,
+          requestedName: false,
+          usernameAvailable: false,
+        });
+      }
+    );
   }, 500);
 
   generateSeed = () => {
@@ -58,8 +67,8 @@ export default class KeysGenerate extends Component {
     const name = this.state.requestedName;
     const password = mnemonicToSeedHex(mnemonic);
     const types = ['owner', 'active', 'posting', 'memo'];
-    const pub = hive.auth.generateKeys(name, password, types);
-    const prv = hive.auth.getPrivateKeys(name, password, types);
+    const pub = hiveAuth.generateKeys(name, password, types);
+    const prv = hiveAuth.getPrivateKeys(name, password, types);
     this.setState({ mnemonic, pub, prv });
   };
 

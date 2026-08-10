@@ -1,6 +1,4 @@
 // @flow
-import hive from '@hiveio/hive-js';
-
 import React, { Component } from 'react';
 import {
   Button,
@@ -19,6 +17,7 @@ import Collapsible from 'react-collapsible';
 
 import NumericLabel from '../../utils/NumericLabel';
 import AccountName from '../global/AccountName';
+import { hiveApi } from '../../utils/hiveApi';
 
 export default class AccountsVoting extends Component {
   constructor(props) {
@@ -98,11 +97,11 @@ export default class AccountsVoting extends Component {
 
   getWitnessesByVote = (e, props) => {
     const witnesses = [];
-    hive.api.getWitnessesByVote('', 100, (err, response) => {
+    hiveApi.getWitnessesByVote('', 100).then((response) => {
       for (let i = 0; i < response.length; i++) {
         witnesses.push({ id: response[i].owner, label: response[i].owner });
       }
-    });
+    }, () => {});
     return witnesses;
   };
 

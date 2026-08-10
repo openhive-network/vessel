@@ -1,6 +1,5 @@
 // @flow
 import React, { Component } from 'react';
-import hive from '@hiveio/hive-js';
 import {
   Button,
   Checkbox,
@@ -13,6 +12,7 @@ import {
   Table,
   Radio,
 } from 'semantic-ui-react';
+import { hiveAuth } from '../../utils/hiveApi';
 
 export default class KeysAuth extends Component {
   constructor(props) {
@@ -41,9 +41,9 @@ export default class KeysAuth extends Component {
 
   validate = (newState) => {
     const errors = {};
-    errors.wif_error_invalid = !hive.auth.isWif(newState.wif);
+    errors.wif_error_invalid = !hiveAuth.isWif(newState.wif);
     errors.wif_not_valid = true;
-    if (newState.wif && hive.auth.wifIsValid(newState.wif, newState.public) === true) {
+    if (newState.wif && hiveAuth.wifIsValid(newState.wif, newState.public) === true) {
       errors.wif_not_valid = false;
     }
     // §5.2 — the auth key is encrypted under the account's wallet password (non-empty).

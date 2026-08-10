@@ -1,5 +1,5 @@
 // @flow
-import hive from '@hiveio/hive-js';
+import { hiveApi, hiveAuth } from '../utils/hiveApi';
 import type { keysStateType } from '../reducers/keys';
 import * as AccountActions from './account';
 import {
@@ -46,15 +46,54 @@ export const KEY_USE_ROLE_MISMATCH = 'KEY_USE_ROLE_MISMATCH';
 export const KEY_REENCRYPTED = 'KEY_REENCRYPTED';
 
 export function addKey(account: string, wif: string) {
-  const isValidKey = hive.auth.isWif(wif);
+  const isValidKey = hiveAuth.isWif(wif);
   if (isValidKey) {
     return (dispatch: () => void) => {
       dispatch({
         type: PROCESSING_ACCOUNT_LOADING,
       });
-      hive.api.getAccounts([account], (err, result) => {
-        // Account not found
-        if (err || !result.length) {
+      hiveApi.getAccounts([account]).then(
+        (result) => {
+          // Account not found
+          if (!result.length) {
+            dispatch({
+              type: KEY_ADD_FAILED_ACCOUNT_404,
+            });
+            dispatch({
+              type: PROCESSING_ACCOUNT_LOADING_COMPLETE,
+            });
+          }
+          if (result && result.length) {
+            const derivedKey = hiveAuth.wifToPublic(wif);
+            const keyTypes = getKeyType(derivedKey, result[0]);
+            if (keyTypes.length > 0) {
+              // Correct key + weight, save keyAuths
+              const payload = {
+                account,
+                wif,
+                active: keyTypes.indexOf('active') !== -1,
+                posting: keyTypes.indexOf('posting') !== -1,
+                owner: keyTypes.indexOf('owner') !== -1,
+              };
+              dispatch({
+                type: PROCESSING_ACCOUNT_LOADING_COMPLETE,
+              });
+              dispatch({
+                type: KEY_ADD_CONFIRM,
+                payload,
+              });
+            } else {
+              // Incorrect key for account
+              dispatch({
+                type: PROCESSING_ACCOUNT_LOADING_COMPLETE,
+              });
+              dispatch({
+                type: KEY_ADD_FAILED_WIF_INCORRECT,
+              });
+            }
+          }
+        },
+        () => {
           dispatch({
             type: KEY_ADD_FAILED_ACCOUNT_404,
           });
@@ -62,36 +101,7 @@ export function addKey(account: string, wif: string) {
             type: PROCESSING_ACCOUNT_LOADING_COMPLETE,
           });
         }
-        if (result && result.length) {
-          const derivedKey = hive.auth.wifToPublic(wif);
-          const keyTypes = getKeyType(derivedKey, result[0]);
-          if (keyTypes.length > 0) {
-            // Correct key + weight, save keyAuths
-            const payload = {
-              account,
-              wif,
-              active: keyTypes.indexOf('active') !== -1,
-              posting: keyTypes.indexOf('posting') !== -1,
-              owner: keyTypes.indexOf('owner') !== -1,
-            };
-            dispatch({
-              type: PROCESSING_ACCOUNT_LOADING_COMPLETE,
-            });
-            dispatch({
-              type: KEY_ADD_CONFIRM,
-              payload,
-            });
-          } else {
-            // Incorrect key for account
-            dispatch({
-              type: PROCESSING_ACCOUNT_LOADING_COMPLETE,
-            });
-            dispatch({
-              type: KEY_ADD_FAILED_WIF_INCORRECT,
-            });
-          }
-        }
-      });
+      );
     };
   }
   return {
@@ -250,14 +260,14 @@ export function removeKeyCancel() {
 // unless the main key is already encrypted AND the entered password unlocks it, so the memo always
 // shares the main key's password (else memo decrypt at send time is impossible).
 export function addMemoKey(account: string, wif: string, password: string) {
-  const isValidKey = hive.auth.isWif(wif);
+  const isValidKey = hiveAuth.isWif(wif);
   if (!isValidKey) {
     return { type: KEY_ADD_FAILED_WIF_INVALID };
   }
   return (dispatch: () => void, getState: () => Object) => {
-    hive.api.getAccounts([account], async (err, result) => {
+    hiveApi.getAccounts([account]).then(async (result) => {
       if (!result || !result.length) return;
-      const derivedKey = hive.auth.wifToPublic(wif);
+      const derivedKey = hiveAuth.wifToPublic(wif);
       if (derivedKey !== result[0].memo_key) {
         // Incorrect key for account
         return;
@@ -276,13 +286,13 @@ export function addMemoKey(account: string, wif: string, password: string) {
       }
       const memo = await encryptKey(wif, password);
       dispatch({ type: KEY_ADD_MEMO_CONFIRMED, payload: { account, memo } });
-    });
+    }, () => {});
   };
 }
 
 export function addMemoKeyPrompt(account: string) {
   return (dispatch: () => void) => {
-    hive.api.getAccounts([account], (err, result) => {
+    hiveApi.getAccounts([account]).then((result) => {
       dispatch({
         type: KEY_ADD_MEMO_PROMPT,
         payload: {
@@ -290,7 +300,7 @@ export function addMemoKeyPrompt(account: string) {
           public: result[0].memo_key,
         },
       });
-    });
+    }, () => {});
   };
 }
 
@@ -309,14 +319,14 @@ export function addMemoKeyCancel() {
 
 // §5.2 — same treatment as addMemoKey (funnels to the same reducer shape), keyed on the auth flow.
 export function addAuth(account: string, wif: string, password: string) {
-  const isValidKey = hive.auth.isWif(wif);
+  const isValidKey = hiveAuth.isWif(wif);
   if (!isValidKey) {
     return { type: KEY_ADD_FAILED_WIF_INVALID };
   }
   return (dispatch: () => void, getState: () => Object) => {
-    hive.api.getAccounts([account], async (err, result) => {
+    hiveApi.getAccounts([account]).then(async (result) => {
       if (!result || !result.length) return;
-      const derivedKey = hive.auth.wifToPublic(wif);
+      const derivedKey = hiveAuth.wifToPublic(wif);
       if (derivedKey !== result[0].memo_key) {
         // Incorrect key for account
         return;
@@ -334,13 +344,13 @@ export function addAuth(account: string, wif: string, password: string) {
       }
       const memo = await encryptKey(wif, password);
       dispatch({ type: KEY_ADD_AUTH_CONFIRMED, payload: { account, memo } });
-    });
+    }, () => {});
   };
 }
 
 export function addAuthPrompt(account: string) {
   return (dispatch: () => void) => {
-    hive.api.getAccounts([account], (err, result) => {
+    hiveApi.getAccounts([account]).then((result) => {
       dispatch({
         type: KEY_ADD_AUTH_PROMPT,
         payload: {
@@ -348,7 +358,7 @@ export function addAuthPrompt(account: string) {
           public: result[0].memo_key,
         },
       });
-    });
+    }, () => {});
   };
 }
 

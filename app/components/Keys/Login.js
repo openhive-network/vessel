@@ -1,8 +1,8 @@
 // @flow
 import React, { Component } from 'react';
-import hive from '@hiveio/hive-js';
 import { Button, Divider, Form, Grid, Header, Message, Segment, Select } from 'semantic-ui-react';
 import KeysConfirm from './Confirm';
+import { hiveAuth } from '../../utils/hiveApi';
 
 const permissionOptions = [
   {
@@ -48,7 +48,7 @@ export default class KeysLogin extends Component {
     if (confirmed) {
       const { account, password, permission, lock1 } = this.state;
       const { addKeyConfirmed } = this.props.actions;
-      const keys = hive.auth.getPrivateKeys(account, password, [permission]);
+      const keys = hiveAuth.getPrivateKeys(account, password, [permission]);
       const wif = keys[permission];
       // §5.1 — the wallet password is mandatory; the key is always encrypted.
       addKeyConfirmed(account, wif, permission, lock1);
@@ -89,7 +89,7 @@ export default class KeysLogin extends Component {
     e.preventDefault();
     const { addKey } = this.props.actions;
     const { account, password, permission } = this.state;
-    const keys = hive.auth.getPrivateKeys(account, password, [permission]);
+    const keys = hiveAuth.getPrivateKeys(account, password, [permission]);
     const wif = keys[permission];
     addKey(account, wif);
   };

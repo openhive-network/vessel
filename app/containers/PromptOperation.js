@@ -2,7 +2,6 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import hive from '@hiveio/hive-js';
 import { Message } from 'semantic-ui-react';
 
 import * as AccountActions from '../actions/account';

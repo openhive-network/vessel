@@ -1,5 +1,4 @@
 // @flow
-import hive from '@hiveio/hive-js';
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { Navigate } from 'react-router';

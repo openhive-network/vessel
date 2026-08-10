@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import hive from '@hiveio/hive-js';
+import { hiveApi, hiveConfig } from './utils/hiveApi';
 import parse from 'url-parse';
 
 import { useAppSelector, useAppDispatch } from './hooks/redux';
@@ -35,16 +35,16 @@ const isURL = (str: string): boolean => {
 const changeNode = (url: string, refreshGlobalProps: () => void): void => {
   if (url && isURL(url)) {
     // If it's a valid URL, set
-    hive.api.setOptions({ url });
-    hive.api.getConfig((err: Error | null, result: any) => {
-      if (!err && result) {
-        hive.config.set('chain_id', result.HIVE_CHAIN_ID);
-        hive.config.set('address_prefix', result.HIVE_ADDRESS_PREFIX);
+    hiveApi.setOptions({ url });
+    hiveApi.getConfig().then((result: any) => {
+      if (result) {
+        hiveConfig.set('chain_id', result.HIVE_CHAIN_ID);
+        hiveConfig.set('address_prefix', result.HIVE_ADDRESS_PREFIX);
       }
-    });
+    }, () => {});
   } else {
     // Otherwise set to the api.hive.blog node
-    hive.api.setOptions({ url: 'https://api.hive.blog' });
+    hiveApi.setOptions({ url: 'https://api.hive.blog' });
   }
   // Force a refresh immediately after change
   refreshGlobalProps();

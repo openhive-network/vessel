@@ -1,6 +1,5 @@
 // @flow
 import React, { Component } from 'react';
-import hive from '@hiveio/hive-js';
 import {
   Button,
   Checkbox,
@@ -12,6 +11,7 @@ import {
   Segment,
   Table,
 } from 'semantic-ui-react';
+import { hiveAuth } from '../../utils/hiveApi';
 
 export default class KeysMemo extends Component {
   constructor(props) {
@@ -40,9 +40,9 @@ export default class KeysMemo extends Component {
 
   validate = (newState) => {
     const errors = {};
-    errors.wif_error_invalid = !hive.auth.isWif(newState.wif);
+    errors.wif_error_invalid = !hiveAuth.isWif(newState.wif);
     errors.wif_not_valid = true;
-    if (newState.wif && hive.auth.wifIsValid(newState.wif, newState.public) === true) {
+    if (newState.wif && hiveAuth.wifIsValid(newState.wif, newState.public) === true) {
       errors.wif_not_valid = false;
     }
     // §5.2 — the memo is encrypted under the account's wallet password (non-empty).

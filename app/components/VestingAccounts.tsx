@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { Button, Header, Icon, Segment, Table, Grid } from 'semantic-ui-react';
-import { FormattedDate, FormattedTime } from 'react-intl';
 
 import NumericLabel from '../utils/NumericLabel';
 import CancelPowerDownPrompt from './Vesting/CancelPowerDownPrompt';
@@ -217,9 +216,15 @@ export default class VestingAccounts extends Component<any, any> {
             <Header.Subheader>
               &ndash;<NumericLabel params={numberFormat}>{vests}</NumericLabel> VESTS
               {' @ '}
-              <FormattedTime value={nextPowerDown} />
+              {new Intl.DateTimeFormat('en', { hour: 'numeric', minute: 'numeric' }).format(
+                new Date(nextPowerDown)
+              )}
               {' - '}
-              <FormattedDate value={nextPowerDown} day="numeric" month="short" year="numeric" />
+              {new Intl.DateTimeFormat('en', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              }).format(new Date(nextPowerDown))}
             </Header.Subheader>
           </Header>
         );

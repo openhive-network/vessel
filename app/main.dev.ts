@@ -54,18 +54,15 @@ if (process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true')
 }
 
 const installExtensions = async () => {
-  // React/Redux DevTools ship as Manifest V3 and fail to load under Electron 28, spamming the console
-  // with "sandboxed_renderer.bundle.js script failed to run" / "object null is not iterable". They add
-  // nothing here until Phase 5 swaps electron-devtools-installer for an Electron-28-compatible loader,
-  // so the load is opt-in via LOAD_DEVTOOLS=1.
+  // Opt-in via LOAD_DEVTOOLS=1. Phase 7 swapped electron-devtools-installer (its Manifest V3 loader
+  // broke under Electron 28+, spamming "sandboxed_renderer.bundle.js script failed to run") for
+  // electron-extension-installer, which loads React/Redux DevTools on Electron 43.
   if (!process.env.LOAD_DEVTOOLS) return;
-  const installer = require('electron-devtools-installer');
-  const forceDownload = !!process.env.UPGRADE_EXTENSIONS;
-  const extensions = ['REACT_DEVELOPER_TOOLS', 'REDUX_DEVTOOLS'];
-
-  return Promise.all(
-    extensions.map((name) => installer.default(installer[name], forceDownload))
-  ).catch(console.log);
+  const { installExtension, REACT_DEVELOPER_TOOLS, REDUX_DEVTOOLS } = require('electron-extension-installer');
+  return installExtension([REACT_DEVELOPER_TOOLS, REDUX_DEVTOOLS], {
+    loadExtensionOptions: { allowFileAccess: true },
+    forceDownload: !!process.env.UPGRADE_EXTENSIONS,
+  }).catch(console.log);
 };
 
 const singleInstance = app.requestSingleInstanceLock();

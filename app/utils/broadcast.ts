@@ -29,14 +29,15 @@ export interface UnsignedTx {
  *        record, so by the time we sign, main can decrypt.
  *      · WITH `wif` (the dual-store path, B4-1, and non-Electron): prefer main, fall back to the local
  *        WIF if main is unavailable or holds stale ciphertext.
- * hive-js signs deterministically (same key + chain_id), so a main-signed tx is byte-identical to what
- * the local path would produce — only WHERE it is signed changes, not the bytes.
+ * hive-tx signing is non-deterministic (noble extraEntropy, F1), so a main-signed tx is NOT byte-equal
+ * to what the local path would produce — but both sign the identical DIGEST (same ops + tapos +
+ * chain_id) and any canonical signature over it is chain-equivalent, so which path signs is immaterial.
  */
 export type Signer = string | { account: string; password: string; wif?: string };
 
-// The single sign step. A raw WIF signs locally (hive.auth.signTransaction ignores the key's role
-// LABEL and signs with the value only, so a single-entry object reproduces the legacy signature
-// byte-for-byte). A main-custody signer routes to the main-process keystore over IPC.
+// The single sign step. A raw WIF signs locally (the facade's signTransaction ignores the key's role
+// LABEL and signs with the value only). A main-custody signer routes to the main-process keystore over
+// IPC. Signatures are non-deterministic (F1) but valid over the same digest.
 export async function signTx(preparedTx: any, role: string, signer: Signer): Promise<any> {
   if (typeof signer === 'string') {
     return hiveTx.signTransaction(preparedTx, { [role]: signer });
@@ -53,8 +54,8 @@ export async function signTx(preparedTx: any, role: string, signer: Signer): Pro
         // renderer was not supposed to hold, and never swallow a genuine main-side signing error.
         throw e;
       }
-      // Dual-store path: main unavailable / stale ciphertext -> fall back to the local WIF.
-      // Deterministic signing makes the fallback tx byte-identical to the main-signed one.
+      // Dual-store path: main unavailable / stale ciphertext -> fall back to the local WIF. The
+      // fallback signs the same digest as main would (non-deterministic sig, but chain-equivalent).
       // eslint-disable-next-line no-console
       console.warn(
         '[keystore] main sign failed, signing locally:',

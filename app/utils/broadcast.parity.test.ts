@@ -1,24 +1,31 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import BPromise from 'bluebird';
 import hive from '@hiveio/hive-js';
+import { PublicKey, Transaction } from 'hive-tx';
 import { broadcastOps, signAndBroadcast } from './broadcast';
-import { hiveAuth } from './hiveApi';
+import { hiveAuth, hiveTx, hiveConfig } from './hiveApi';
 
 /**
- * Phase 3 · D9b Stage A parity gate. Proves the new prepare -> SIGN -> broadcast seam (broadcast.ts)
- * produces a transaction that is BYTE-IDENTICAL to the legacy `hive.broadcast.<op>` named-helper path
- * for every operation the wallet broadcasts. hive-js signs deterministically (RFC6979 + canonical
- * grinding), so an identical `signatures[0]` proves the serialized transaction buffers were identical —
- * i.e. our hand-built operations match hive-js's own construction exactly. The network is stubbed:
- * _prepareTransaction returns a FIXED tapos and broadcastTransactionAsync captures the signed tx, so
- * both paths sign the same bytes with no I/O. A testnet block proves the ` HIVE`->` TESTS` /
- * ` HBD`->` TBD` rewrite (applied inside hive.broadcast.send) is reproduced by the seam.
+ * Phase 3 · D9b Stage A parity gate — REFRAMED for the Phase 4 hive-tx swap (T2b).
+ *
+ * Proves the prepare -> SIGN -> broadcast seam (broadcast.ts) constructs a transaction whose OPERATIONS
+ * are byte-identical to the legacy `hive.broadcast.<op>` named-helper path (the field-name mapping and
+ * the ` HIVE`->` TESTS` / ` HBD`->` TBD` testnet rewrite), for every op the wallet broadcasts.
+ *
+ * Before the swap this compared `signatures[0]` (hive-js signs deterministically). hive-tx signs
+ * NON-deterministically (noble extraEntropy, finding F1), so signature equality is impossible by
+ * design. The reframed gate therefore asserts: identical operations (construction parity) + a valid,
+ * verifiable signature over the correct digest. The legacy path still runs on hive-js (stubbed) purely
+ * as the construction reference; the seam runs through the facade (now hive-tx), stubbed at
+ * hiveTx.prepareTransaction (fixed tapos) + hiveTx.broadcastTransaction (capture) so signing is real
+ * but there is no network.
  *
  * Throwaway credentials (fixed name+password) — never a real funded account.
  */
 const NAME = 'vessel-signing-test';
 const PASSWORD = 'P5-throwaway-do-not-use-this-anywhere';
 const WIF = hiveAuth.getPrivateKeys(NAME, PASSWORD, ['active']).active;
+const PUB = hiveAuth.wifToPublic(WIF);
 const SIG_HEX = /^[0-9a-f]{130}$/i;
 
 const FIXED_TAPOS = {
@@ -29,25 +36,39 @@ const FIXED_TAPOS = {
 
 const origPrepare = hive.broadcast._prepareTransaction;
 const origBroadcast = hive.api.broadcastTransactionAsync;
+const seamPrepare = hiveTx.prepareTransaction;
+const seamBroadcast = hiveTx.broadcastTransaction;
 let captured: any[] = [];
 
 beforeEach(() => {
   captured = [];
-  // Deterministic tapos so both paths sign identical bytes (no network). Must be a bluebird promise:
-  // the legacy hive.broadcast.send chains `.spread()` on the result of _prepareTransaction().then().
+  // Legacy hive-js reference path: fixed tapos (bluebird — hive.broadcast.send chains .spread()) +
+  // capture instead of broadcast.
   hive.broadcast._prepareTransaction = (tx: any) =>
     BPromise.resolve({ ...FIXED_TAPOS, operations: tx.operations, extensions: tx.extensions || [] });
-  // Capture the signed tx instead of broadcasting it.
   hive.api.broadcastTransactionAsync = (signed: any) => {
     captured.push(signed);
     return Promise.resolve(null);
+  };
+  // Seam (facade -> hive-tx) path: same fixed tapos, capture the signed tx. Signing stays real.
+  hiveTx.prepareTransaction = async (tx: any) => ({
+    ...FIXED_TAPOS,
+    operations: tx.operations,
+    extensions: tx.extensions || [],
+  });
+  hiveTx.broadcastTransaction = async (signed: any) => {
+    captured.push(signed);
+    return null;
   };
 });
 
 afterEach(() => {
   hive.broadcast._prepareTransaction = origPrepare;
   hive.api.broadcastTransactionAsync = origBroadcast;
+  hiveTx.prepareTransaction = seamPrepare;
+  hiveTx.broadcastTransaction = seamBroadcast;
   hive.config.set('address_prefix', 'STM');
+  hiveConfig.set('address_prefix', 'STM');
 });
 
 async function viaLegacy(helper: string, args: any[], prefix = 'STM'): Promise<any> {
@@ -60,10 +81,18 @@ async function viaLegacy(helper: string, args: any[], prefix = 'STM'): Promise<a
 }
 
 async function viaSeam(run: () => Promise<any>, prefix = 'STM'): Promise<any> {
-  hive.config.set('address_prefix', prefix);
+  hiveConfig.set('address_prefix', prefix); // drives broadcast.ts's TST symbol rewrite (hive-tx config)
   captured = [];
   await run();
   return captured[captured.length - 1];
+}
+
+// The seam's signature is non-deterministic; assert it VERIFIES over the tx's digest instead.
+function seamSignatureVerifies(seam: any): boolean {
+  const digest = new Transaction({
+    transaction: { ...seam, signatures: [] } as any,
+  }).digest().digest;
+  return PublicKey.fromString(PUB).verify(digest, seam.signatures[0]);
 }
 
 // [ label, legacy helper name + positional args, equivalent broadcastOps call ]
@@ -101,7 +130,7 @@ describe('D9b Stage A — sign/broadcast seam is byte-identical to hive.broadcas
     const legacy = await viaLegacy(helper, args);
     const seam = await viaSeam(seamCall);
     expect(seam.signatures[0]).toMatch(SIG_HEX);
-    expect(seam.signatures).toEqual(legacy.signatures);
+    expect(seamSignatureVerifies(seam)).toBe(true);
     expect(seam.operations).toEqual(legacy.operations);
   });
 });
@@ -119,7 +148,7 @@ describe('D9b Stage A — testnet symbol rewrite parity (TST)', () => {
   it.each(TESTNET)('%s', async (_label, helper, args, seamCall) => {
     const legacy = await viaLegacy(helper, args, 'TST');
     const seam = await viaSeam(seamCall, 'TST');
-    expect(seam.signatures).toEqual(legacy.signatures);
+    expect(seamSignatureVerifies(seam)).toBe(true);
     expect(seam.operations).toEqual(legacy.operations);
     // sanity: the rewrite actually fired
     expect(JSON.stringify(seam.operations)).not.toMatch(/ HIVE| HBD/);

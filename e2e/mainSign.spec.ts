@@ -3,15 +3,16 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import hive from '@hiveio/hive-js';
+import { PrivateKey, PublicKey, Transaction, config as hiveTxConfig } from 'hive-tx';
 import { encryptKey } from '../app/utils/keyEnvelope';
 
 /**
  * Phase 3 · D9b Stage B4 — SIGNING in the real Electron main process. Companion to memoEncode.spec:
  * seeds a THROWAWAY key into a temp-profile keystore.json, launches the built app, and signs a
- * fully-formed transaction via `window.electronAPI.keystore.sign` over IPC. It asserts main produces a
- * valid signature AND that it is BYTE-IDENTICAL to the same key signing the same tx locally (hive-js is
- * deterministic — RFC6979 — so main-signed must equal local-signed for the same chain_id). This proves
- * the money-path signing works in the real main runtime without any manual test.
+ * fully-formed transaction via `window.electronAPI.keystore.sign` over IPC. Reframed for the Phase 4
+ * hive-tx swap: hive-tx signs NON-deterministically (F1), so main's signature is not byte-equal to a
+ * local one — instead it must cryptographically VERIFY over the tx digest under the signer's public key.
+ * This proves the money-path signing works in the real main runtime without any manual test.
  *
  * SAFE TO AUTO-RUN: it signs locally in main and NEVER broadcasts — no network, no funds, throwaway key.
  * Requires a prior `npm run build`.
@@ -32,16 +33,18 @@ const TX = {
 };
 
 test.describe('D9b B4 — transaction signing runs in the real main process', () => {
-  test('signs a tx in main with a valid signature, byte-identical to local signing (no broadcast)', async () => {
+  test('signs a tx in main with a valid signature that verifies over the digest (no broadcast)', async () => {
     const activeWif: string = hive.auth.getPrivateKeys(SEED, PW, ['active']).active;
-    // hive-js signTransaction MUTATES its tx (attaches `signatures`), so sign a fresh clone each time.
     const freshTx = () => JSON.parse(JSON.stringify(TX));
 
-    // Expected signature: the same key signing the same tx locally, under the same chain id.
-    hive.config.set('chain_id', CHAIN_ID);
-    const expectedSig: string = hive.auth.signTransaction(freshTx(), { active: activeWif })
-      .signatures[0];
-    expect(expectedSig).toMatch(SIG_HEX);
+    // hive-tx signs non-deterministically (F1), so verify the signature cryptographically rather than
+    // comparing bytes: it must verify over the tx digest (same ops + tapos + chain id) under the pubkey.
+    hiveTxConfig.chain_id = CHAIN_ID;
+    hiveTxConfig.address_prefix = 'STM';
+    const digest = new Transaction({ transaction: { ...freshTx(), signatures: [] } as any })
+      .digest()
+      .digest;
+    const signerPub = PrivateKey.from(activeWif).createPublic('STM').toString();
 
     const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'vessel-e2e-sign-'));
     fs.writeFileSync(
@@ -84,7 +87,8 @@ test.describe('D9b B4 — transaction signing runs in the real main process', ()
       expect(result.ok).toBe(true);
       expect(result.signatures).toHaveLength(1);
       expect(result.signatures[0]).toMatch(SIG_HEX); // main produced a real signature
-      expect(result.signatures[0]).toBe(expectedSig); // ...byte-identical to local signing (deterministic)
+      // ...which verifies over the digest under the signer pubkey (non-deterministic but valid, F1)
+      expect(PublicKey.fromString(signerPub).verify(digest, result.signatures[0])).toBe(true);
       // the WIF must never ride back out on the signed tx
       expect(JSON.stringify(result.signatures)).not.toContain(activeWif);
     } finally {

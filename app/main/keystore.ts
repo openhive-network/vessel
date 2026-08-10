@@ -243,8 +243,8 @@ export class Keystore {
   /**
    * Sign a FULLY-FORMED transaction (renderer supplies operations + tapos + expiration). Main only
    * signs; it never assembles tapos. The WIF is derived, used, and dropped inside this call — it is
-   * never returned. The key's role LABEL is cosmetic to hive.auth.signTransaction (it signs with the
-   * value only), so a single-entry object is sufficient.
+   * never returned. The key's role LABEL is cosmetic to the facade's signTransaction (it signs with the
+   * value only), so a single-entry object is sufficient. Signature is non-deterministic (hive-tx, F1).
    */
   async signTransaction(preparedTx: any, account: string, password: string): Promise<any> {
     const rec = this.data.accounts[account];

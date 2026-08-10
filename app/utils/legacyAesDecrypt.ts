@@ -6,8 +6,8 @@
  * derived by EVP_BytesToKey(MD5, 1 iteration). Reimplemented on @noble (crypto-js removed in Commit E);
  * exact equivalence is proven by hardcoded vectors in keyEnvelope.test.ts.
  */
-import { md5 } from '@noble/hashes/legacy'; // v1.x path (verified; '@noble/hashes/md5' is NOT exported)
-import { cbc } from '@noble/ciphers/aes';
+import { md5 } from '@noble/hashes/legacy.js'; // md5 lives under /legacy (v2 needs the .js; '@noble/hashes/md5' is NOT exported)
+import { cbc } from '@noble/ciphers/aes.js';
 import { b64decode, utf8encode, utf8decode, concat } from './bytes';
 import { WrongPasswordError, InvalidCiphertextError } from './errors';
 

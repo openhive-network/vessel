@@ -33,6 +33,12 @@ const ENC_LEGACY_SANITY =
 
 const FAST: ScryptParams = { N: 2 ** 14, r: 8, p: 1, dkLen: 32 }; // fast but >= the 13.5 validation floor
 
+// Cross-version PARAMOUNT proof: a v2 envelope produced by the OLD @noble v1 code (captured once,
+// before the v1->v2 bump). AES-GCM + scrypt are standardized, so the ciphertext is library-version
+// independent — this asserts it, so an already-migrated profile can't break when we ship @noble v2.
+const ENV_V1_PRODUCED =
+  '{"v":2,"kdf":"scrypt","params":{"N":16384,"r":8,"p":1,"dkLen":32},"salt":"rFLWC7jrKdYIz+m/9Mhc4Q==","iv":"nlUuZ7YqUkySUshp","ct":"JRyq3cTqkEPqIhMV5xAjSPdK5UT5vXjkSjxDihdJOflOiP2z4KGfCM4JtPc50sZXp941+HBE4CreJY6L1bhkuSCa+g=="}';
+
 describe('legacy OpenSSL-MD5 decrypt (permanent, D9 layer 3)', () => {
   it('decrypts real crypto-js ciphertext byte-for-byte', async () => {
     expect(await decryptKey(ENC_LEGACY_A, PW)).toBe(WIF_A);
@@ -50,6 +56,16 @@ describe('legacy OpenSSL-MD5 decrypt (permanent, D9 layer 3)', () => {
     );
     // valid base64 but not a Salted__ blob AND not a v2 envelope -> unrecognized format
     await expect(decryptKey('aGVsbG8gd29ybGQ=', PW)).rejects.toBeInstanceOf(InvalidCiphertextError);
+  });
+});
+
+describe('v2 envelope cross-version (v1-produced -> v2 decrypt)', () => {
+  it('decrypts a v1-@noble-produced envelope byte-for-byte under v2', async () => {
+    expect(await decryptKey(ENV_V1_PRODUCED, PW)).toBe(WIF_A);
+  });
+
+  it('rejects a wrong password against the v1-produced envelope', async () => {
+    await expect(decryptKey(ENV_V1_PRODUCED, 'wrong')).rejects.toBeInstanceOf(WrongPasswordError);
   });
 });
 

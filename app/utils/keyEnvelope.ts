@@ -8,9 +8,9 @@
  * Operator decisions (REVISION v2/v3/v4): scrypt N=2^16; envelope params are strictly validated with
  * a CONSTANT maxmem and pinned dkLen (no OOM / AES-128 downgrade); base64 boundaries mapped precisely.
  */
-import { scryptAsync } from '@noble/hashes/scrypt';
-import { gcm } from '@noble/ciphers/aes';
-import { randomBytes } from '@noble/hashes/utils';
+import { scryptAsync } from '@noble/hashes/scrypt.js';
+import { gcm } from '@noble/ciphers/aes.js';
+import { randomBytes } from '@noble/hashes/utils.js';
 import { b64encode, b64decode, utf8encode, utf8decode } from './bytes';
 import { WrongPasswordError, InvalidCiphertextError } from './errors';
 import { legacyAesDecrypt } from './legacyAesDecrypt';

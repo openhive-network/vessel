@@ -58,7 +58,7 @@ const RIPEMD160_MAIN_BANNER = [
   '  try {',
   '    var c = require("crypto");',
   '    try { c.createHash("rmd160"); return; } catch (e) {}',
-  '    var R = require("@noble/hashes/ripemd160").ripemd160;',
+  '    var R = require("@noble/hashes/legacy.js").ripemd160;', // v2: ripemd160 moved to /legacy (+ .js exports)
   '    var native = c.createHash.bind(c);',
   '    Object.defineProperty(c, "createHash", {',
   '      configurable: true,',

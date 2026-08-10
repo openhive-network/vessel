@@ -386,6 +386,280 @@ export const DIGEST_FIXTURES: DigestFixture[] = [
     note:
       'NOT in Vessel broadcastOps; only serializes memo_key + json_metadata (no owner/active/posting authority object — that branch is untested here). memo_key prefix (STM/TST) must match address_prefix or the serializer throws; the 33 raw pubkey bytes are identical, so mainSerializedTxHex === testSerializedTxHex and the two digests differ only by chain_id.',
   },
+  {
+    name: 'digest_account_create',
+    op: 'account_create',
+    mainnetOperations: [
+      [
+        'account_create',
+        {
+          fee: '3.000 HIVE',
+          creator: A,
+          new_account_name: 'newacct7xthrow',
+          owner: {
+            weight_threshold: 1,
+            account_auths: [],
+            key_auths: [['STM7y8YBTEPUkrRDPhBCodShYzSxV15t95mftnf9D5XuswBLTfhDk', 1]], // seed: phase4-uri-account_create-authority-seed
+          },
+          active: {
+            weight_threshold: 1,
+            account_auths: [],
+            key_auths: [['STM7y8YBTEPUkrRDPhBCodShYzSxV15t95mftnf9D5XuswBLTfhDk', 1]], // same ac_auth pubkey
+          },
+          posting: {
+            weight_threshold: 1,
+            account_auths: [],
+            key_auths: [['STM7y8YBTEPUkrRDPhBCodShYzSxV15t95mftnf9D5XuswBLTfhDk', 1]], // same ac_auth pubkey
+          },
+          memo_key: 'STM7T84ybLEiooB16o2AgENZDAL9KYNxXyuvpfsgv2nxDrw1iuoC5', // seed: phase4-uri-account_create-memo-seed
+          json_metadata: '',
+        },
+      ],
+    ],
+    testnetOperations: [
+      [
+        'account_create',
+        {
+          fee: '3.000 TESTS',
+          creator: A,
+          new_account_name: 'newacct7xthrow',
+          owner: {
+            weight_threshold: 1,
+            account_auths: [],
+            key_auths: [['TST7y8YBTEPUkrRDPhBCodShYzSxV15t95mftnf9D5XuswBLTfhDk', 1]],
+          },
+          active: {
+            weight_threshold: 1,
+            account_auths: [],
+            key_auths: [['TST7y8YBTEPUkrRDPhBCodShYzSxV15t95mftnf9D5XuswBLTfhDk', 1]],
+          },
+          posting: {
+            weight_threshold: 1,
+            account_auths: [],
+            key_auths: [['TST7y8YBTEPUkrRDPhBCodShYzSxV15t95mftnf9D5XuswBLTfhDk', 1]],
+          },
+          memo_key: 'TST7T84ybLEiooB16o2AgENZDAL9KYNxXyuvpfsgv2nxDrw1iuoC5',
+          json_metadata: '',
+        },
+      ],
+    ],
+    mainSerializedTxHex:
+      '3930f776e542808574670109b80b00000000000003535445454d00000f616c696365317468726f77617761790e6e65776163637437787468726f770100000000010395a062e67242048a565723ec4c4aed728a77cf1cfa491e99f4d6dc3e8bf70f0601000100000000010395a062e67242048a565723ec4c4aed728a77cf1cfa491e99f4d6dc3e8bf70f0601000100000000010395a062e67242048a565723ec4c4aed728a77cf1cfa491e99f4d6dc3e8bf70f06010003517d4e5864b731d0243171ac6c3c945ca079913f9b7479944ea8bb1ffd4d56390000',
+    testSerializedTxHex:
+      '3930f776e542808574670109b80b00000000000003544553545300000f616c696365317468726f77617761790e6e65776163637437787468726f770100000000010395a062e67242048a565723ec4c4aed728a77cf1cfa491e99f4d6dc3e8bf70f0601000100000000010395a062e67242048a565723ec4c4aed728a77cf1cfa491e99f4d6dc3e8bf70f0601000100000000010395a062e67242048a565723ec4c4aed728a77cf1cfa491e99f4d6dc3e8bf70f06010003517d4e5864b731d0243171ac6c3c945ca079913f9b7479944ea8bb1ffd4d56390000',
+    mainnetDigestHex: 'e8577e2cb974abd2ebe064431edce78cd34ebb7eea294e108773ab2e292b66c5',
+    testnetDigestHex: '6f05427760661c98cd00df2d16eb1f7089c3d01890f325b48da284081d0ebeca',
+    note:
+      'SERIALIZATION FAMILY: authority objects (owner/active/posting) + fee asset. The one ac_auth pubkey fills all three key_auths (weight_threshold 1, empty account_auths); a separate ac_memo pubkey is memo_key. fee is legacy-symbol STEEM on mainnet (535445454d) / TESTS on testnet. Testnet re-encodes all 4 pubkeys STM->TST (same 33 raw bytes) and fee HIVE->TESTS; digests differ. Serializer did not throw.',
+  },
+  {
+    name: 'digest_account_create_with_delegation',
+    op: 'account_create_with_delegation',
+    mainnetOperations: [
+      [
+        'account_create_with_delegation',
+        {
+          fee: '3.000 HIVE',
+          delegation: '100.000000 VESTS',
+          creator: A,
+          new_account_name: 'newacct8ythrow',
+          owner: {
+            weight_threshold: 1,
+            account_auths: [],
+            key_auths: [['STM6X4TSGLDzEJdxodkuMvEB4JauWUgfmRquHYei3AHiV23RNFycw', 1]], // seed: phase4-uri-account_create_with_delegation-authority-seed
+          },
+          active: {
+            weight_threshold: 1,
+            account_auths: [],
+            key_auths: [['STM6X4TSGLDzEJdxodkuMvEB4JauWUgfmRquHYei3AHiV23RNFycw', 1]], // same acd_auth pubkey
+          },
+          posting: {
+            weight_threshold: 1,
+            account_auths: [],
+            key_auths: [['STM6X4TSGLDzEJdxodkuMvEB4JauWUgfmRquHYei3AHiV23RNFycw', 1]], // same acd_auth pubkey
+          },
+          memo_key: 'STM7VDjBScfWG8icuS11Q7HdoNi6NTBPGe7EWHgXhh98cX2J3W5ZX', // seed: phase4-uri-account_create_with_delegation-memo-seed
+          json_metadata: '',
+          extensions: [],
+        },
+      ],
+    ],
+    testnetOperations: [
+      [
+        'account_create_with_delegation',
+        {
+          fee: '3.000 TESTS',
+          delegation: '100.000000 VESTS',
+          creator: A,
+          new_account_name: 'newacct8ythrow',
+          owner: {
+            weight_threshold: 1,
+            account_auths: [],
+            key_auths: [['TST6X4TSGLDzEJdxodkuMvEB4JauWUgfmRquHYei3AHiV23RNFycw', 1]],
+          },
+          active: {
+            weight_threshold: 1,
+            account_auths: [],
+            key_auths: [['TST6X4TSGLDzEJdxodkuMvEB4JauWUgfmRquHYei3AHiV23RNFycw', 1]],
+          },
+          posting: {
+            weight_threshold: 1,
+            account_auths: [],
+            key_auths: [['TST6X4TSGLDzEJdxodkuMvEB4JauWUgfmRquHYei3AHiV23RNFycw', 1]],
+          },
+          memo_key: 'TST7VDjBScfWG8icuS11Q7HdoNi6NTBPGe7EWHgXhh98cX2J3W5ZX',
+          json_metadata: '',
+          extensions: [],
+        },
+      ],
+    ],
+    mainSerializedTxHex:
+      '3930f776e542808574670129b80b00000000000003535445454d000000e1f5050000000006564553545300000f616c696365317468726f77617761790e6e65776163637438797468726f7701000000000102d6bc03fee63a9870bf5a99668b39d9b6ca7fc0653d9adfe04a10589c2dbef5e2010001000000000102d6bc03fee63a9870bf5a99668b39d9b6ca7fc0653d9adfe04a10589c2dbef5e2010001000000000102d6bc03fee63a9870bf5a99668b39d9b6ca7fc0653d9adfe04a10589c2dbef5e2010003564093913d3e35f703eb12d3f922344b046e33beb1a2b620ae6ed456841a2487000000',
+    testSerializedTxHex:
+      '3930f776e542808574670129b80b000000000000035445535453000000e1f5050000000006564553545300000f616c696365317468726f77617761790e6e65776163637438797468726f7701000000000102d6bc03fee63a9870bf5a99668b39d9b6ca7fc0653d9adfe04a10589c2dbef5e2010001000000000102d6bc03fee63a9870bf5a99668b39d9b6ca7fc0653d9adfe04a10589c2dbef5e2010001000000000102d6bc03fee63a9870bf5a99668b39d9b6ca7fc0653d9adfe04a10589c2dbef5e2010003564093913d3e35f703eb12d3f922344b046e33beb1a2b620ae6ed456841a2487000000',
+    mainnetDigestHex: '8fc1304d102f0bc5cdebcddf3a1043248badbf7ebaedc87e79795e80824efa76',
+    testnetDigestHex: '99c499ced878ccdb52159286fd04ee011a8ca08b823ddd68fea498d1869f1d41',
+    note:
+      'SERIALIZATION FAMILY: authority objects + fee asset + VESTS delegation + explicit extensions:[]. The delegation 100.000000 VESTS (065645535453 = VESTS, 6 decimals) is NOT symbol-rewritten on testnet — like digest_delegate_vesting_shares; only fee (HIVE->TESTS) and the 4 pubkeys (STM->TST) change. Serializer did not throw.',
+  },
+  {
+    name: 'digest_account_update_owner_authority',
+    op: 'account_update',
+    mainnetOperations: [
+      [
+        'account_update',
+        {
+          account: A,
+          owner: {
+            weight_threshold: 1,
+            account_auths: [],
+            key_auths: [['STM4y6ZNNrergRA5j1cahWafqRtafMtg3h5LD6VUU45LPox3s2FgQ', 1]], // seed: phase4-uri-account_update-owner-authority-seed
+          },
+          memo_key: 'STM7kyXa8Yu3mBbn6SbwZBsSLYQJbZVB1uNQUJSVMgpnag78gGxGG', // seed: phase4-uri-account_update-owner-memo-seed
+          json_metadata: '',
+        },
+      ],
+    ],
+    testnetOperations: [
+      [
+        'account_update',
+        {
+          account: A,
+          owner: {
+            weight_threshold: 1,
+            account_auths: [],
+            key_auths: [['TST4y6ZNNrergRA5j1cahWafqRtafMtg3h5LD6VUU45LPox3s2FgQ', 1]],
+          },
+          memo_key: 'TST7kyXa8Yu3mBbn6SbwZBsSLYQJbZVB1uNQUJSVMgpnag78gGxGG',
+          json_metadata: '',
+        },
+      ],
+    ],
+    mainSerializedTxHex:
+      '3930f776e54280857467010a0f616c696365317468726f776177617901010000000001020a75f2442387160b6a6711925035d971dbb0b2f47e4d3e78af99b811400b922f01000000037a06bb141455fab84d6e6f93148031d75a281dd45befe672993229657d3f7b470000',
+    testSerializedTxHex:
+      '3930f776e54280857467010a0f616c696365317468726f776177617901010000000001020a75f2442387160b6a6711925035d971dbb0b2f47e4d3e78af99b811400b922f01000000037a06bb141455fab84d6e6f93148031d75a281dd45befe672993229657d3f7b470000',
+    mainnetDigestHex: '9a8b51143d86243c13d0f77a683782d81a0d147da02a22da1b37f3340a0f7086',
+    testnetDigestHex: '9d720e5ce68824a883313ddf0869a88e49d11b47a9f091b29349ace416be04f4',
+    note:
+      'SERIALIZATION FAMILY: authority-object branch of account_update (distinct from the memo-key-only digest_account_update). owner authority is PRESENT (flag byte 01 -> weight_threshold/account_auths/key_auths); active+posting are absent optionals (00 00). Both pubkeys re-encode STM->TST on testnet with identical 33 raw bytes, so mainSerializedTxHex === testSerializedTxHex and the digests differ only by chain_id. Serializer did not throw.',
+  },
+  {
+    name: 'digest_account_update2',
+    op: 'account_update2',
+    mainnetOperations: [
+      [
+        'account_update2',
+        {
+          account: A,
+          json_metadata: '',
+          posting_json_metadata: '{"profile":{}}',
+          extensions: [],
+        },
+      ],
+    ],
+    testnetOperations: [
+      [
+        'account_update2',
+        {
+          account: A,
+          json_metadata: '',
+          posting_json_metadata: '{"profile":{}}',
+          extensions: [],
+        },
+      ],
+    ],
+    mainSerializedTxHex:
+      '3930f776e54280857467012b0f616c696365317468726f776177617900000000000e7b2270726f66696c65223a7b7d7d0000',
+    testSerializedTxHex:
+      '3930f776e54280857467012b0f616c696365317468726f776177617900000000000e7b2270726f66696c65223a7b7d7d0000',
+    mainnetDigestHex: '7323adb7fc4f67356789e683c71981789ddbb775c5fcb76a54ae130e6d504b25',
+    testnetDigestHex: '9c3c7f106cfc47a3760cb74cce88c0112eb3095006cd92dca96e1865c8468340',
+    note:
+      'SERIALIZATION FAMILY: optional-authority elision. hive-js treats owner/active/posting/memo_key as OPTIONAL and accepts them OMITTED (not null, not empty authority): buffer after the account name is 00 00 00 00 (four absent-optional flags) + 00 (empty json_metadata) + 0e{...} (posting_json_metadata {"profile":{}}) + 00 (empty extensions). No assets, no keys => testnetOperations === mainnetOperations; digests differ only by chain_id. Serializer did not throw. See conductorMustCheck re: the hive-tx facade honoring the same optional elision.',
+  },
+  {
+    name: 'digest_feed_publish',
+    op: 'feed_publish',
+    mainnetOperations: [['feed_publish', { publisher: A, exchange_rate: { base: '0.500 HBD', quote: '1.000 HIVE' } }]],
+    testnetOperations: [['feed_publish', { publisher: A, exchange_rate: { base: '0.500 TBD', quote: '1.000 TESTS' } }]],
+    mainSerializedTxHex:
+      '3930f776e5428085746701070f616c696365317468726f7761776179f4010000000000000353424400000000e80300000000000003535445454d000000',
+    testSerializedTxHex:
+      '3930f776e5428085746701070f616c696365317468726f7761776179f4010000000000000354424400000000e803000000000000035445535453000000',
+    mainnetDigestHex: '95cdccb19ec8f27de8266a550e85bb9cd3223eca6629737ba633255b3d6b932c',
+    testnetDigestHex: '697af851786b07d7cd49e02baab3ef1a25d26116d5c8d31d83995cdfcab27c10',
+    note:
+      'SERIALIZATION FAMILY: price object (nested double-asset). base 0.500 HBD serializes as legacy SBD (0353424400000000) and quote 1.000 HIVE as legacy STEEM (03535445454d0000) on mainnet — same legacy mapping the existing asset fixtures rely on; testnet rewrites BOTH nested assets HBD->TBD and HIVE->TESTS. No keys. Serializer did not throw.',
+  },
+  {
+    name: 'digest_witness_update',
+    op: 'witness_update',
+    mainnetOperations: [
+      [
+        'witness_update',
+        {
+          owner: A,
+          url: 'https://throwaway.example',
+          block_signing_key: 'STM7PTSZ7NETaJgKPpRsXyVsaKQLWiCvURgfqCA1MVWnuLNHiTc8J', // seed: phase4-uri-witness_update-block-signing-key-seed
+          props: { account_creation_fee: '3.000 HIVE', maximum_block_size: 65536, hbd_interest_rate: 1000 },
+          fee: '0.000 HIVE',
+        },
+      ],
+    ],
+    testnetOperations: [
+      [
+        'witness_update',
+        {
+          owner: A,
+          url: 'https://throwaway.example',
+          block_signing_key: 'TST7PTSZ7NETaJgKPpRsXyVsaKQLWiCvURgfqCA1MVWnuLNHiTc8J',
+          props: { account_creation_fee: '3.000 TESTS', maximum_block_size: 65536, hbd_interest_rate: 1000 },
+          fee: '0.000 TESTS',
+        },
+      ],
+    ],
+    mainSerializedTxHex:
+      '3930f776e54280857467010b0f616c696365317468726f77617761791968747470733a2f2f7468726f77617761792e6578616d706c6503492a561d6bc5ca785ad1c42fd3fcca58a3c6184dcda601613394515e5d428be3b80b00000000000003535445454d000000000100e803000000000000000003535445454d000000',
+    testSerializedTxHex:
+      '3930f776e54280857467010b0f616c696365317468726f77617761791968747470733a2f2f7468726f77617761792e6578616d706c6503492a561d6bc5ca785ad1c42fd3fcca58a3c6184dcda601613394515e5d428be3b80b000000000000035445535453000000000100e8030000000000000000035445535453000000',
+    mainnetDigestHex: 'baf13a3d07f22a46010cf4281174a864692b06b761258f533ebf2b36dd436264',
+    testnetDigestHex: '4ff998f0dd0d42f16369ef5eed36960563e06752d3eb7c477d7c90ccd45cb9d5',
+    note:
+      'SERIALIZATION FAMILY: in-body bare public key + props assets. block_signing_key is a raw 33-byte PublicKey (03492a...be3) NOT wrapped in an authority. props.account_creation_fee (3.000 HIVE) and top-level fee (0.000 HIVE) are BOTH assets (legacy STEEM on mainnet); maximum_block_size 65536 (uint32) and hbd_interest_rate 1000 (uint16) are numeric. Testnet rewrites the pubkey STM->TST and both assets HIVE->TESTS. Serializer did not throw.',
+  },
+  {
+    name: 'digest_cancel_transfer_from_savings',
+    op: 'cancel_transfer_from_savings',
+    mainnetOperations: [['cancel_transfer_from_savings', { from: A, request_id: 101 }]],
+    testnetOperations: [['cancel_transfer_from_savings', { from: A, request_id: 101 }]],
+    mainSerializedTxHex: '3930f776e5428085746701220f616c696365317468726f77617761796500000000',
+    testSerializedTxHex: '3930f776e5428085746701220f616c696365317468726f77617761796500000000',
+    mainnetDigestHex: 'a1767f5401074babc7831921e13cbdd7cf379f4d6c7b856655a58651e3b36340',
+    testnetDigestHex: '1ca5b32e8a9667f4693b905b620fcdb439705e5a56fb8bd29467e35879a03564',
+    note:
+      'SERIALIZATION FAMILY: scalar-only (from + request_id uint32 101 = 65000000 LE), op tag 0x22 = 34. Pairs with the existing digest_transfer_from_savings. No assets, no keys => testnetOperations === mainnetOperations; digests differ only by chain_id. Serializer did not throw.',
+  },
 ];
 
 // ── Key derivation ─────────────────────────────────────────────────────────────────────────────────

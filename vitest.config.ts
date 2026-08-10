@@ -11,5 +11,8 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['app/**/*.{test,spec}.{ts,tsx}'],
+    // Loads a gitignored .env (VESSEL_TESTNET_* for the opt-in mirrornet broadcast smoke) into
+    // process.env before any test runs. Absent .env -> those tests just stay skipped.
+    setupFiles: ['./vitest.setup.ts'],
   },
 });

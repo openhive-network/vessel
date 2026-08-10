@@ -72,3 +72,8 @@ out/
 test-results/
 playwright-report/
 playwright/.cache/
+
+# Local env — holds the opt-in testnet/mirrornet creds (VESSEL_TESTNET_*). NEVER commit a key.
+.env
+.env.local
+.env.*.local

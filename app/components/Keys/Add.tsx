@@ -1,85 +1,90 @@
-import React, { Component } from 'react';
-import { Button, Divider, Grid, Header, Segment } from 'semantic-ui-react';
+import React, { useState } from 'react';
+
+import { Button, Paper, Stack, Title, Text } from '@mantine/core';
+import { IconKey, IconFileImport, IconWand } from '@tabler/icons-react';
 
 import KeysGenerate from './Generate';
 import KeysImport from './Import';
 import KeysLogin from './Login';
 import KeysCreate from './Create';
 
-export default class Welcome extends Component<any, any> {
-  state: any = {
-    importMethod: false,
-  };
+const Add: React.FC<any> = (props) => {
+  const [importMethod, setImportMethod] = useState<any>(false);
 
-  handleMethodChange = (e, props) => this.setState({ importMethod: props.value });
+  const handleMethodChange = (_e: any, value: any) => setImportMethod(value);
 
-  handleMethodReset = (e, props) => this.setState({ importMethod: false });
+  const handleMethodReset = (_e?: any, _props?: any) => setImportMethod(false);
 
-  render() {
-    let display = (
-      <Segment.Group>
-        <Segment padded>
-          <Header style={{ marginBottom: '10px' }}>
-            I have a password
-            <Header.Subheader>
-              Choose this option if your account was created with a password.
-            </Header.Subheader>
-          </Header>
-          <Button color="green" size="large" onClick={this.handleMethodChange} value="login-hive">
-            Import Account with Password
-          </Button>
-        </Segment>
-        <Segment padded>
-          <Header style={{ marginBottom: '10px' }}>
-            Specific Private Key
-            <Header.Subheader>
-              Choose this option if you want to import only a specific key. Possible keys: Posting,
-              Active, Owner, Memo.
-            </Header.Subheader>
-          </Header>
-          <Button
-            color="green"
-            size="large"
-            onClick={this.handleMethodChange}
-            value="import-private-key"
-          >
-            Import Private Key
-          </Button>
-        </Segment>
-        <Segment padded>
-          <Header style={{ marginBottom: '10px' }}>
-            Experimental: Generate New Private Keys
-            <Header.Subheader>
-              For advanced users. Create a new set of public and private keys for a new Hive
-              account. These <strong>public</strong> keys can then be given to another user or
-              service allowing the creation of an account.
-            </Header.Subheader>
-          </Header>
-          <Button
-            color="black"
-            size="large"
-            onClick={this.handleMethodChange}
-            value="generate-private-key"
-          >
-            Generate new private keys
-          </Button>
-        </Segment>
-      </Segment.Group>
-    );
-    switch (this.state.importMethod) {
-      case 'import-private-key':
-        display = <KeysImport handleMethodReset={this.handleMethodReset} {...this.props} />;
-        break;
-      case 'login-hive':
-        display = <KeysLogin handleMethodReset={this.handleMethodReset} {...this.props} />;
-        break;
-      case 'generate-private-key':
-        display = <KeysGenerate handleMethodReset={this.handleMethodReset} {...this.props} />;
-        break;
-      default: {
-        break;
-      }
+  let display = (
+    <Stack gap="md">
+      <Paper withBorder p="md" radius="md">
+        <Title order={5} mb="xs">
+          I have a password
+        </Title>
+        <Text size="sm" c="dimmed" mb="sm">
+          Choose this option if your account was created with a password.
+        </Text>
+        <Button
+          color="green"
+          size="lg"
+          leftSection={<IconKey size={18} />}
+          onClick={(e) => handleMethodChange(e, 'login-hive')}
+        >
+          Import Account with Password
+        </Button>
+      </Paper>
+      <Paper withBorder p="md" radius="md">
+        <Title order={5} mb="xs">
+          Specific Private Key
+        </Title>
+        <Text size="sm" c="dimmed" mb="sm">
+          Choose this option if you want to import only a specific key. Possible keys: Posting,
+          Active, Owner, Memo.
+        </Text>
+        <Button
+          color="green"
+          size="lg"
+          leftSection={<IconFileImport size={18} />}
+          onClick={(e) => handleMethodChange(e, 'import-private-key')}
+        >
+          Import Private Key
+        </Button>
+      </Paper>
+      <Paper withBorder p="md" radius="md">
+        <Title order={5} mb="xs">
+          Experimental: Generate New Private Keys
+        </Title>
+        <Text size="sm" c="dimmed" mb="sm">
+          For advanced users. Create a new set of public and private keys for a new Hive account.
+          These <strong>public</strong> keys can then be given to another user or service allowing
+          the creation of an account.
+        </Text>
+        <Button
+          color="dark"
+          size="lg"
+          leftSection={<IconWand size={18} />}
+          onClick={(e) => handleMethodChange(e, 'generate-private-key')}
+        >
+          Generate new private keys
+        </Button>
+      </Paper>
+    </Stack>
+  );
+  switch (importMethod) {
+    case 'import-private-key':
+      display = <KeysImport handleMethodReset={handleMethodReset} {...props} />;
+      break;
+    case 'login-hive':
+      display = <KeysLogin handleMethodReset={handleMethodReset} {...props} />;
+      break;
+    case 'generate-private-key':
+      display = <KeysGenerate handleMethodReset={handleMethodReset} {...props} />;
+      break;
+    default: {
+      break;
     }
-    return display;
   }
-}
+  return display;
+};
+
+export default Add;

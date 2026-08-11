@@ -113,15 +113,24 @@ const Send: React.FC<any> = (props) => {
   const [memoDecryptPrompt, setMemoDecryptPrompt] = useState<any>(false);
   const [memoDecrypt, setMemoDecrypt] = useState<any>(null);
   const [memoDetected, setMemoDetected] = useState<any>(false);
+  // Explicit "it sent" confirmation. The form no longer fully clears after a send (recipient + memo
+  // are kept for a repeat deposit), so without this the success is easy to miss and the user might
+  // re-send thinking nothing happened.
+  const [sent, setSent] = useState<boolean>(false);
+  // Guards the now-more-reachable blank-amount state (to/memo persist after a send): without an amount
+  // check, Preview -> Confirm would build a "NaN HIVE" amount from an empty field.
+  const [amountInvalid, setAmountInvalid] = useState<boolean>(false);
 
+  // Runs after a broadcast succeeds. PRESERVE the recipient (`to`) and the memo: on an exchange
+  // deposit the memo is the routing tag, and forcing the user to re-type it for the next deposit is
+  // exactly where a fund-losing typo happens. Clear only the amount — so a second send is always a
+  // deliberate re-entry, never an accidental double-send of the same amount — plus the modal and the
+  // one-shot/transient memo state. The encoded `memoEncrypted` blob is dropped so an encrypted repeat
+  // send re-derives it fresh from the preserved plaintext `memo`.
   const resetState = () => {
-    setTo('');
     setAmountValue('');
-    setMemo('');
     setMemoEncrypted(false);
-    setEncryptMemo(false);
     setModalPreview(false);
-    setMemoDetected(false);
     setMemoDecryptPrompt(false);
     setMemoDecrypt(null);
   };
@@ -137,6 +146,7 @@ const Send: React.FC<any> = (props) => {
     if (props.processing.account_transfer_resolved) {
       props.actions.transferCompleted();
       resetState();
+      setSent(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.processing.account_transfer_resolved]);
@@ -177,6 +187,7 @@ const Send: React.FC<any> = (props) => {
     setDestination(obj.destination);
     setEncryptMemo(obj.encryptMemo);
     setMemoEncrypted(obj.memoEncrypted);
+    setSent(false);
     if (obj.destinationType !== undefined) setDestinationType(obj.destinationType);
   };
 
@@ -224,6 +235,7 @@ const Send: React.FC<any> = (props) => {
     setMemo(detectMemo(cleaned, symbol) || '');
     setMemoDetected(detectMemo(cleaned, symbol));
     setMemoEncrypted(false);
+    setSent(false);
   };
 
   const handleMemoChange = (value: any) => {
@@ -236,6 +248,9 @@ const Send: React.FC<any> = (props) => {
   const handleAmountChange = (value: any) => {
     const cleaned = value.replace(/[a-z\s]+/gim, '');
     setAmountValue(cleaned);
+    setAmountInvalid(false);
+    // Entering a new amount means the user is preparing the next send — drop the previous success note.
+    setSent(false);
   };
 
   const setAmountMaximum = () => {
@@ -270,11 +285,20 @@ const Send: React.FC<any> = (props) => {
       return false;
     }
     setMemoMissing(false);
+    // A positive numeric amount is required. The field can be blank (fresh form, or right after a send
+    // now that to/memo persist), and an empty amount would otherwise reach handleConfirm as "NaN".
+    const amt = parseFloat(amountValue);
+    if (!(amt > 0)) {
+      setAmountInvalid(true);
+      return false;
+    }
+    setAmountInvalid(false);
     return true;
   };
 
   const handlePreview = (e: any) => {
     e.preventDefault();
+    setSent(false);
     if (!isFormValid()) {
       console.log('form not valid');
       return;
@@ -769,6 +793,11 @@ const Send: React.FC<any> = (props) => {
             </Anchor>{' '}
             available to send.
           </Text>
+          {amountInvalid && (
+            <Alert color="red" title="Enter an amount" mt="sm">
+              Enter an amount greater than 0 to send.
+            </Alert>
+          )}
         </Grid.Col>
         <Grid.Col span={16}>
           <TextInput
@@ -787,6 +816,13 @@ const Send: React.FC<any> = (props) => {
           )}
         </Grid.Col>
         <Grid.Col span={16} ta="center">
+          {sent && (
+            <Alert color="green" title="Transfer sent" mb="md">
+              {destination === 'exchange'
+                ? 'Your deposit was sent. The exchange and memo are kept so you can send again — just enter a new amount.'
+                : 'Transfer sent. The recipient and memo are kept so you can send again — just enter a new amount.'}
+            </Alert>
+          )}
           {props.processing.account_transfer_error && (
             <Alert color="red" title="Operation Error" mb="md">
               {props.processing.account_transfer_error}

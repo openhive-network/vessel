@@ -24,9 +24,9 @@ const Welcome: React.FC<any> = (props) => {
         >
           <img
             alt="logo"
-            className="ui tiny image"
             src={logo}
             style={{
+              width: '80px', // was Semantic's "ui tiny image" (80px); inlined now that Semantic CSS is gone
               margin: '-1em auto 1em',
             }}
           />

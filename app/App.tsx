@@ -6,11 +6,10 @@ import { MantineProvider, localStorageColorSchemeManager } from '@mantine/core';
 import { store, persistor } from './store/configureStore';
 import Routes from './routes';
 import { theme } from './theme';
-// Self-host Lato (the Semantic UI body font). The vendored semantic.min.css used to @import it from
-// fonts.googleapis.com; the Phase 3 production CSP (style-src 'self') blocks that remote stylesheet, so
-// the font is bundled locally instead — keeps the strict CSP, works offline, no request to Google.
-// Mantine base styles first (they register @layer mantine); the unlayered vendored Semantic CSS in
-// app.global.css intentionally still wins during the incremental migration.
+// Self-host Lato (the app body font). It's bundled locally rather than @import-ed from
+// fonts.googleapis.com so the Phase 3 production CSP (style-src 'self') is satisfied — works offline,
+// no request to Google. Mantine base styles register @layer mantine; app.global.css + colorScheme.css
+// follow to set the app-shell chrome. (Phase 7C: the vendored Semantic UI CSS is fully removed.)
 import '@mantine/core/styles.css';
 import '@fontsource/lato/400.css';
 import '@fontsource/lato/700.css';

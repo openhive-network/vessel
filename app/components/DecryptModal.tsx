@@ -1,6 +1,5 @@
-import React, { Component } from 'react';
-import { Message, Modal, Segment } from 'semantic-ui-react';
-import { Form, Input } from 'formsy-semantic-ui-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Alert, Box, Button, Group, LoadingOverlay, Modal, PasswordInput, Text } from '@mantine/core';
 import { hiveAuth } from '../utils/hiveApi';
 
 import { decryptKey, WrongPasswordError } from '../utils/keyEnvelope';
@@ -38,70 +37,72 @@ import { decryptKey, WrongPasswordError } from '../utils/keyEnvelope';
  */
 const DEBOUNCE_MS = 250;
 
-export default class DecryptModal extends Component<any, any> {
-  mounted: any;
+export default function DecryptModal(props: any) {
+  const { ciphertext, header, onDecrypted, onCancel, onVerify } = props;
 
-  checkToken: any;
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [valid, setValid] = useState(false);
+  const [checking, setChecking] = useState(false);
 
-  debounce: any;
+  const mounted = useRef(true);
+  const checkToken = useRef(0);
+  const debounce = useRef<any>(null);
 
-  constructor(props) {
-    super(props);
-    this.state = { password: '', busy: false, error: null, valid: false, checking: false };
-    this.mounted = true;
-    this.checkToken = 0;
-    this.debounce = null;
-  }
+  // The debounced probe fires from a timeout set in an earlier render; read the LATEST props through
+  // this ref so a mid-typing prop change (e.g. a swapped ciphertext) can never be validated stale.
+  const propsRef = useRef(props);
+  propsRef.current = props;
 
-  componentWillUnmount() {
-    this.mounted = false;
-    if (this.debounce) clearTimeout(this.debounce);
-  }
+  useEffect(() => {
+    mounted.current = true; // re-assert on (re)mount so a StrictMode remount can't freeze updates
+    return () => {
+      mounted.current = false;
+      if (debounce.current) clearTimeout(debounce.current);
+    };
+  }, []);
 
-  handlePasswordChange = (e: any, { value }: any) => {
-    // Track the input, drop any prior error/validity, then (debounced) probe whether it decrypts.
-    this.setState({ password: value, error: null, valid: false });
-    if (this.debounce) clearTimeout(this.debounce);
-    if (!value) {
-      this.setState({ checking: false });
-      return;
-    }
-    this.debounce = setTimeout(() => this.validate(value), DEBOUNCE_MS);
-  };
-
-  validate = async (candidate: any) => {
-    const token = (this.checkToken += 1);
-    const { ciphertext, onVerify } = this.props;
-    this.setState({ checking: true });
+  const validate = async (candidate: any) => {
+    const token = (checkToken.current += 1);
+    const { ciphertext: latestCiphertext, onVerify: latestOnVerify } = propsRef.current;
+    setChecking(true);
     let ok = false;
     try {
-      if (onVerify) {
+      if (latestOnVerify) {
         // REMOTE: main validates the password (and self-heals a stale/missing record); no WIF here.
-        ok = await onVerify(candidate);
+        ok = await latestOnVerify(candidate);
       } else {
-        const wif = await decryptKey(ciphertext, candidate);
+        const wif = await decryptKey(latestCiphertext, candidate);
         ok = hiveAuth.isWif(wif); // probe WIF is discarded as this scope returns
       }
     } catch (err) {
       ok = false;
     }
     // Ignore stale probes (the user kept typing) and post-unmount updates.
-    if (!this.mounted || token !== this.checkToken) return;
-    this.setState({ valid: ok, checking: false });
+    if (!mounted.current || token !== checkToken.current) return;
+    setValid(ok);
+    setChecking(false);
   };
 
-  handleKeyUp = (e: any) => {
-    if (e.key === 'Enter' && this.state.valid && !this.state.busy) {
-      this.handleSubmit(e);
+  const handlePasswordChange = (value: string) => {
+    // Track the input, drop any prior error/validity, then (debounced) probe whether it decrypts.
+    setPassword(value);
+    setError(null);
+    setValid(false);
+    if (debounce.current) clearTimeout(debounce.current);
+    if (!value) {
+      setChecking(false);
+      return;
     }
+    debounce.current = setTimeout(() => validate(value), DEBOUNCE_MS);
   };
 
-  handleSubmit = async (e: any) => {
+  const handleSubmit = async (e?: any) => {
     if (e && e.preventDefault) e.preventDefault();
-    const { password, busy, valid } = this.state;
     if (!password || busy || !valid) return;
-    const { ciphertext, onDecrypted, onVerify } = this.props;
-    this.setState({ busy: true, error: null });
+    setBusy(true);
+    setError(null);
     try {
       if (onVerify) {
         // REMOTE: the password was already validated against main; hand it over with NO WIF — the
@@ -113,73 +114,73 @@ export default class DecryptModal extends Component<any, any> {
         if (!hiveAuth.isWif(wif)) throw new WrongPasswordError();
         await onDecrypted(wif, password);
       }
-      if (this.mounted) this.setState({ password: '', busy: false, error: null, valid: false });
+      if (mounted.current) {
+        setPassword('');
+        setBusy(false);
+        setError(null);
+        setValid(false);
+      }
     } catch (err) {
-      if (this.mounted) {
-        this.setState({
-          busy: false,
-          password: '', // clear the password on any failure (C8)
-          valid: false,
-          error:
-            err instanceof WrongPasswordError
-              ? 'Incorrect password.'
-              : 'Unable to decrypt this key.',
-        });
+      if (mounted.current) {
+        setBusy(false);
+        setPassword(''); // clear the password on any failure (C8)
+        setValid(false);
+        setError(
+          err instanceof WrongPasswordError ? 'Incorrect password.' : 'Unable to decrypt this key.'
+        );
       }
     }
   };
 
-  render() {
-    const { header, onCancel } = this.props;
-    const { password, busy, error, valid, checking } = this.state;
-    return (
-      <Modal
-        size="small"
-        open
-        header={header}
-        content={
-          <Segment padded basic loading={busy}>
-            <p>
-              This key is encrypted locally. Enter your wallet password to unlock it and continue.
-            </p>
-            <Form>
-              <Input
-                name="password"
-                type="password"
-                fluid
-                focus
-                autoFocus
-                placeholder="Enter wallet password"
-                value={password}
-                onChange={this.handlePasswordChange}
-                onKeyUp={this.handleKeyUp}
-                disabled={busy}
-              />
-            </Form>
-            {error ? (
-              <Message error header="Unable to unlock" content={error} style={{ display: 'block' }} />
-            ) : null}
-          </Segment>
-        }
-        actions={[
-          {
-            key: 'no',
-            content: 'Cancel',
-            floated: 'left',
-            color: 'red',
-            onClick: onCancel,
-            disabled: busy,
-          },
-          {
-            key: 'yes',
-            content: 'Unlock',
-            color: 'purple',
-            onClick: this.handleSubmit,
-            disabled: !valid || busy,
-            loading: busy || checking,
-          },
-        ]}
-      />
-    );
-  }
+  const handleKeyUp = (e: any) => {
+    if (e.key === 'Enter' && valid && !busy) {
+      handleSubmit(e);
+    }
+  };
+
+  return (
+    // Match the original Semantic modal: dismissable ONLY via the Cancel button (which is disabled
+    // while busy) — no Escape / overlay-click / close-X, so there is no un-gated cancel path mid-sign.
+    <Modal
+      size="sm"
+      opened
+      onClose={onCancel}
+      title={header}
+      closeOnEscape={false}
+      closeOnClickOutside={false}
+      withCloseButton={false}
+    >
+      <Box pos="relative">
+        <LoadingOverlay visible={busy} />
+        <Text>This key is encrypted locally. Enter your wallet password to unlock it and continue.</Text>
+        <PasswordInput
+          mt="md"
+          autoFocus
+          placeholder="Enter wallet password"
+          value={password}
+          onChange={(e) => handlePasswordChange(e.currentTarget.value)}
+          onKeyUp={handleKeyUp}
+          disabled={busy}
+        />
+        {error ? (
+          <Alert color="red" title="Unable to unlock" mt="md">
+            {error}
+          </Alert>
+        ) : null}
+      </Box>
+      <Group justify="space-between" mt="md">
+        <Button color="red" onClick={onCancel} disabled={busy}>
+          Cancel
+        </Button>
+        <Button
+          color="grape"
+          onClick={handleSubmit}
+          disabled={!valid || busy}
+          loading={busy || checking}
+        >
+          Unlock
+        </Button>
+      </Group>
+    </Modal>
+  );
 }

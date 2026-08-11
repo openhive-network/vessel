@@ -1,130 +1,111 @@
-import React, { Component } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActionIcon,
+  Alert,
+  Box,
   Button,
-  Divider,
-  Form,
   Grid,
-  Header,
-  Input,
-  Message,
+  Group,
+  LoadingOverlay,
   Modal,
-  Segment,
+  Slider,
+  Stack,
   Table,
-} from 'semantic-ui-react';
-import InputRange from 'react-input-range';
+  Text,
+  TextInput,
+} from '@mantine/core';
+import { IconPencil, IconPlus, IconTrash } from '@tabler/icons-react';
 
 import NumericLabel from '../../utils/NumericLabel';
 import AccountName from '../global/AccountName';
 
-export default class AccountsProxy extends Component<any, any> {
-  constructor(props: any) {
-    super(props);
-    this.state = {
-      editDelegationFor: false,
-      sp: 0,
-      undelegateError: false,
-      vests: 0,
-    };
-    this.props.actions.resetState = this.resetState.bind(this);
-  }
+const AccountsProxy: React.FC<any> = (props) => {
+  const [editDelegationFor, setEditDelegationFor] = useState<any>(false);
+  const [sp, setSp] = useState<any>(0);
+  const [vests, setVests] = useState<any>(0);
+  const [undelegateError, setUndelegateError] = useState<any>(false);
+  // Dynamic per-account delegatee map (class stored this under state[<delegator>]).
+  const [delegateeMap, setDelegateeMap] = useState<any>({});
 
-  state: any = {
-    editDelegationFor: false,
-    sp: 0,
-    vests: 0,
+  const resetState = () => {
+    setEditDelegationFor(false);
+    setSp(0);
+    setVests(0);
+    setUndelegateError(false);
+    // Preserve the DYNAMIC [editDelegationFor]: '' clear from the class resetState.
+    setDelegateeMap((m: any) => ({ ...m, [editDelegationFor]: '' }));
   };
 
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.processing.account_delegate_vesting_shares_error) {
-      this.setState({
-        undelegateError: nextProps.processing.account_delegate_vesting_shares_error,
-      });
-      nextProps.actions.setDelegateVestingSharesCompleted();
+  // componentWillReceiveProps(error + resolved branches). useRef seed so the effect fires on
+  // the flag transition, not on mount, matching the class's nextProps guard.
+  const didMount = useRef(false);
+  useEffect(() => {
+    if (!didMount.current) {
+      didMount.current = true;
+      return;
     }
-    if (nextProps.processing.account_delegate_vesting_shares_resolved) {
-      nextProps.actions.setDelegateVestingSharesCompleted();
-      this.resetState();
+    if (props.processing.account_delegate_vesting_shares_error) {
+      setUndelegateError(props.processing.account_delegate_vesting_shares_error);
+      props.actions.setDelegateVestingSharesCompleted();
     }
-  }
+    if (props.processing.account_delegate_vesting_shares_resolved) {
+      props.actions.setDelegateVestingSharesCompleted();
+      resetState();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    props.processing.account_delegate_vesting_shares_error,
+    props.processing.account_delegate_vesting_shares_resolved,
+  ]);
 
-  resetState = () => {
-    this.setState({
-      editDelegationFor: false,
-      sp: 0,
-      undelegateError: false,
-      vests: 0,
-      [this.state.editDelegationFor]: '',
-    });
+  const handleCancel = () => {
+    resetState();
   };
 
-  handleCancel = () => {
-    this.resetState();
-  };
-
-  handleOnChange = (value) => {
+  // onChange (drag) and onChangeComplete (release) were two byte-identical handlers in the class
+  // version; collapsed into one since the bodies were identical (toFixed(6) / toFixed(3)).
+  const handleOnChange = (value: any) => {
     const parsed = parseFloat(value);
     if (Number.isNaN(parsed)) {
       return;
     }
-    const vests: any = parsed.toFixed(6);
-    const { props } = this.props.hive;
-    const totalVestsHive = parseFloat(props.total_vesting_fund_hive.split(' ')[0]);
-    const totalVests = parseFloat(props.total_vesting_shares.split(' ')[0]);
-    const sp = ((totalVestsHive * vests) / totalVests).toFixed(3);
-    this.setState({ vests, sp });
+    const nextVests: any = parsed.toFixed(6);
+    const globalProps = props.hive.props;
+    const totalVestsHive = parseFloat(globalProps.total_vesting_fund_hive.split(' ')[0]);
+    const totalVests = parseFloat(globalProps.total_vesting_shares.split(' ')[0]);
+    const nextSp = ((totalVestsHive * nextVests) / totalVests).toFixed(3);
+    setVests(nextVests);
+    setSp(nextSp);
   };
 
-  handleOnChangeComplete = (value) => {
-    const parsed = parseFloat(value);
-    if (Number.isNaN(parsed)) {
-      return;
-    }
-    const vests: any = parsed.toFixed(6);
-    const { props } = this.props.hive;
-    const totalVestsHive = parseFloat(props.total_vesting_fund_hive.split(' ')[0]);
-    const totalVests = parseFloat(props.total_vesting_shares.split(' ')[0]);
-    const sp = ((totalVestsHive * vests) / totalVests).toFixed(3);
-    this.setState({ vests, sp });
-  };
-
-  handleVestingSharesRemove = (e, props) => {
-    let { delegator, delegatee, id } = props.value.delegatee;
+  const handleVestingSharesRemove = (value: any) => {
+    let { delegator, delegatee } = value.delegatee;
     delegatee = delegatee.toLowerCase().replace('@', '');
-    const { permissions } = this.props.keys;
-    this.setState({ undelegateError: false });
-    this.props.actions.useKey(
+    const { permissions } = props.keys;
+    setUndelegateError(false);
+    props.actions.useKey(
       'setDelegateVestingShares',
       { delegator, delegatee, vestingShares: 0.0 },
       permissions[delegator]
     );
   };
 
-  handleVestingSharesEdit = (e, props) => {
-    const t = this;
-    const { delegator, delegatee, id, vesting_shares } = props.value.delegatee;
-    this.setState(
-      {
-        editDelegationFor: delegator,
-        [delegator]: delegatee,
-      },
-      () => {
-        this.handleOnChange(parseFloat(vesting_shares.split(' ')[0]));
-      }
-    );
+  const handleVestingSharesEdit = (value: any) => {
+    const { delegator, delegatee, vesting_shares } = value.delegatee;
+    setEditDelegationFor(delegator);
+    setDelegateeMap((m: any) => ({ ...m, [delegator]: delegatee }));
+    handleOnChange(parseFloat(vesting_shares.split(' ')[0]));
   };
 
-  handleSetDelegateVesting = (e, props) => {
-    this.setState({
-      editDelegationFor: props.value,
-    });
+  const handleSetDelegateVesting = (value: any) => {
+    setEditDelegationFor(value);
   };
 
-  handleSetDelegateVestingConfirm = (e, props) => {
-    const { vests } = this.state;
-    const { permissions } = this.props.keys;
-    const delegator = this.state.editDelegationFor;
-    const delegatee = this.state[delegator];
-    this.props.actions.useKey(
+  const handleSetDelegateVestingConfirm = (e: any) => {
+    const { permissions } = props.keys;
+    const delegator = editDelegationFor;
+    const delegatee = delegateeMap[delegator];
+    props.actions.useKey(
       'setDelegateVestingShares',
       { delegator, delegatee, vestingShares: vests },
       permissions[delegator]
@@ -132,307 +113,291 @@ export default class AccountsProxy extends Component<any, any> {
     e.preventDefault();
   };
 
-  handleOnChangeInput = (e, props) => {
-    const { name, value } = props;
-    const globalProps = this.props.hive.props;
+  const handleOnChangeInput = (name: string, value: any) => {
+    const globalProps = props.hive.props;
     const totalVestsHive = parseFloat(globalProps.total_vesting_fund_hive.split(' ')[0]);
     const totalVests = parseFloat(globalProps.total_vesting_shares.split(' ')[0]);
     const parsed = parseFloat(value);
-    let vests;
-    let sp;
+    let nextVests;
+    let nextSp;
     if (Number.isNaN(parsed)) {
-      this.setState({ [name]: value });
+      if (name === 'sp') {
+        setSp(value);
+      } else {
+        setVests(value);
+      }
       return;
     }
     if (name === 'vests') {
       const fixed: any = parsed.toFixed(6);
-      sp = ((totalVestsHive * fixed) / totalVests).toFixed(3);
-      vests = value;
+      nextSp = ((totalVestsHive * fixed) / totalVests).toFixed(3);
+      nextVests = value;
     }
     if (name === 'sp') {
       const fixed: any = parsed.toFixed(3);
-      sp = value;
-      vests = ((fixed / totalVestsHive) * totalVests).toFixed(6);
+      nextSp = value;
+      nextVests = ((fixed / totalVestsHive) * totalVests).toFixed(6);
     }
-    this.setState({ vests, sp });
+    setVests(nextVests);
+    setSp(nextSp);
   };
 
-  handleChangeVestingShares = (e, props) => {
-    const editing = this.state.editDelegationFor;
-    const newState = {};
-    newState[editing] = props.value.trim();
-    this.setState(newState);
+  const handleChangeVestingShares = (value: any) => {
+    setDelegateeMap((m: any) => ({ ...m, [editDelegationFor]: value.trim() }));
   };
 
-  render() {
-    const t = this;
-    let addVesting: any = false;
-    let undelegateError: any = false;
-    if (this.state.undelegateError) {
-      undelegateError = (
-        <Message error header="Operation Error" content={this.state.undelegateError} />
+  const numberFormat = {
+    shortFormat: true,
+    shortFormatMinValue: 1000,
+  };
+  const {
+    account_delegate_vesting_shares_error,
+    account_delegate_vesting_shares_pending,
+  } = props.processing;
+
+  let addVesting: any = false;
+  if (editDelegationFor) {
+    const name = editDelegationFor;
+    const account = props.account.accounts[name];
+    const delegated = parseFloat(account.delegated_vesting_shares.split(' ')[0]);
+    const accountVests = parseFloat(account.vesting_shares.split(' ')[0]);
+    let existingDelegation = 0;
+    if (props.account.vestingDelegations && props.account.vestingDelegations[name]) {
+      const existingDelegations = props.account.vestingDelegations[name];
+      existingDelegation = existingDelegations.reduce(
+        (a, b) =>
+          b.delegatee === delegateeMap[name] ? a + parseFloat(b.vesting_shares.split(' ')[0]) : 0,
+        0
       );
     }
-    const numberFormat = {
-      shortFormat: true,
-      shortFormatMinValue: 1000,
-    };
-    const {
-      account_delegate_vesting_shares_error,
-      account_delegate_vesting_shares_pending,
-      account_delegate_vesting_shares_resolved,
-    } = this.props.processing;
-    if (this.state.editDelegationFor) {
-      const name = this.state.editDelegationFor;
-      const account = this.props.account.accounts[name];
-      const delegated = parseFloat(account.delegated_vesting_shares.split(' ')[0]);
-      const vests = parseFloat(account.vesting_shares.split(' ')[0]);
-      let existingDelegation = 0;
-      if (this.props.account.vestingDelegations && this.props.account.vestingDelegations[name]) {
-        const existingDelegations = this.props.account.vestingDelegations[name];
-        existingDelegation = existingDelegations.reduce(
-          (a, b) =>
-            b.delegatee === this.state[name] ? a + parseFloat(b.vesting_shares.split(' ')[0]) : 0,
-          0
-        );
-      }
-      const available = vests - delegated + existingDelegation;
-      const target = parseFloat(this.state.vests);
-      const delegateWarning = target > available - 100;
-      addVesting = (
-        <Modal
-          size="small"
-          open
-          header="Delegate Vests to another Account"
-          onClose={this.resetState}
-          content={
-            <Form loading={account_delegate_vesting_shares_pending}>
-              <Segment padded basic>
-                <p>
-                  Please enter the name of the target account that you wish to delegate a portion of
-                  the {name} account's vested weight to.
-                </p>
-                <Segment padded>
-                  <Form.Field>
-                    <label>Delegatee Account Name</label>
-                    <Input
-                      fluid
-                      name="delegatee"
-                      placeholder="Delegatee Account Name"
-                      defaultValue={this.state[name]}
-                      autoFocus
-                      onChange={this.handleChangeVestingShares}
-                    />
-                  </Form.Field>
-                  <Form.Field>
-                    <label>Hive Power</label>
-                    <Input
-                      fluid
-                      name="sp"
-                      value={this.state.sp}
-                      onChange={this.handleOnChangeInput}
-                    />
-                  </Form.Field>
-                  <Form.Field>
-                    <label>Vesting Shares</label>
-                    <Input
-                      fluid
-                      name="vests"
-                      value={this.state.vests}
-                      onChange={this.handleOnChangeInput}
-                    />
-                  </Form.Field>
-                </Segment>
-                <Grid>
-                  <Grid.Row>
-                    <Grid.Column width={12}>
-                      <Segment padded="very" basic>
-                        <InputRange
-                          maxValue={available}
-                          minValue={0}
-                          value={this.state.vests}
-                          onChange={this.handleOnChange}
-                          onChangeComplete={this.handleOnChangeComplete}
-                        />
-                      </Segment>
-                    </Grid.Column>
-                    <Grid.Column width={4}>
-                      <Header textAlign="center" size="large">
-                        <Header.Subheader>Hive Power</Header.Subheader>
-                        <NumericLabel params={numberFormat}>{this.state.sp}</NumericLabel>
-                        {' HP'}
-                        <Header.Subheader>
-                          -<NumericLabel params={numberFormat}>{this.state.vests}</NumericLabel>
-                          {' VESTS'}
-                        </Header.Subheader>
-                      </Header>
-                    </Grid.Column>
-                  </Grid.Row>
-                </Grid>
-                <Message
-                  error
-                  visible={delegateWarning}
-                  header="Warning! Delegating too much HP."
-                  content="Leaving so little HP in this account may cause it to stop functioning, meaning you may have to power up more Hive or Delegate to this account from another in order to even undo what you are about to do."
-                />
-                <Message
-                  header="Caution! Delegation takes 7 days to revoke."
-                  content="If you confirm this delegation, it will take effect immediately. When you are ready to revoke the delegation, it will take 7 days for that delegated balance to return to your account."
-                />
-                <Message
-                  error
-                  visible={typeof account_delegate_vesting_shares_error !== 'undefined'}
-                  header="Operation Error"
-                  content={account_delegate_vesting_shares_error}
-                />
-              </Segment>
-            </Form>
-          }
-          actions={[
-            {
-              key: 'no',
-              content: 'Cancel Operation',
-              floated: 'left',
-              color: 'red',
-              onClick: this.handleCancel,
-              disabled: account_delegate_vesting_shares_pending,
-            },
-            {
-              key: 'yes',
-              type: 'submit',
-              content: 'Confirm Delegation',
-              color: 'blue',
-              value: this.state.editDelegationFor,
-              onClick: this.handleSetDelegateVestingConfirm,
-              disabled: account_delegate_vesting_shares_pending,
-            },
-          ]}
-        />
-      );
-    }
-    const { names } = this.props.keys;
-    const accounts = names.map((name) => {
-      const account = this.props.account.accounts[name];
-      const delegatees = (this.props.account.vestingDelegations || {})[name];
-      const delegated = account.delegated_vesting_shares;
-      const hasDelegated = delegated && delegated !== '0.000000 VESTS';
-      const hasDelegatees = delegatees && delegatees.length;
-      const delegatedAmount = parseFloat(delegated.split(' ')[0]);
-      const vests = parseFloat(account.vesting_shares.split(' ')[0]);
-      const available = vests - delegatedAmount;
-      return (
-        <Table.Row key={name}>
-          <Table.Cell>
-            <Header size="small">
-              <AccountName name={name} />
-              <Header.Subheader>
-                <strong>
-                  <NumericLabel params={numberFormat}>{vests}</NumericLabel>
-                </strong>{' '}
-                VESTS
-              </Header.Subheader>
-            </Header>
-          </Table.Cell>
-          <Table.Cell textAlign="center">
-            <Header size="small">
-              <NumericLabel params={numberFormat}>{available}</NumericLabel>
-              <Header.Subheader>VESTS</Header.Subheader>
-            </Header>
-          </Table.Cell>
-          <Table.Cell textAlign="center">
-            <Header size="small">
-              {hasDelegated ? (
-                <NumericLabel params={numberFormat}>{delegatedAmount}</NumericLabel>
-              ) : (
-                0
-              )}
-              <Header.Subheader>VESTS</Header.Subheader>
-            </Header>
-          </Table.Cell>
-          <Table.Cell>
-            {hasDelegatees ? (
-              <Table size="small">
-                <Table.Header>
-                  <Table.Row>
-                    <Table.HeaderCell>Delegatee</Table.HeaderCell>
-                    <Table.HeaderCell>Amount</Table.HeaderCell>
-                    <Table.HeaderCell collapsing />
-                  </Table.Row>
-                </Table.Header>
-                <Table.Body>
-                  {delegatees.map((delegatee) => {
-                    const vests = parseFloat(delegatee.vesting_shares.split(' ')[0]);
-                    return (
-                      <Table.Row key={delegatee.id}>
-                        <Table.Cell>
-                          <AccountName name={delegatee.delegatee} />
-                        </Table.Cell>
-                        <Table.Cell>
-                          <NumericLabel params={numberFormat}>{vests}</NumericLabel>
-                        </Table.Cell>
-                        <Table.Cell>
-                          <Button.Group>
-                            <Button
-                              color="black"
-                              size="small"
-                              icon="pencil"
-                              value={{ delegatee }}
-                              onClick={this.handleVestingSharesEdit}
-                            />
-                            <Button
-                              color="orange"
-                              size="small"
-                              icon="trash"
-                              value={{ delegatee }}
-                              onClick={this.handleVestingSharesRemove}
-                            />
-                          </Button.Group>
-                        </Table.Cell>
-                      </Table.Row>
-                    );
-                  })}
-                </Table.Body>
-              </Table>
-            ) : (
-              'No active delegations'
-            )}
-          </Table.Cell>
-          <Table.Cell>
-            <Button
-              icon="plus"
-              color="green"
-              onClick={this.handleSetDelegateVesting}
-              value={name}
+    const available = accountVests - delegated + existingDelegation;
+    const target = parseFloat(vests);
+    const delegateWarning = target > available - 100;
+    addVesting = (
+      <Modal opened onClose={resetState} title="Delegate Vests to another Account" size="lg">
+        <Box pos="relative" p="md">
+          <LoadingOverlay visible={account_delegate_vesting_shares_pending} />
+          <p>
+            Please enter the name of the target account that you wish to delegate a portion of the{' '}
+            {name} account's vested weight to.
+          </p>
+          <Stack gap="sm">
+            <TextInput
+              label="Delegatee Account Name"
+              name="delegatee"
+              placeholder="Delegatee Account Name"
+              defaultValue={delegateeMap[name]}
+              data-autofocus
+              onChange={(e) => handleChangeVestingShares(e.currentTarget.value)}
             />
-          </Table.Cell>
-        </Table.Row>
-      );
-    });
-    return (
-      <Segment basic padded>
-        {addVesting}
-        <Header>
-          <Header.Subheader>
-            Each account may delegate a portion of it's voting power to other accounts. This process
-            takes place immediately for the target account, and may be revoked on the date shown.
-            Once you revoked, the vesting amount will remain locked for exactly 7 days before
-            returning to the original account.
-          </Header.Subheader>
-        </Header>
-        {undelegateError}
-        <Table celled>
-          <Table.Header>
-            <Table.Row>
-              <Table.HeaderCell textAlign="center">Name</Table.HeaderCell>
-              <Table.HeaderCell textAlign="center">Available</Table.HeaderCell>
-              <Table.HeaderCell textAlign="center">Delegating</Table.HeaderCell>
-              <Table.HeaderCell textAlign="center">Delegated</Table.HeaderCell>
-              <Table.HeaderCell>Controls</Table.HeaderCell>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>{accounts}</Table.Body>
-        </Table>
-      </Segment>
+            <TextInput
+              label="Hive Power"
+              name="sp"
+              value={sp}
+              onChange={(e) => handleOnChangeInput('sp', e.currentTarget.value)}
+            />
+            <TextInput
+              label="Vesting Shares"
+              name="vests"
+              value={vests}
+              onChange={(e) => handleOnChangeInput('vests', e.currentTarget.value)}
+            />
+          </Stack>
+          <Grid columns={16} align="center" mt="md">
+            <Grid.Col span={12}>
+              <Box py="xl">
+                <Slider
+                  min={0}
+                  max={available}
+                  step={1}
+                  value={Number(vests)}
+                  onChange={handleOnChange}
+                  onChangeEnd={handleOnChange}
+                />
+              </Box>
+            </Grid.Col>
+            <Grid.Col span={4}>
+              <Stack align="center" gap={2}>
+                <Text size="sm" c="dimmed">
+                  Hive Power
+                </Text>
+                <Text fw={700} size="xl">
+                  <NumericLabel params={numberFormat}>{sp}</NumericLabel>
+                  {' HP'}
+                </Text>
+                <Text size="sm" c="dimmed">
+                  -<NumericLabel params={numberFormat}>{vests}</NumericLabel>
+                  {' VESTS'}
+                </Text>
+              </Stack>
+            </Grid.Col>
+          </Grid>
+          {delegateWarning && (
+            <Alert color="red" title="Warning! Delegating too much HP." mt="md">
+              Leaving so little HP in this account may cause it to stop functioning, meaning you may
+              have to power up more Hive or Delegate to this account from another in order to even
+              undo what you are about to do.
+            </Alert>
+          )}
+          <Alert color="blue" title="Caution! Delegation takes 7 days to revoke." mt="md">
+            If you confirm this delegation, it will take effect immediately. When you are ready to
+            revoke the delegation, it will take 7 days for that delegated balance to return to your
+            account.
+          </Alert>
+          {account_delegate_vesting_shares_error && (
+            <Alert color="red" title="Operation Error" mt="md">
+              {account_delegate_vesting_shares_error}
+            </Alert>
+          )}
+        </Box>
+        <Group justify="space-between" mt="md">
+          <Button
+            color="red"
+            onClick={handleCancel}
+            disabled={account_delegate_vesting_shares_pending}
+          >
+            Cancel Operation
+          </Button>
+          <Button
+            type="submit"
+            color="blue"
+            onClick={handleSetDelegateVestingConfirm}
+            disabled={account_delegate_vesting_shares_pending}
+          >
+            Confirm Delegation
+          </Button>
+        </Group>
+      </Modal>
     );
   }
-}
+
+  const { names } = props.keys;
+  const accounts = names.map((name) => {
+    const account = props.account.accounts[name];
+    const delegatees = (props.account.vestingDelegations || {})[name];
+    const delegated = account.delegated_vesting_shares;
+    const hasDelegated = delegated && delegated !== '0.000000 VESTS';
+    const hasDelegatees = delegatees && delegatees.length;
+    const delegatedAmount = parseFloat(delegated.split(' ')[0]);
+    const rowVests = parseFloat(account.vesting_shares.split(' ')[0]);
+    const available = rowVests - delegatedAmount;
+    return (
+      <Table.Tr key={name}>
+        <Table.Td>
+          <Text fw={700} component="div">
+            <AccountName name={name} />
+          </Text>
+          <Text size="xs" c="dimmed" component="div">
+            <strong>
+              <NumericLabel params={numberFormat}>{rowVests}</NumericLabel>
+            </strong>{' '}
+            VESTS
+          </Text>
+        </Table.Td>
+        <Table.Td ta="center">
+          <Text fw={700} component="div">
+            <NumericLabel params={numberFormat}>{available}</NumericLabel>
+          </Text>
+          <Text size="xs" c="dimmed" component="div">
+            VESTS
+          </Text>
+        </Table.Td>
+        <Table.Td ta="center">
+          <Text fw={700} component="div">
+            {hasDelegated ? (
+              <NumericLabel params={numberFormat}>{delegatedAmount}</NumericLabel>
+            ) : (
+              0
+            )}
+          </Text>
+          <Text size="xs" c="dimmed" component="div">
+            VESTS
+          </Text>
+        </Table.Td>
+        <Table.Td>
+          {hasDelegatees ? (
+            <Table>
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>Delegatee</Table.Th>
+                  <Table.Th>Amount</Table.Th>
+                  <Table.Th />
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {delegatees.map((delegatee) => {
+                  const dVests = parseFloat(delegatee.vesting_shares.split(' ')[0]);
+                  return (
+                    <Table.Tr key={delegatee.id}>
+                      <Table.Td>
+                        <AccountName name={delegatee.delegatee} />
+                      </Table.Td>
+                      <Table.Td>
+                        <NumericLabel params={numberFormat}>{dVests}</NumericLabel>
+                      </Table.Td>
+                      <Table.Td>
+                        <Group gap={0}>
+                          <ActionIcon
+                            color="dark"
+                            size="sm"
+                            onClick={() => handleVestingSharesEdit({ delegatee })}
+                          >
+                            <IconPencil size={16} />
+                          </ActionIcon>
+                          <ActionIcon
+                            color="orange"
+                            size="sm"
+                            onClick={() => handleVestingSharesRemove({ delegatee })}
+                          >
+                            <IconTrash size={16} />
+                          </ActionIcon>
+                        </Group>
+                      </Table.Td>
+                    </Table.Tr>
+                  );
+                })}
+              </Table.Tbody>
+            </Table>
+          ) : (
+            'No active delegations'
+          )}
+        </Table.Td>
+        <Table.Td>
+          <ActionIcon color="green" onClick={() => handleSetDelegateVesting(name)}>
+            <IconPlus size={16} />
+          </ActionIcon>
+        </Table.Td>
+      </Table.Tr>
+    );
+  });
+  return (
+    <Box p="md">
+      {addVesting}
+      <Text c="dimmed" size="sm">
+        Each account may delegate a portion of it's voting power to other accounts. This process
+        takes place immediately for the target account, and may be revoked on the date shown. Once
+        you revoked, the vesting amount will remain locked for exactly 7 days before returning to the
+        original account.
+      </Text>
+      {undelegateError && (
+        <Alert color="red" title="Operation Error" mt="md">
+          {undelegateError}
+        </Alert>
+      )}
+      <Table withTableBorder withColumnBorders mt="md">
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th ta="center">Name</Table.Th>
+            <Table.Th ta="center">Available</Table.Th>
+            <Table.Th ta="center">Delegating</Table.Th>
+            <Table.Th ta="center">Delegated</Table.Th>
+            <Table.Th>Controls</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>{accounts}</Table.Tbody>
+      </Table>
+    </Box>
+  );
+};
+
+export default AccountsProxy;

@@ -1,5 +1,5 @@
-import React, { Component } from 'react';
-import { Button, Input, List, Message, Modal, Segment } from 'semantic-ui-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Alert, Box, Button, Group, List, LoadingOverlay, Modal, PasswordInput, Text } from '@mantine/core';
 
 import { describeOp } from '../../utils/signSummary';
 import { verifyPasswordInMain } from '../../utils/keystoreVerify';
@@ -15,121 +15,118 @@ import { verifyPasswordInMain } from '../../utils/keystoreVerify';
  *
  * Props: { account, ops, record, onCancel, onConfirm(password?) }.
  */
-export default class SignConfirmModal extends Component<any, any> {
-  mounted: any;
+export default function SignConfirmModal(props: any) {
+  const { account, ops, record, onCancel, onConfirm } = props;
 
-  constructor(props: any) {
-    super(props);
-    this.state = { password: '', busy: false, error: null };
-    this.mounted = true;
-  }
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  componentWillUnmount() {
-    this.mounted = false;
-  }
+  const mounted = useRef(true);
 
-  isEncrypted() {
-    const { record } = this.props;
-    return !!(record && record.encrypted);
-  }
+  useEffect(() => {
+    mounted.current = true; // re-assert on (re)mount so a StrictMode remount can't freeze updates
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
-  handlePasswordChange = (e: any, { value }: any) => {
-    this.setState({ password: value, error: null });
+  const isEncrypted = () => !!(record && record.encrypted);
+
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+    setError(null);
   };
 
-  handleConfirm = async () => {
-    const { record, onConfirm } = this.props;
-    if (!this.isEncrypted()) {
+  const handleConfirm = async () => {
+    if (!isEncrypted()) {
       onConfirm(); // plaintext legacy key — nothing to unlock
       return;
     }
-    const { password, busy } = this.state;
     if (!password || busy) return;
-    this.setState({ busy: true, error: null });
+    setBusy(true);
+    setError(null);
     // Verified in the main process; a wrong password never yields a WIF to the renderer.
     const ok = await verifyPasswordInMain(record, password);
-    if (!this.mounted) return;
+    if (!mounted.current) return;
     if (ok) {
       onConfirm(password);
     } else {
-      this.setState({ busy: false, password: '', error: 'Incorrect password.' });
+      setBusy(false);
+      setPassword('');
+      setError('Incorrect password.');
     }
   };
 
-  handleKeyUp = (e: any) => {
-    if (e.key === 'Enter' && this.isEncrypted() && !this.state.busy) {
-      this.handleConfirm();
+  const handleKeyUp = (e: any) => {
+    if (e.key === 'Enter' && isEncrypted() && !busy) {
+      handleConfirm();
     }
   };
 
-  render() {
-    const { account, ops, onCancel } = this.props;
-    const { password, busy, error } = this.state;
-    const encrypted = this.isEncrypted();
-    return (
-      <Modal
-        size="small"
-        open
-        header="Confirm &amp; Sign"
-        content={
-          <Segment padded basic loading={busy}>
-            <p>
-              You are about to sign as <strong>@{account}</strong>:
-            </p>
-            <List bulleted>
-              {(ops || []).map((op, i) => (
-                 
-                <List.Item key={`op-${i}`}>{describeOp(op)}</List.Item>
-              ))}
-            </List>
-            {encrypted ? (
-              <>
-                <p>Enter your wallet password to unlock this key and sign.</p>
-                <Input
-                  name="password"
-                  type="password"
-                  fluid
-                  focus
-                  autoFocus
-                  placeholder="Wallet password"
-                  value={password}
-                  onChange={this.handlePasswordChange}
-                  onKeyUp={this.handleKeyUp}
-                  disabled={busy}
-                />
-              </>
-            ) : (
-              <Message
-                info
-                size="tiny"
-                content="This key is stored without a wallet password; confirm to sign."
-              />
-            )}
-            {error ? <Message error content={error} style={{ display: 'block' }} /> : null}
-            <p style={{ marginTop: '1em', color: '#999' }}>
-              Once signed and broadcast, this transaction cannot be reversed.
-            </p>
-          </Segment>
-        }
-        actions={[
-          {
-            key: 'cancel',
-            content: 'Cancel',
-            color: 'red',
-            floated: 'left',
-            onClick: onCancel,
-            disabled: busy,
-          },
-          {
-            key: 'confirm',
-            content: encrypted ? 'Unlock & Sign' : 'Confirm & Sign',
-            color: 'purple',
-            onClick: this.handleConfirm,
-            disabled: busy || (encrypted && !password),
-            loading: busy,
-          },
-        ]}
-      />
-    );
-  }
+  const encrypted = isEncrypted();
+  return (
+    // Match the original Semantic modal: dismissable ONLY via the Cancel button (which is disabled
+    // while busy) — no Escape / overlay-click / close-X, so there is no un-gated cancel path mid-sign.
+    <Modal
+      size="sm"
+      opened
+      onClose={onCancel}
+      title="Confirm & Sign"
+      closeOnEscape={false}
+      closeOnClickOutside={false}
+      withCloseButton={false}
+    >
+      <Box pos="relative">
+        <LoadingOverlay visible={busy} />
+        <Text>
+          You are about to sign as <strong>@{account}</strong>:
+        </Text>
+        <List withPadding listStyleType="disc" mt="xs">
+          {(ops || []).map((op, i) => (
+            <List.Item key={`op-${i}`}>{describeOp(op)}</List.Item>
+          ))}
+        </List>
+        {encrypted ? (
+          <>
+            <Text mt="md">Enter your wallet password to unlock this key and sign.</Text>
+            <PasswordInput
+              mt="xs"
+              autoFocus
+              placeholder="Wallet password"
+              value={password}
+              onChange={(e) => handlePasswordChange(e.currentTarget.value)}
+              onKeyUp={handleKeyUp}
+              disabled={busy}
+            />
+          </>
+        ) : (
+          <Alert color="blue" mt="md">
+            This key is stored without a wallet password; confirm to sign.
+          </Alert>
+        )}
+        {error ? (
+          <Alert color="red" mt="md">
+            {error}
+          </Alert>
+        ) : null}
+        <Text mt="md" c="dimmed">
+          Once signed and broadcast, this transaction cannot be reversed.
+        </Text>
+      </Box>
+      <Group justify="space-between" mt="md">
+        <Button color="red" onClick={onCancel} disabled={busy}>
+          Cancel
+        </Button>
+        <Button
+          color="grape"
+          onClick={handleConfirm}
+          disabled={busy || (encrypted && !password)}
+          loading={busy}
+        >
+          {encrypted ? 'Unlock & Sign' : 'Confirm & Sign'}
+        </Button>
+      </Group>
+    </Modal>
+  );
 }

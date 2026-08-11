@@ -1,25 +1,18 @@
-import React, { Component } from 'react';
+import React, { useState } from 'react';
 import {
   Accordion,
+  Alert,
+  Badge,
+  Box,
   Button,
-  Card,
-  Checkbox,
-  Divider,
-  Dropdown,
-  Form,
-  Grid,
-  Header,
-  Icon,
-  Image,
-  Input,
-  Label,
-  Message,
-  Radio,
-  Segment,
-  Statistic,
+  LoadingOverlay,
+  Paper,
   Select,
-  TextArea,
-} from 'semantic-ui-react';
+  Stack,
+  TextInput,
+  Title,
+} from '@mantine/core';
+import { IconAlertTriangle, IconBolt, IconCoin, IconThumbUp } from '@tabler/icons-react';
 
 import OperationsPromptFieldAsset from './fields/asset';
 import OperationsPromptFieldPercent from './fields/percent';
@@ -123,20 +116,11 @@ const opTemplates = {
   },
 };
 
-export default class OperationsPrompt extends Component<any, any> {
-  constructor(props: any) {
-    super(props);
-    const op = props.ops[0];
-    const _opData = op[1];
-    this.state = {
-      account: null,
-      displayRawJSON: false,
-      key: null,
-      prompts: this.getPromptsFromMeta(props),
-    };
-  }
+const OperationsPrompt: React.FC<any> = (props) => {
+  const [account, setAccount] = useState<any>(null);
+  const [displayRawJSON, setDisplayRawJSON] = useState(false);
 
-  getPromptsFromMeta = (props: any) =>
+  const getPromptsFromMeta = (props: any) =>
     Object.keys(props.meta).map((field) => {
       const meta = props.meta[field];
       if (meta.prompt) {
@@ -149,18 +133,17 @@ export default class OperationsPrompt extends Component<any, any> {
                 field={field}
                 key={field}
                 meta={meta}
-                modifyOpsPrompt={this.props.modifyOpsPrompt}
+                modifyOpsPrompt={props.modifyOpsPrompt}
                 opData={opData}
               />
             );
-            break;
           case 'percent':
             return (
               <OperationsPromptFieldPercent
                 field={field}
                 key={field}
                 meta={meta}
-                modifyOpsPrompt={this.props.modifyOpsPrompt}
+                modifyOpsPrompt={props.modifyOpsPrompt}
                 opData={opData}
               />
             );
@@ -170,176 +153,175 @@ export default class OperationsPrompt extends Component<any, any> {
                 field={field}
                 key={field}
                 meta={meta}
-                modifyOpsPrompt={this.props.modifyOpsPrompt}
+                modifyOpsPrompt={props.modifyOpsPrompt}
                 opData={opData}
-                hive={this.props.hive}
+                hive={props.hive}
               />
             );
-            break;
           default:
             return (
-              <Form.Field
+              <TextInput
                 key={field}
                 required={meta.required || false}
-                control={Input}
                 label={meta.label || field}
-                index={0}
                 name={field}
-                onChange={this.props.modifyOpsPrompt}
+                onChange={(e) =>
+                  props.modifyOpsPrompt(e, { index: 0, name: field, value: e.currentTarget.value })
+                }
               />
             );
         }
       }
     });
 
-  setAccount = (e: any, { value }: any) => {
-    this.setState({ account: value });
-    this.props.accountChange(value);
+  const [prompts] = useState<any>(() => getPromptsFromMeta(props));
+
+  const handleAccountChange = (value: any) => {
+    setAccount(value);
+    props.accountChange(value);
   };
 
-  createOpListItem = (op: any, idx: any) => {
+  const createOpListItem = (op: any, idx: any) => {
     const opType = op[0];
     const opData = op[1];
     const opTemplate = opTemplates[opType];
     if (!opTemplate) {
       return (
-        <Segment key={idx} attached>
-          <Label color="red" style={{ marginRight: '1em' }}>
+        <Paper key={idx} withBorder p="md" radius={0}>
+          <Badge color="red" mr="md">
             {op[0]}
-          </Label>
+          </Badge>
           Review this operation via the JSON.
-        </Segment>
+        </Paper>
       );
     }
     return (
-      <Segment key={idx} attached>
-        <Label color={opTemplate.color} style={{ marginRight: '1em' }}>
+      <Paper key={idx} withBorder p="md" radius={0}>
+        <Badge color={opTemplate.color} mr="md">
           {op[0]}
-        </Label>
+        </Badge>
         {opTemplate.message(opData)}
-      </Segment>
+      </Paper>
     );
   };
 
-  listOps = (ops: any) => {
+  const listOps = (ops: any) => {
     if (ops.length === 1) {
-      const op = this.props.ops[0];
+      const op = props.ops[0];
       const opData = op[1];
       switch (ops[0][0]) {
         case 'delegate_vesting_shares':
           return [
-            <Header attached="top" key="op-header">
-              <Icon name="power" />
+            <Title order={4} key="op-header">
+              <IconBolt size={18} style={{ verticalAlign: 'middle', marginRight: 6 }} />
               Delegate Hive Power
-            </Header>,
+            </Title>,
             <OperationsPromptDelegation
-              account={this.props.account}
+              key="op-body"
+              account={props.account}
               opData={opData}
-              hive={this.props.hive}
+              hive={props.hive}
             />,
           ];
         case 'transfer':
           return [
-            <Header attached="top" key="op-header">
-              <Icon name="money" />
+            <Title order={4} key="op-header">
+              <IconCoin size={18} style={{ verticalAlign: 'middle', marginRight: 6 }} />
               Transfer Funds
-            </Header>,
-            <OperationsPromptTransfer opData={opData} />,
+            </Title>,
+            <OperationsPromptTransfer key="op-body" opData={opData} />,
           ];
         case 'vote':
           return [
-            <Header attached="top" key="op-header">
-              <Icon name="thumbs up" />
+            <Title order={4} key="op-header">
+              <IconThumbUp size={18} style={{ verticalAlign: 'middle', marginRight: 6 }} />
               Vote on a Post
-            </Header>,
-            <OperationsPromptVote opData={opData} hive={this.props.hive} />,
+            </Title>,
+            <OperationsPromptVote key="op-body" opData={opData} hive={props.hive} />,
           ];
       }
     }
     return [
-      <Header attached="top" key="op-header">
+      <Title order={4} key="op-header">
         Actions/Operations
-      </Header>,
-      ops.map(this.createOpListItem),
+      </Title>,
+      ops.map(createOpListItem),
     ];
   };
 
-  handleClick = () => {
-    this.setState({ displayRawJSON: !this.state.displayRawJSON });
-  };
+  const { ops } = props;
+  const accounts = props.accounts.map((account) => ({
+    value: account,
+    label: account,
+  }));
+  const { account_custom_ops_error, account_custom_ops_pending } = props.processing;
 
-  render() {
-    const { value } = this.state;
-    const { ops } = this.props;
-    const accounts = this.props.accounts.map((account) => ({
-      key: account,
-      text: account,
-      value: account,
-    }));
-    const { account_custom_ops_error, account_custom_ops_resolved, account_custom_ops_pending } =
-      this.props.processing;
-    const keys = [];
-    return (
-      <Form
-        error={account_custom_ops_error}
-        loading={account_custom_ops_pending}
-        size="large"
-        onSubmit={this.props.submitOps}
-      >
-        <Segment attached="top" color="blue" inverted>
-          <Header size="large">Sign Transaction ({ops.length} operations)</Header>
-        </Segment>
-        <Segment attached secondary>
-          <Segment.Group>
-            {this.listOps(ops)}
-            {this.state.prompts.length > 0 ? (
-              <Segment attached>{this.state.prompts}</Segment>
-            ) : (
-              false
-            )}
-            <Segment attached>
-              <Form.Field
-                control={Select}
-                label="Signing Account"
-                options={accounts}
-                onChange={this.setAccount}
-                placeholder="The account to sign this transaction."
-              />
-            </Segment>
-            <Segment attached="bottom">
-              <Accordion>
-                <Accordion.Title
-                  active={this.state.displayRawJSON === true}
-                  index={0}
-                  onClick={this.handleClick}
-                >
-                  <Header style={{ margin: 0 }}>
-                    <Header.Content style={{ padding: 0 }}>
-                      <Icon name="dropdown" />
-                      Transaction JSON
-                    </Header.Content>
-                  </Header>
-                </Accordion.Title>
-                <Accordion.Content active={this.state.displayRawJSON === true}>
-                  <Segment padded secondary>
+  return (
+    <Box pos="relative" component="form" onSubmit={props.submitOps}>
+      <LoadingOverlay visible={account_custom_ops_pending} />
+      <Paper withBorder p="md" radius={0} bg="blue" c="white">
+        <Title order={3}>Sign Transaction ({ops.length} operations)</Title>
+      </Paper>
+      <Paper withBorder p="md" radius={0}>
+        <Stack gap="xs">
+          {listOps(ops)}
+          {prompts.length > 0 ? (
+            <Paper withBorder p="md" radius={0}>
+              {prompts}
+            </Paper>
+          ) : (
+            false
+          )}
+          <Paper withBorder p="md" radius={0}>
+            <Select
+              label="Signing Account"
+              data={accounts}
+              value={account}
+              onChange={handleAccountChange}
+              placeholder="The account to sign this transaction."
+            />
+          </Paper>
+          <Paper withBorder p="md" radius={0}>
+            <Accordion
+              chevronPosition="left"
+              value={displayRawJSON ? 'json' : null}
+              onChange={(v) => setDisplayRawJSON(v === 'json')}
+            >
+              <Accordion.Item value="json">
+                <Accordion.Control>
+                  <Title order={5} style={{ margin: 0 }}>
+                    Transaction JSON
+                  </Title>
+                </Accordion.Control>
+                <Accordion.Panel>
+                  <Paper p="md" radius={0}>
                     <pre>{JSON.stringify(ops, null, 2)}</pre>
-                  </Segment>
-                </Accordion.Content>
-              </Accordion>
-            </Segment>
-          </Segment.Group>
-          <Message
-            color="yellow"
-            icon="warning sign"
-            header="Please review this transaction"
-            content="Once signed and broadcast - this transaction cannot be reversed. Please review what types of operations you are about to perform and confirm the values."
-          />
-          <Message error header="Operation Error" content={account_custom_ops_error} />
-          <Form.Field disabled={!this.state.account} fluid primary control={Button}>
-            Sign + Broadcast
-          </Form.Field>
-        </Segment>
-      </Form>
-    );
-  }
-}
+                  </Paper>
+                </Accordion.Panel>
+              </Accordion.Item>
+            </Accordion>
+          </Paper>
+        </Stack>
+        <Alert
+          color="yellow"
+          icon={<IconAlertTriangle />}
+          title="Please review this transaction"
+          mt="md"
+        >
+          Once signed and broadcast - this transaction cannot be reversed. Please review what types
+          of operations you are about to perform and confirm the values.
+        </Alert>
+        {account_custom_ops_error && (
+          <Alert color="red" title="Operation Error" mt="md">
+            {account_custom_ops_error}
+          </Alert>
+        )}
+        <Button type="submit" disabled={!account} fullWidth color="blue" mt="md">
+          Sign + Broadcast
+        </Button>
+      </Paper>
+    </Box>
+  );
+};
+
+export default OperationsPrompt;

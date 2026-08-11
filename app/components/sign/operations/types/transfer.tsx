@@ -1,69 +1,50 @@
-import React, { Component } from 'react';
-import {
-  Accordion,
-  Button,
-  Card,
-  Checkbox,
-  Divider,
-  Dropdown,
-  Form,
-  Grid,
-  Header,
-  Icon,
-  Image,
-  Input,
-  Label,
-  Message,
-  Radio,
-  Segment,
-  Statistic,
-  Select,
-  TextArea,
-} from 'semantic-ui-react';
+import React from 'react';
+import { Grid, Paper, Text, Title } from '@mantine/core';
+import { IconCircleArrowRight } from '@tabler/icons-react';
 
 import AccountAvatar from '../../../global/AccountAvatar';
 import AccountName from '../../../global/AccountName';
 
-export default class OperationsPromptTransfer extends Component<any, any> {
-  render() {
-    const { opData, prompts } = this.props;
-    const avatar_from = <AccountAvatar name={opData.from} />;
-    const avatar_to = <AccountAvatar name={opData.to} />;
-    return (
-      <Segment attached padded>
-        <Grid>
-          <Grid.Row columns={3} textAlign="center" verticalAlign="top">
-            <Grid.Column>
-              {avatar_from}
-              <Header style={{ margin: 0 }}>
-                {opData.from ? <AccountName name={opData.from} /> : '<sender>'}
-                {opData.amount ? (
-                  <Header.Subheader color="orange">-{opData.amount}</Header.Subheader>
-                ) : (
-                  false
-                )}
-              </Header>
-            </Grid.Column>
-            <Grid.Column>
-              <Header icon color="green">
-                <Icon name="arrow circle right" size="huge" style={{ margin: '0.25em 0' }} />
-                {opData.amount}
-              </Header>
-            </Grid.Column>
-            <Grid.Column>
-              {avatar_to}
-              <Header style={{ margin: 0 }}>
-                <AccountName name={opData.to} />
-                {opData.amount ? (
-                  <Header.Subheader color="green">+{opData.amount}</Header.Subheader>
-                ) : (
-                  false
-                )}
-              </Header>
-            </Grid.Column>
-          </Grid.Row>
-        </Grid>
-      </Segment>
-    );
-  }
+export default function OperationsPromptTransfer(props: any) {
+  const { opData } = props;
+  const avatar_from = <AccountAvatar name={opData.from} />;
+  const avatar_to = <AccountAvatar name={opData.to} />;
+  return (
+    <Paper withBorder radius={0} p="md">
+      <Grid columns={16}>
+        <Grid.Col span={5} ta="center">
+          {avatar_from}
+          <Title order={4} style={{ margin: 0 }}>
+            {opData.from ? <AccountName name={opData.from} /> : '<sender>'}
+          </Title>
+          {opData.amount ? (
+            <Text size="sm" c="orange">
+              -{opData.amount}
+            </Text>
+          ) : (
+            false
+          )}
+        </Grid.Col>
+        <Grid.Col span={6} ta="center">
+          <Title order={4} c="green" style={{ margin: 0 }}>
+            <IconCircleArrowRight size={48} style={{ margin: '0.25em 0' }} />
+            <div>{opData.amount}</div>
+          </Title>
+        </Grid.Col>
+        <Grid.Col span={5} ta="center">
+          {avatar_to}
+          <Title order={4} style={{ margin: 0 }}>
+            <AccountName name={opData.to} />
+          </Title>
+          {opData.amount ? (
+            <Text size="sm" c="green">
+              +{opData.amount}
+            </Text>
+          ) : (
+            false
+          )}
+        </Grid.Col>
+      </Grid>
+    </Paper>
+  );
 }

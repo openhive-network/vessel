@@ -1,82 +1,75 @@
-import React, { Component } from 'react';
-import { Dropdown, Form, Input } from 'semantic-ui-react';
+import React, { useState } from 'react';
+import { Group, Input, Select, TextInput } from '@mantine/core';
 
-export default class OperationsPromptFieldAsset extends Component<any, any> {
-  constructor(props: any) {
-    super(props);
-    let defaultAsset = 'HIVE';
-    if (props.meta.type === 'hbd') {
-      defaultAsset = 'HBD';
-    }
-    this.state = {
-      assetType: defaultAsset,
-      assetAmount: 0,
-      defaultAsset,
-    };
+export default function OperationsPromptFieldAsset(props: any) {
+  const { field, meta, opData } = props;
+
+  let defaultAsset = 'HIVE';
+  if (meta.type === 'hbd') {
+    defaultAsset = 'HBD';
   }
 
-  modifyAssetAmount = (e: any, { value, name }: any) => {
+  const [assetType, setAssetType] = useState(defaultAsset);
+  const [assetAmount, setAssetAmount] = useState<any>(0);
+
+  const modifyAssetAmount = (e: any) => {
+    const value = e.currentTarget.value;
+    const name = field;
     const amount = parseFloat(value).toFixed(3);
-    this.setState({
-      assetAmount: amount,
-    });
-    this.props.modifyOpsPrompt(null, {
+    setAssetAmount(amount);
+    props.modifyOpsPrompt(null, {
       index: 0,
       name,
-      value: [amount, this.state.assetType].join(' '),
+      value: [amount, assetType].join(' '),
     });
   };
 
-  modifyAssetType = (e: any, { value, name }: any) => {
-    this.setState({
-      assetType: value,
-    });
-    this.props.modifyOpsPrompt(null, {
+  const modifyAssetType = (value: any) => {
+    const name = field;
+    setAssetType(value);
+    props.modifyOpsPrompt(null, {
       index: 0,
       name,
-      value: [this.state.assetAmount, value].join(' '),
+      value: [assetAmount, value].join(' '),
     });
   };
 
-  render() {
-    const { field, meta, opData } = this.props;
-    const defaultValue = opData[field] ? parseFloat(opData[field].split(' ')[0]) : 0;
-    const options: any[] = [];
-    const option_hive = { key: 'HIVE', text: 'HIVE', value: 'HIVE' };
-    const option_hbd = { key: 'HBD', text: 'HBD', value: 'HBD' };
-    switch (meta.type) {
-      case 'asset':
-        options.push(option_hive, option_hbd);
-        break;
-      case 'hbd':
-        options.push(option_hbd);
-        break;
-      case 'hive':
-        options.push(option_hive);
-        break;
-    }
-    return (
-      <Form.Field>
-        <label>{meta.label}</label>
-        <Input
-          fluid
+  const defaultValue = opData[field] ? parseFloat(opData[field].split(' ')[0]) : 0;
+  const options: any[] = [];
+  const option_hive = { value: 'HIVE', label: 'HIVE' };
+  const option_hbd = { value: 'HBD', label: 'HBD' };
+  switch (meta.type) {
+    case 'asset':
+      options.push(option_hive, option_hbd);
+      break;
+    case 'hbd':
+      options.push(option_hbd);
+      break;
+    case 'hive':
+      options.push(option_hive);
+      break;
+  }
+
+  return (
+    <Input.Wrapper label={meta.label} required>
+      <Group gap={0} align="flex-start" wrap="nowrap">
+        <Select
+          name={field}
+          defaultValue={defaultAsset}
+          data={options}
+          onChange={modifyAssetType}
+          allowDeselect={false}
+          w={110}
+        />
+        <TextInput
           key={field}
           required
-          index={0}
           name={field}
           defaultValue={defaultValue}
-          onChange={this.modifyAssetAmount}
-          label={
-            <Dropdown
-              name={field}
-              onChange={this.modifyAssetType}
-              defaultValue={this.state.defaultAsset}
-              options={options}
-            />
-          }
-          labelPosition="left"
+          onChange={modifyAssetAmount}
+          style={{ flex: 1 }}
         />
-      </Form.Field>
-    );
-  }
+      </Group>
+    </Input.Wrapper>
+  );
 }

@@ -1,34 +1,30 @@
-import React, { Component } from 'react';
-import { Dropdown, Form, Input } from 'semantic-ui-react';
+import React from 'react';
+import { TextInput } from '@mantine/core';
 
-export default class OperationsPromptFieldPercent extends Component<any, any> {
-  modifyPercent = (e: any, { value, name }: any) => {
+export default function OperationsPromptFieldPercent(props: any) {
+  const { field, meta, opData } = props;
+
+  const modifyPercent = (e: any) => {
+    const value = e.currentTarget.value;
+    const name = field;
     const amount: any = parseFloat(value).toFixed(3);
-    this.props.modifyOpsPrompt(null, {
+    props.modifyOpsPrompt(null, {
       index: 0,
       name,
       value: amount * 100,
     });
   };
 
-  render() {
-    const { field, meta, opData } = this.props;
-    const defaultValue = opData[field] ? (parseFloat(opData[field]) / 100).toFixed(2) : 100;
-    return (
-      <Form.Field>
-        <label>{meta.label}</label>
-        <Input
-          fluid
-          key={field}
-          required
-          index={0}
-          name={field}
-          defaultValue={defaultValue}
-          onChange={this.modifyPercent}
-          label="%"
-          labelPosition="left"
-        />
-      </Form.Field>
-    );
-  }
+  const defaultValue = opData[field] ? (parseFloat(opData[field]) / 100).toFixed(2) : 100;
+  return (
+    <TextInput
+      key={field}
+      required
+      name={field}
+      label={meta.label}
+      defaultValue={defaultValue}
+      onChange={modifyPercent}
+      leftSection="%"
+    />
+  );
 }

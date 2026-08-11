@@ -1,7 +1,8 @@
-import React, { Component } from 'react';
+import React, { useEffect, useState } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { Message } from 'semantic-ui-react';
+import { Alert } from '@mantine/core';
+import { IconAlertTriangle } from '@tabler/icons-react';
 
 import * as AccountActions from '../actions/account';
 import * as KeysActions from '../actions/keys';
@@ -40,40 +41,36 @@ const accountFields = {
   witness_update: ['owner'],
 };
 
-class PromptOperation extends Component<any, any> {
-  constructor(props) {
-    super(props);
-    let meta = {};
+function PromptOperation(props: any) {
+  const [meta] = useState<any>(() => {
+    let value = {};
     try {
-      meta = JSON.parse(window.atob(props.query.meta));
+      value = JSON.parse(window.atob(props.query.meta));
     } catch (exception) {
       console.log(exception);
     }
-    // Task 5 — the ops come from an untrusted URI. Validate SHAPE + SIZE before anything renders,
-    // edits, or signs them; a bad payload sets payloadError and blocks the sign UI entirely.
-    const validated = parseAndValidateSignOps(props.query.ops);
-    this.state = {
-      account: null,
-      authorityError: null,
-      payloadError: validated.ok ? null : validated.error,
-      meta,
-      ops: validated.ops,
-      opsString: props.query.ops,
-    };
-  }
+    return value;
+  });
+  // Task 5 — the ops come from an untrusted URI. Validate SHAPE + SIZE before anything renders,
+  // edits, or signs them; a bad payload sets payloadError and blocks the sign UI entirely.
+  const [validated] = useState(() => parseAndValidateSignOps(props.query.ops));
+  const [account, setAccount] = useState<any>(null);
+  const [authorityError, setAuthorityError] = useState<any>(null);
+  const [payloadError] = useState<any>(validated.ok ? null : validated.error);
+  const [ops, setOps] = useState<any>(validated.ops);
+  const [confirming, setConfirming] = useState<any>(null);
 
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.processing.account_custom_ops_resolved) {
+  useEffect(() => {
+    if (props.processing.account_custom_ops_resolved) {
       window.close();
     }
-  }
+  }, [props.processing.account_custom_ops_resolved]);
 
-  submitOps = (e) => {
+  const submitOps = (e) => {
     e.preventDefault();
     // Never sign an invalid/oversized payload, even if something re-enabled the button.
-    if (this.state.payloadError) return;
-    const { account, ops } = this.state;
-    const { permissions } = this.props.keys;
+    if (payloadError) return;
+    const { permissions } = props.keys;
     // Resolve the single authority the whole tx needs BEFORE any key selection or broadcast.
     // Post-HF28 a tx that mixes posting with active/owner (or has no ops) can never be signed by
     // one key: surface it in the sign window and refuse to dispatch.
@@ -82,7 +79,7 @@ class PromptOperation extends Component<any, any> {
       role = requiredRoleForOps(ops).role;
     } catch (err) {
       if (err instanceof MixedAuthorityError || err instanceof NoOperationsError) {
-        this.setState({ authorityError: err.message });
+        setAuthorityError(err.message);
         return;
       }
       throw err;
@@ -93,44 +90,42 @@ class PromptOperation extends Component<any, any> {
     const auth = permissions[account];
     if (!auth || !keySatisfiesRole(auth.type, role, auth.roles)) {
       const stored = auth ? auth.type : 'unknown';
-      this.setState({
-        authorityError: `The selected account's stored ${stored} key cannot satisfy the required ${role.toUpperCase()} authority. Import the ${role.toUpperCase()} key for this account before signing.`,
-      });
+      setAuthorityError(
+        `The selected account's stored ${stored} key cannot satisfy the required ${role.toUpperCase()} authority. Import the ${role.toUpperCase()} key for this account before signing.`
+      );
       return;
     }
     // Task 5 — don't dispatch straight to signing. Open the confirm-and-sign modal, which shows the
     // plain-language summary and (for an encrypted key) collects + verifies the wallet password first.
-    this.setState({ authorityError: null, confirming: { role, auth } });
+    setAuthorityError(null);
+    setConfirming({ role, auth });
   };
 
   // Approved in the confirm modal. For an encrypted key the modal already verified `password` against
   // main; sign there via a main signer { account, password } (encrypted:false so useKey won't re-prompt).
   // A plaintext legacy key signs with its stored WIF, exactly as before — the modal was just a confirm.
-  handleConfirmSign = (password) => {
-    const { confirming, ops } = this.state;
+  const handleConfirmSign = (password) => {
     if (!confirming) return;
     const { role, auth } = confirming;
     const params = { operations: ops, extensions: [], role };
     const localAuth = auth.encrypted
       ? { ...auth, encrypted: false, key: { account: auth.account, password } }
       : auth;
-    this.props.actions.useKey('send', params, localAuth);
-    this.setState({ confirming: null });
+    props.actions.useKey('send', params, localAuth);
+    setConfirming(null);
   };
 
-  handleCancelSign = () => {
-    this.setState({ confirming: null });
+  const handleCancelSign = () => {
+    setConfirming(null);
   };
 
-  modifyOpsPrompt(e, data) {
-    const { ops } = this.state;
+  const modifyOpsPrompt = (e, data) => {
     const { index, name, value } = data;
     ops[index][1][name] = value;
-    this.setState(ops);
-  }
+    setOps([...ops]);
+  };
 
-  modifyOpsByAccount(account) {
-    const { ops } = this.state;
+  const modifyOpsByAccount = (account) => {
     const modOps = ops.slice(0);
     const accountFieldTypes = Object.keys(accountFields);
     ops.forEach((op, idx) => {
@@ -144,59 +139,56 @@ class PromptOperation extends Component<any, any> {
         modOps[idx] = [opType, modData];
       }
     });
-    this.setState({
-      account,
-      ops: modOps,
-    });
-  }
+    setAccount(account);
+    setOps(modOps);
+  };
 
-  render() {
-    const { ops, meta, authorityError, payloadError, confirming } = this.state;
-    const { account, keys } = this.props;
-    // A malformed/oversized/malicious URI payload is refused outright — never rendered or signable.
-    if (payloadError) {
-      return (
-        <Message
-          error
-          icon="warning sign"
-          header="This signing request can't be shown"
-          content={payloadError}
-        />
-      );
-    }
+  const { keys } = props;
+  // A malformed/oversized/malicious URI payload is refused outright — never rendered or signable.
+  if (payloadError) {
     return (
-      <>
-        {confirming ? (
-          <SignConfirmModal
-            account={confirming.auth.account}
-            ops={ops}
-            record={confirming.auth}
-            onCancel={this.handleCancelSign}
-            onConfirm={this.handleConfirmSign}
-          />
-        ) : null}
-        {authorityError ? (
-          <Message
-            error
-            icon="warning sign"
-            header="Cannot sign this transaction"
-            content={authorityError}
-          />
-        ) : null}
-        <OperationsPrompt
-          account={account}
-          accounts={keys.names}
-          accountChange={this.modifyOpsByAccount.bind(this)}
-          meta={meta}
-          modifyOpsPrompt={this.modifyOpsPrompt.bind(this)}
-          ops={ops}
-          processing={this.props.processing}
-          hive={this.props.hive}
-          submitOps={this.submitOps.bind(this)}
-        />
-      </>
+      <Alert
+        color="red"
+        icon={<IconAlertTriangle />}
+        title="This signing request can't be shown"
+      >
+        {payloadError}
+      </Alert>
     );
   }
+  return (
+    <>
+      {confirming ? (
+        <SignConfirmModal
+          account={confirming.auth.account}
+          ops={ops}
+          record={confirming.auth}
+          onCancel={handleCancelSign}
+          onConfirm={handleConfirmSign}
+        />
+      ) : null}
+      {authorityError ? (
+        <Alert
+          color="red"
+          icon={<IconAlertTriangle />}
+          title="Cannot sign this transaction"
+        >
+          {authorityError}
+        </Alert>
+      ) : null}
+      <OperationsPrompt
+        account={props.account}
+        accounts={keys.names}
+        accountChange={modifyOpsByAccount}
+        meta={meta}
+        modifyOpsPrompt={modifyOpsPrompt}
+        ops={ops}
+        processing={props.processing}
+        hive={props.hive}
+        submitOps={submitOps}
+      />
+    </>
+  );
 }
 
 function mapStateToProps(state) {

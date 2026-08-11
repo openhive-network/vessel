@@ -20,6 +20,7 @@ import { hiveApi, hiveAuth, hiveMemo } from '../utils/hiveApi';
 
 import DecryptModal from './DecryptModal';
 import { encryptKey, isEncrypted, needsReencrypt } from '../utils/keyEnvelope';
+import { memoAfterSymbolChange } from '../utils/sendMemo';
 
 const exchangeOptions = [
   {
@@ -183,8 +184,11 @@ const Send: React.FC<any> = (props) => {
     const detectMemoResult = detectMemo(to, value);
     setAmountValue('');
     setSymbol(value);
-    setMemo(detectMemoResult || '');
-    setMemoDetected(detectMemoResult);
+    // Preserve a hand-typed memo across a currency toggle — wiping it here can silently drop an
+    // exchange deposit-routing memo and lose funds (see utils/sendMemo).
+    const next = memoAfterSymbolChange(memo, memoDetected, detectMemoResult);
+    setMemo(next.memo);
+    setMemoDetected(next.memoDetected);
   };
 
   const handleMemoEncryptChange = () => {

@@ -1,62 +1,66 @@
-import React, { Component } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import InputRange from 'react-input-range';
-import { Divider, Grid, Header, Message, Modal, Segment, Button, Icon } from 'semantic-ui-react';
-import { Form } from 'formsy-semantic-ui-react';
+import {
+  Alert,
+  Box,
+  Button,
+  Divider,
+  Grid,
+  Group,
+  LoadingOverlay,
+  Modal,
+  Slider,
+  Text,
+  TextInput,
+} from '@mantine/core';
+import { IconEdit } from '@tabler/icons-react';
 import NumericLabel from '../../utils/NumericLabel';
 import AccountName from '../global/AccountName';
 
 import * as AccountActions from '../../actions/account';
 import * as KeysActions from '../../actions/keys';
 
-const defaultState = {
-  hiveAmount: 0.001,
-  to_account: false,
-  edit_account: false,
-  showPreview: false,
-};
+const PowerUpPrompt: React.FC<any> = (props) => {
+  const account = props.account.accounts[props.targetAccount];
+  const maximum = parseFloat(account.balance.split(' ')[0]);
 
-class PowerUpPrompt extends Component<any, any> {
-  constructor(props) {
-    super(props);
-    const name = props.targetAccount;
-    const account = props.account.accounts[name];
-    const balance = parseFloat(account.balance.split(' ')[0]);
+  const [hiveAmount, setHiveAmount] = useState<any>(0.001);
+  const [toAccount, setToAccount] = useState<any>(false);
+  const [editAccount, setEditAccount] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
-    this.state = {
-      maximum: balance,
-      balance,
-      ...defaultState,
-    };
-  }
+  const numberFormat = {
+    shortFormat: true,
+    shortFormatMinValue: 1000,
+  };
 
-  handlePreview = (e: any) => {
-    this.setState({ showPreview: true });
+  const { account_power_up_error, account_power_up_pending, account_power_up_resolved } =
+    props.processing;
+
+  const resolvedRef = useRef(account_power_up_resolved);
+  useEffect(() => {
+    if (resolvedRef.current !== account_power_up_resolved) {
+      if (account_power_up_resolved) {
+        props.actions.powerUpCompleted();
+        props.handleCancel();
+        setShowPreview(false);
+      }
+    }
+    resolvedRef.current = account_power_up_resolved;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [account_power_up_resolved]);
+
+  const handlePreview = (e: any) => {
+    setShowPreview(true);
     e.preventDefault();
   };
 
-  componentDidUpdate(prevProps, prevState) {
-    if (
-      prevProps.processing.account_power_up_resolved !==
-      this.props.processing.account_power_up_resolved
-    ) {
-      if (this.props.processing.account_power_up_resolved) {
-        console.log('this.props.actions');
-        console.log(this.props.actions);
-        this.props.actions.powerUpCompleted();
-        this.props.handleCancel();
-        this.setState({ showPreview: false });
-      }
-    }
-  }
-
-  handleSubmit = (e: any) => {
-    const from_account = this.props.targetAccount;
-    const to_account = this.state.to_account ? this.state.to_account : this.props.targetAccount;
-    const { permissions } = this.props.keys;
-    const { hiveAmount } = this.state;
-    this.props.actions.useKey(
+  const handleSubmit = (e: any) => {
+    const from_account = props.targetAccount;
+    const to_account = toAccount ? toAccount : props.targetAccount;
+    const { permissions } = props.keys;
+    props.actions.useKey(
       'powerUp',
       { from_account, to_account, hiveAmount },
       permissions[from_account]
@@ -64,190 +68,162 @@ class PowerUpPrompt extends Component<any, any> {
     e.preventDefault();
   };
 
-  handleCancel = (e: any) => {
-    // Reset to the default state
-    this.state = defaultState;
+  const handleOnChange = (value) => {
+    setHiveAmount(parseFloat(String(value)).toFixed(3));
   };
 
-  handleOnChange = (value) => {
-    const hiveAmount = parseFloat(value).toFixed(3);
-    // const props = this.props.hive.props;
-    this.setState({ hiveAmount });
+  const handleOnChangeComplete = (value) => {
+    setHiveAmount(parseFloat(String(value)).toFixed(3));
   };
 
-  handleOnChangeComplete = (value) => {
-    const hiveAmount = parseFloat(value).toFixed(3);
-    // const props = this.props.hive.props;
-    this.setState({ hiveAmount });
+  const handleAccountChange = (event) => {
+    setToAccount(event.currentTarget.value);
   };
 
-  handleAccountChange = (event) => {
-    this.setState({ to_account: event.target.value });
-  };
-
-  render() {
-    const numberFormat = {
-      shortFormat: true,
-      shortFormatMinValue: 1000,
-    };
-    const { account_power_up_error, account_power_up_pending, account_power_up_resolved } =
-      this.props.processing;
-    let prompt: any = false;
-    if (this.state.hiveAmount) {
-      prompt = !this.state.showPreview ? (
-        <Modal
-          size="small"
-          open={!account_power_up_resolved}
-          header="Power Up Account"
-          content={
-            <Form error={account_power_up_error} loading={account_power_up_pending}>
-              <Segment padded basic>
-                <Grid>
-                  <Grid.Row columns={2}>
-                    <Grid.Column>
-                      <Header textAlign="center" size="large">
-                        <Header.Subheader>Power Up From</Header.Subheader>
-                        <AccountName name={this.props.targetAccount} />
-                        <Header.Subheader>Power Up To</Header.Subheader>
-                        {this.state.edit_account ? (
-                          <Form>
-                            <Form.Input
-                              name="to_account"
-                              value={this.state.to_account}
-                              onChange={this.handleAccountChange}
-                              placeholder="Account to Power Up"
-                            />
-                          </Form>
-                        ) : (
-                          <AccountName
-                            name={
-                              this.state.to_account
-                                ? this.state.to_account
-                                : this.props.targetAccount
-                            }
-                          />
-                        )}
-                        {!this.state.edit_account && (
-                          <Button
-                            icon="edit"
-                            color="orange"
-                            style={{
-                              fontSize: '15px',
-                              padding: '8px 8px 8px 10px',
-                              marginLeft: '10px',
-                            }}
-                            onClick={() => {
-                              this.setState({ edit_account: true });
-                            }}
-                            value={name}
-                          />
-                        )}
-                      </Header>
-                    </Grid.Column>
-                    <Grid.Column>
-                      <Header textAlign="center" color="green" size="large">
-                        <Header.Subheader>Power Up Amount</Header.Subheader>+
-                        <NumericLabel params={numberFormat}>{this.state.hiveAmount}</NumericLabel>
-                        {' HIVE'}
-                      </Header>
-                    </Grid.Column>
-                  </Grid.Row>
-                </Grid>
-                <Divider />
-                <Segment padded="very" basic>
-                  <InputRange
-                    maxValue={this.state.maximum}
-                    step={0.001}
-                    minValue={0.001}
-                    value={this.state.hiveAmount}
-                    onChange={this.handleOnChange}
-                    onChangeComplete={this.handleOnChangeComplete}
+  let prompt: any = false;
+  if (hiveAmount) {
+    prompt = !showPreview ? (
+      <Modal
+        size="sm"
+        opened={!account_power_up_resolved}
+        onClose={props.handleCancel}
+        title="Power Up Account"
+      >
+        <Box pos="relative">
+          <LoadingOverlay visible={account_power_up_pending} />
+          <Grid columns={16}>
+            <Grid.Col span={8}>
+              <Box ta="center">
+                <Text size="sm" c="dimmed">
+                  Power Up From
+                </Text>
+                <AccountName name={props.targetAccount} />
+                <Text size="sm" c="dimmed">
+                  Power Up To
+                </Text>
+                {editAccount ? (
+                  <TextInput
+                    name="to_account"
+                    value={toAccount || ''}
+                    onChange={handleAccountChange}
+                    placeholder="Account to Power Up"
                   />
-                </Segment>
-                <Message content="Drag the slider to adjust the amount of HIVE to power up as HP." />
-                <Message error header="Operation Error" content={account_power_up_error} />
-              </Segment>
-            </Form>
-          }
-          actions={[
-            {
-              key: 'no',
-              content: 'Cancel',
-              floated: 'left',
-              color: 'red',
-              onClick: this.props.handleCancel,
-              disabled: account_power_up_pending,
-            },
-            {
-              key: 'yes',
-              type: 'submit',
-              content: 'Power Up',
-              color: 'blue',
-              onClick: this.handlePreview,
-              disabled: account_power_up_pending,
-            },
-          ]}
-        />
-      ) : (
-        <Modal
-          size="small"
-          open
-          header="Power Up Account"
-          content={
-            <Form error={account_power_up_error} loading={account_power_up_pending}>
-              <Segment padded basic>
-                <Grid>
-                  <Grid.Row columns={2}>
-                    <Grid.Column>
-                      <Header textAlign="center" size="large">
-                        <Header.Subheader>Power Up From</Header.Subheader>
-                        <AccountName name={this.props.targetAccount} />
-                        <Header.Subheader>Power Up To</Header.Subheader>
-                        <AccountName
-                          name={
-                            this.state.to_account ? this.state.to_account : this.props.targetAccount
-                          }
-                        />
-                      </Header>
-                    </Grid.Column>
-                    <Grid.Column>
-                      <Header textAlign="center" color="green" size="large">
-                        <Header.Subheader>Power Up Amount</Header.Subheader>+
-                        <NumericLabel params={numberFormat}>{this.state.hiveAmount}</NumericLabel>
-                        {' HIVE'}
-                      </Header>
-                    </Grid.Column>
-                  </Grid.Row>
-                </Grid>
-                <Divider />
-                <Message error header="Operation Error" content={account_power_up_error} />
-              </Segment>
-            </Form>
-          }
-          actions={[
-            {
-              key: 'no',
-              content: 'Cancel',
-              floated: 'left',
-              color: 'red',
-              onClick: this.props.handleCancel,
-              disabled: account_power_up_pending,
-            },
-            {
-              key: 'yes',
-              type: 'submit',
-              content: 'Confirm - Power Up',
-              color: 'blue',
-              onClick: this.handleSubmit,
-              disabled: account_power_up_pending,
-            },
-          ]}
-        />
-      );
-    }
-    return prompt;
+                ) : (
+                  <AccountName name={toAccount ? toAccount : props.targetAccount} />
+                )}
+                {!editAccount && (
+                  <Button
+                    color="orange"
+                    mt="xs"
+                    onClick={() => {
+                      setEditAccount(true);
+                    }}
+                  >
+                    <IconEdit size={15} />
+                  </Button>
+                )}
+              </Box>
+            </Grid.Col>
+            <Grid.Col span={8}>
+              <Box ta="center">
+                <Text size="sm" c="dimmed">
+                  Power Up Amount
+                </Text>
+                <Text c="green" size="lg" fw={700}>
+                  +<NumericLabel params={numberFormat}>{hiveAmount}</NumericLabel>
+                  {' HIVE'}
+                </Text>
+              </Box>
+            </Grid.Col>
+          </Grid>
+          <Divider my="md" />
+          <Box p="xl">
+            <Slider
+              max={maximum}
+              step={0.001}
+              min={0.001}
+              value={Number(hiveAmount)}
+              onChange={handleOnChange}
+              onChangeEnd={handleOnChangeComplete}
+            />
+          </Box>
+          <Alert color="blue">
+            Drag the slider to adjust the amount of HIVE to power up as HP.
+          </Alert>
+          {account_power_up_error && (
+            <Alert color="red" title="Operation Error" mt="md">
+              {account_power_up_error}
+            </Alert>
+          )}
+          <Group justify="space-between" mt="md">
+            <Button color="red" onClick={props.handleCancel} disabled={account_power_up_pending}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              color="blue"
+              onClick={handlePreview}
+              disabled={account_power_up_pending}
+            >
+              Power Up
+            </Button>
+          </Group>
+        </Box>
+      </Modal>
+    ) : (
+      <Modal size="sm" opened onClose={props.handleCancel} title="Power Up Account">
+        <Box pos="relative">
+          <LoadingOverlay visible={account_power_up_pending} />
+          <Grid columns={16}>
+            <Grid.Col span={8}>
+              <Box ta="center">
+                <Text size="sm" c="dimmed">
+                  Power Up From
+                </Text>
+                <AccountName name={props.targetAccount} />
+                <Text size="sm" c="dimmed">
+                  Power Up To
+                </Text>
+                <AccountName name={toAccount ? toAccount : props.targetAccount} />
+              </Box>
+            </Grid.Col>
+            <Grid.Col span={8}>
+              <Box ta="center">
+                <Text size="sm" c="dimmed">
+                  Power Up Amount
+                </Text>
+                <Text c="green" size="lg" fw={700}>
+                  +<NumericLabel params={numberFormat}>{hiveAmount}</NumericLabel>
+                  {' HIVE'}
+                </Text>
+              </Box>
+            </Grid.Col>
+          </Grid>
+          <Divider my="md" />
+          {account_power_up_error && (
+            <Alert color="red" title="Operation Error" mt="md">
+              {account_power_up_error}
+            </Alert>
+          )}
+          <Group justify="space-between" mt="md">
+            <Button color="red" onClick={props.handleCancel} disabled={account_power_up_pending}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              color="blue"
+              onClick={handleSubmit}
+              disabled={account_power_up_pending}
+            >
+              Confirm - Power Up
+            </Button>
+          </Group>
+        </Box>
+      </Modal>
+    );
   }
-}
+  return prompt;
+};
 
 function mapStateToProps(state) {
   return {

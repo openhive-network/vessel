@@ -1,5 +1,13 @@
-import React, { Component } from 'react';
-import { Button, Header, Icon, Segment, Table, Grid } from 'semantic-ui-react';
+import React, { useEffect, useState } from 'react';
+import { ActionIcon, Box, Button, Grid, LoadingOverlay, Table, Text } from '@mantine/core';
+import {
+  IconBan,
+  IconBolt,
+  IconCircleFilled,
+  IconSortDescending,
+  IconTrash,
+  IconUser,
+} from '@tabler/icons-react';
 
 import NumericLabel from '../utils/NumericLabel';
 import CancelPowerDownPrompt from './Vesting/CancelPowerDownPrompt';
@@ -8,50 +16,46 @@ import PowerUpPrompt from './Vesting/PowerUpPrompt';
 import PowerDownDestinationPrompt from './Vesting/PowerDownDestinationPrompt';
 import AccountName from './global/AccountName';
 
-export default class VestingAccounts extends Component<any, any> {
-  constructor(props) {
-    super(props);
-    this.state = {};
-    this.props.actions.resetState = this.resetState.bind(this);
-  }
+const VestingAccounts: React.FC<any> = (props) => {
+  const [powerDown, setPowerDown] = useState<any>(false);
+  const [powerDownDestination, setPowerDownDestination] = useState<any>(false);
+  const [cancelPowerDown, setCancelPowerDown] = useState<any>(false);
+  const [powerUp, setPowerUp] = useState<any>(false);
 
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.processing.account_set_withdraw_vesting_route_resolved) {
-      nextProps.actions.setWithdrawVestingRouteCompleted();
-      this.resetState();
-    }
-    if (nextProps.processing.account_vesting_withdraw_resolved) {
-      nextProps.actions.withdrawVestingCompleted();
-      this.resetState();
-    }
-  }
-
-  resetState() {
-    this.setState({
-      powerDown: false,
-      powerDownDestination: false,
-      cancelPowerDown: false,
-      powerUp: false,
-    });
-  }
-
-  handleRemoveKey = (e, data) => {
-    this.props.actions.removeKey(data.value);
+  const resetState = () => {
+    setPowerDown(false);
+    setPowerDownDestination(false);
+    setCancelPowerDown(false);
+    setPowerUp(false);
   };
 
-  handlePowerDownPrompt = (e, props) => {
-    this.setState({
-      powerDown: props.value,
-    });
+  useEffect(() => {
+    if (props.processing.account_set_withdraw_vesting_route_resolved) {
+      props.actions.setWithdrawVestingRouteCompleted();
+      resetState();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.processing.account_set_withdraw_vesting_route_resolved]);
+
+  useEffect(() => {
+    if (props.processing.account_vesting_withdraw_resolved) {
+      props.actions.withdrawVestingCompleted();
+      resetState();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.processing.account_vesting_withdraw_resolved]);
+
+  const handlePowerDownPrompt = (value) => {
+    setPowerDown(value);
   };
 
-  handlePowerDownDestinationRemove = (e, props) => {
-    const { permissions } = this.props.keys;
-    const account = props.value.route.from_account;
-    const target = props.value.route.to_account;
+  const handlePowerDownDestinationRemove = (e, value) => {
+    const { permissions } = props.keys;
+    const account = value.route.from_account;
+    const target = value.route.to_account;
     const percent = 0;
     const autoVest = false;
-    this.props.actions.useKey(
+    props.actions.useKey(
       'setWithdrawVestingRoute',
       { account, target, percent, autoVest },
       permissions[account]
@@ -59,244 +63,212 @@ export default class VestingAccounts extends Component<any, any> {
     e.preventDefault();
   };
 
-  handlePowerDownDestinationPrompt = (e, props) => {
-    this.setState({
-      powerDownDestination: props.value,
-    });
+  const handlePowerDownDestinationPrompt = (value) => {
+    setPowerDownDestination(value);
   };
 
-  handlePowerDownCancelPrompt = (e, props) => {
-    this.setState({
-      cancelPowerDown: props.value,
-    });
+  const handlePowerDownCancelPrompt = (value) => {
+    setCancelPowerDown(value);
   };
 
-  handlePowerUpPrompt = (e, props) => {
-    this.setState({
-      powerUp: props.value,
-    });
+  const handlePowerUpPrompt = (value) => {
+    setPowerUp(value);
   };
 
-  render() {
-    let powerDownPrompt: any = false;
-    let powerUpPrompt: any = false;
-    const { names } = this.props.keys;
-    if (this.state && this.state.powerDownDestination) {
-      powerDownPrompt = (
-        <PowerDownDestinationPrompt
-          handleCancel={this.props.actions.resetState}
-          targetAccount={this.state.powerDownDestination}
-          {...this.props}
-        />
-      );
-    }
-    if (this.state && this.state.powerDown) {
-      powerDownPrompt = (
-        <PowerDownPrompt
-          handleCancel={this.props.actions.resetState}
-          targetAccount={this.state.powerDown}
-          {...this.props}
-        />
-      );
-    }
-    if (this.state && this.state.cancelPowerDown) {
-      powerDownPrompt = (
-        <CancelPowerDownPrompt
-          handleCancel={this.props.actions.resetState}
-          targetAccount={this.state.cancelPowerDown}
-          {...this.props}
-        />
-      );
-    }
-    if (this.state && this.state.powerUp) {
-      powerUpPrompt = (
-        <PowerUpPrompt
-          handleCancel={this.props.actions.resetState}
-          targetAccount={this.state.powerUp}
-          {...this.props}
-        />
-      );
-    }
-    const numberFormat = {
-      shortFormat: true,
-      shortFormatMinValue: 1000,
-    };
-    const {
-      account_set_withdraw_vesting_route_error,
-      account_set_withdraw_vesting_route_pending,
-      account_set_withdraw_vesting_route_resolved,
-      account_power_down_resolved,
-    } = this.props.processing;
-    const { props } = this.props.hive;
-    const accounts = names.map((name) => {
-      const account = this.props.account.accounts[name];
-      const withdrawRoutes = this.props.account.withdrawRoutes
-        ? this.props.account.withdrawRoutes[name]
-        : false;
-      const nextPowerDown = new Date(account.next_vesting_withdrawal);
-      const isPoweringDown = account.next_vesting_withdrawal != '1969-12-31T23:59:59';
-      let nextPowerDownDisplay: any = false;
-      let withdrawRoutesDisplay: any = false;
-      let withdrawRoutesControl: any = (
-        <Button
-          fluid
-          color="black"
-          size="mini"
-          icon="user"
-          content="Add Withdraw Account"
-          value={name}
-          onClick={this.handlePowerDownDestinationPrompt}
-        />
-      );
-      if (account.withdraw_routes > 0 && withdrawRoutes) {
-        let total = 0;
-        withdrawRoutesDisplay = (
-          <Table size="small">
-            <Table.Body>
-              {withdrawRoutes.map((route) => {
-                total += route.percent;
-                return (
-                  <Table.Row key={route.to_account}>
-                    <Table.Cell>
-                      <AccountName name={route.to_account} />
-                    </Table.Cell>
-                    <Table.Cell>{route.percent / 100}%</Table.Cell>
-                    <Table.Cell>{route.auto_vest ? 'VEST' : 'HIVE'}</Table.Cell>
-                    <Table.Cell collapsing>
-                      <Button
-                        color="orange"
-                        size="small"
-                        icon="trash"
-                        value={{ name, route }}
-                        onClick={this.handlePowerDownDestinationRemove}
-                      />
-                    </Table.Cell>
-                  </Table.Row>
-                );
-              })}
-            </Table.Body>
-          </Table>
-        );
-        // Disable addition if we've allocated 100%
-        if (total >= 10000) {
-          withdrawRoutesControl = false;
-        }
-      }
-      let controls: any = (
-        <Button
-          color="red"
-          size="small"
-          icon="sort amount down"
-          content="Power&nbsp;Down"
-          style={{ fontSize: '12px' }}
-          value={name}
-          onClick={this.handlePowerDownPrompt}
-        />
-      );
-      if (isPoweringDown) {
-        const rate = account.vesting_withdraw_rate;
-        const vests = parseFloat(rate.split(' ')[0]);
-        const totalVestsHive = parseFloat(props.total_vesting_fund_hive.split(' ')[0]);
-        const totalVests = parseFloat(props.total_vesting_shares.split(' ')[0]);
-        const hive = (totalVestsHive * vests) / totalVests;
-        controls = (
-          <Button
-            color="orange"
-            size="small"
-            icon="cancel"
-            content="Stop Power&nbsp;Down"
-            style={{ fontSize: '12px' }}
-            value={name}
-            onClick={this.handlePowerDownCancelPrompt}
-          />
-        );
-        nextPowerDownDisplay = (
-          <Header>
-            +<NumericLabel params={numberFormat}>{hive}</NumericLabel> HIVE
-            <Header.Subheader>
-              &ndash;<NumericLabel params={numberFormat}>{vests}</NumericLabel> VESTS
-              {' @ '}
-              {new Intl.DateTimeFormat('en', { hour: 'numeric', minute: 'numeric' }).format(
-                new Date(nextPowerDown)
-              )}
-              {' - '}
-              {new Intl.DateTimeFormat('en', {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric',
-              }).format(new Date(nextPowerDown))}
-            </Header.Subheader>
-          </Header>
-        );
-      }
-      let powerUpControl: any = false;
-      if (parseFloat(account.balance.split(' ')[0]) > 0) {
-        powerUpControl = (
-          <Button
-            color="green"
-            size="small"
-            icon="lightning"
-            content="Power&nbsp;Up"
-            style={{ fontSize: '12px' }}
-            value={name}
-            onClick={this.handlePowerUpPrompt}
-          />
-        );
-        console.log(`we have a balance for user: ${account.name}`);
-      }
-      return (
-        <Table.Row key={name}>
-          <Table.Cell>
-            <AccountName name={name} />
-          </Table.Cell>
-          <Table.Cell textAlign="center">
-            {isPoweringDown ? (
-              <Icon.Group size="large">
-                <Icon color="green" size="big" name={'thin circle' as any} />
-                <Icon color="green" name="lightning" />
-              </Icon.Group>
-            ) : (
-              <Icon size="small" color="red" name="circle" />
-            )}
-          </Table.Cell>
-          <Table.Cell>
-            {withdrawRoutesDisplay}
-            {withdrawRoutesControl}
-          </Table.Cell>
-          <Table.Cell>{nextPowerDownDisplay}</Table.Cell>
-          <Table.Cell textAlign="right">
-            <Grid>
-              <Grid.Row style={{ fontSize: '10px' }}>
-                <Grid.Column width={8}>{powerUpControl}</Grid.Column>
-                <Grid.Column width={8}>{controls}</Grid.Column>
-              </Grid.Row>
-            </Grid>
-          </Table.Cell>
-        </Table.Row>
-      );
-    });
-    return (
-      <Segment
-        basic
-        padded
-        loading={account_set_withdraw_vesting_route_pending}
-        disabled={account_set_withdraw_vesting_route_pending}
-      >
-        {powerDownPrompt}
-        {powerUpPrompt}
-        <Table celled striped>
-          <Table.Header>
-            <Table.Row>
-              <Table.HeaderCell>Vested Account</Table.HeaderCell>
-              <Table.HeaderCell collapsing>Active</Table.HeaderCell>
-              <Table.HeaderCell>Destination Account(s)</Table.HeaderCell>
-              <Table.HeaderCell>Incoming Funds</Table.HeaderCell>
-              <Table.HeaderCell textAlign="right">Controls</Table.HeaderCell>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>{accounts}</Table.Body>
-        </Table>
-      </Segment>
+  let powerDownPrompt: any = false;
+  let powerUpPrompt: any = false;
+  const { names } = props.keys;
+  if (powerDownDestination) {
+    powerDownPrompt = (
+      <PowerDownDestinationPrompt
+        handleCancel={resetState}
+        targetAccount={powerDownDestination}
+        {...props}
+      />
     );
   }
-}
+  if (powerDown) {
+    powerDownPrompt = (
+      <PowerDownPrompt handleCancel={resetState} targetAccount={powerDown} {...props} />
+    );
+  }
+  if (cancelPowerDown) {
+    powerDownPrompt = (
+      <CancelPowerDownPrompt handleCancel={resetState} targetAccount={cancelPowerDown} {...props} />
+    );
+  }
+  if (powerUp) {
+    powerUpPrompt = <PowerUpPrompt handleCancel={resetState} targetAccount={powerUp} {...props} />;
+  }
+  const numberFormat = {
+    shortFormat: true,
+    shortFormatMinValue: 1000,
+  };
+  const { account_set_withdraw_vesting_route_pending } = props.processing;
+  const hiveProps = props.hive.props;
+  const accounts = names.map((name) => {
+    const account = props.account.accounts[name];
+    const withdrawRoutes = props.account.withdrawRoutes
+      ? props.account.withdrawRoutes[name]
+      : false;
+    const nextPowerDown = new Date(account.next_vesting_withdrawal);
+    const isPoweringDown = account.next_vesting_withdrawal != '1969-12-31T23:59:59';
+    let nextPowerDownDisplay: any = false;
+    let withdrawRoutesDisplay: any = false;
+    let withdrawRoutesControl: any = (
+      <Button
+        fullWidth
+        color="dark"
+        size="xs"
+        leftSection={<IconUser size={14} />}
+        onClick={() => handlePowerDownDestinationPrompt(name)}
+      >
+        Add Withdraw Account
+      </Button>
+    );
+    if (account.withdraw_routes > 0 && withdrawRoutes) {
+      let total = 0;
+      withdrawRoutesDisplay = (
+        <Table>
+          <Table.Tbody>
+            {withdrawRoutes.map((route) => {
+              total += route.percent;
+              return (
+                <Table.Tr key={route.to_account}>
+                  <Table.Td>
+                    <AccountName name={route.to_account} />
+                  </Table.Td>
+                  <Table.Td>{route.percent / 100}%</Table.Td>
+                  <Table.Td>{route.auto_vest ? 'VEST' : 'HIVE'}</Table.Td>
+                  <Table.Td>
+                    <ActionIcon
+                      color="orange"
+                      onClick={(e) => handlePowerDownDestinationRemove(e, { name, route })}
+                    >
+                      <IconTrash size={16} />
+                    </ActionIcon>
+                  </Table.Td>
+                </Table.Tr>
+              );
+            })}
+          </Table.Tbody>
+        </Table>
+      );
+      // Disable addition if we've allocated 100%
+      if (total >= 10000) {
+        withdrawRoutesControl = false;
+      }
+    }
+    let controls: any = (
+      <Button
+        color="red"
+        size="xs"
+        leftSection={<IconSortDescending size={14} />}
+        style={{ fontSize: '12px' }}
+        onClick={() => handlePowerDownPrompt(name)}
+      >
+        {'Power Down'}
+      </Button>
+    );
+    if (isPoweringDown) {
+      const rate = account.vesting_withdraw_rate;
+      const vests = parseFloat(rate.split(' ')[0]);
+      const totalVestsHive = parseFloat(hiveProps.total_vesting_fund_hive.split(' ')[0]);
+      const totalVests = parseFloat(hiveProps.total_vesting_shares.split(' ')[0]);
+      const hive = (totalVestsHive * vests) / totalVests;
+      controls = (
+        <Button
+          color="orange"
+          size="xs"
+          leftSection={<IconBan size={14} />}
+          style={{ fontSize: '12px' }}
+          onClick={() => handlePowerDownCancelPrompt(name)}
+        >
+          {'Stop Power Down'}
+        </Button>
+      );
+      nextPowerDownDisplay = (
+        <Text component="div" fw={700}>
+          +<NumericLabel params={numberFormat}>{hive}</NumericLabel> HIVE
+          <Text component="div" size="xs" c="dimmed">
+            &ndash;<NumericLabel params={numberFormat}>{vests}</NumericLabel> VESTS
+            {' @ '}
+            {new Intl.DateTimeFormat('en', { hour: 'numeric', minute: 'numeric' }).format(
+              new Date(nextPowerDown)
+            )}
+            {' - '}
+            {new Intl.DateTimeFormat('en', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+            }).format(new Date(nextPowerDown))}
+          </Text>
+        </Text>
+      );
+    }
+    let powerUpControl: any = false;
+    if (parseFloat(account.balance.split(' ')[0]) > 0) {
+      powerUpControl = (
+        <Button
+          color="green"
+          size="xs"
+          leftSection={<IconBolt size={14} />}
+          style={{ fontSize: '12px' }}
+          onClick={() => handlePowerUpPrompt(name)}
+        >
+          {'Power Up'}
+        </Button>
+      );
+    }
+    return (
+      <Table.Tr key={name}>
+        <Table.Td>
+          <AccountName name={name} />
+        </Table.Td>
+        <Table.Td ta="center">
+          {isPoweringDown ? (
+            <IconBolt size={24} color="green" />
+          ) : (
+            <IconCircleFilled size={16} color="red" />
+          )}
+        </Table.Td>
+        <Table.Td>
+          {withdrawRoutesDisplay}
+          {withdrawRoutesControl}
+        </Table.Td>
+        <Table.Td>{nextPowerDownDisplay}</Table.Td>
+        <Table.Td ta="right">
+          <Grid columns={16}>
+            <Grid.Col span={8} style={{ fontSize: '10px' }}>
+              {powerUpControl}
+            </Grid.Col>
+            <Grid.Col span={8} style={{ fontSize: '10px' }}>
+              {controls}
+            </Grid.Col>
+          </Grid>
+        </Table.Td>
+      </Table.Tr>
+    );
+  });
+  return (
+    <Box pos="relative" p="md">
+      <LoadingOverlay visible={account_set_withdraw_vesting_route_pending} />
+      {powerDownPrompt}
+      {powerUpPrompt}
+      <Table withTableBorder withColumnBorders striped>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Vested Account</Table.Th>
+            <Table.Th>Active</Table.Th>
+            <Table.Th>Destination Account(s)</Table.Th>
+            <Table.Th>Incoming Funds</Table.Th>
+            <Table.Th ta="right">Controls</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>{accounts}</Table.Tbody>
+      </Table>
+    </Box>
+  );
+};
+
+export default VestingAccounts;

@@ -1,84 +1,48 @@
-import React, { Component } from 'react';
+import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { Message, Modal, Segment } from 'semantic-ui-react';
-import { Form } from 'formsy-semantic-ui-react';
+import { Alert, Box, Button, Group, LoadingOverlay, Modal, Text } from '@mantine/core';
 
 import * as KeysActions from '../../actions/keys';
 
-class CancelPowerDownPrompt extends Component<any, any> {
-  handleConfirm = (e: any) => {
-    const account = this.props.targetAccount;
-    const { permissions } = this.props.keys;
-    // console.log('cancelWithdrawVesting', { account }, permissions[account]);
-    this.props.actions.useKey('cancelWithdrawVesting', { account }, permissions[account]);
+function CancelPowerDownPrompt(props: any) {
+  const handleConfirm = (e: any) => {
+    const account = props.targetAccount;
+    const { permissions } = props.keys;
+    props.actions.useKey('cancelWithdrawVesting', { account }, permissions[account]);
     e.preventDefault();
   };
 
-  handleOnChange = (value) => {
-    const vests: any = parseFloat(value).toFixed(6);
-    const { props } = this.props.hive;
-    const totalVestsHive = parseFloat(props.total_vesting_fund_hive.split(' ')[0]);
-    const totalVests = parseFloat(props.total_vesting_shares.split(' ')[0]);
-    const sp = (totalVestsHive * vests) / totalVests;
-    const perWeek = Math.round((sp / 13) * 1000) / 1000;
-    this.setState({ vests, sp, perWeek });
-  };
+  const {
+    account_vesting_withdraw_error,
+    account_vesting_withdraw_pending,
+  } = props.processing;
 
-  handleOnChangeComplete = (value) => {
-    const vests: any = parseFloat(value).toFixed(6);
-    const { props } = this.props.hive;
-    const totalVestsHive = parseFloat(props.total_vesting_fund_hive.split(' ')[0]);
-    const totalVests = parseFloat(props.total_vesting_shares.split(' ')[0]);
-    const sp = (totalVestsHive * vests) / totalVests;
-    const perWeek = Math.round((sp / 13) * 1000) / 1000;
-    this.setState({ vests, sp, perWeek });
-  };
-
-  render() {
-    const {
-      account_vesting_withdraw_error,
-      account_vesting_withdraw_pending,
-      account_vesting_withdraw_resolved,
-    } = this.props.processing;
-    return (
-      <Modal
-        size="small"
-        open
-        header="Cancel - Power Down"
-        content={
-          <Form error={account_vesting_withdraw_error} loading={account_vesting_withdraw_pending}>
-            <Segment padded basic>
-              <p>
-                Cancelling this power down cannot be reversed. Any progress on your current week's
-                credit will be reset, and if you power down again, you'll have to wait another 7
-                days for it to begin.
-              </p>
-              <Message error header="Operation Error" content={account_vesting_withdraw_error} />
-            </Segment>
-          </Form>
-        }
-        actions={[
-          {
-            key: 'no',
-            content: 'Cancel Operation',
-            floated: 'left',
-            color: 'red',
-            onClick: this.props.handleCancel,
-            disabled: account_vesting_withdraw_pending,
-          },
-          {
-            key: 'yes',
-            type: 'submit',
-            content: 'Cancel Power Down',
-            color: 'blue',
-            onClick: this.handleConfirm,
-            disabled: account_vesting_withdraw_pending,
-          },
-        ]}
-      />
-    );
-  }
+  return (
+    <Modal opened onClose={props.handleCancel} title="Cancel - Power Down" size="sm">
+      <Box pos="relative">
+        <LoadingOverlay visible={account_vesting_withdraw_pending} />
+        <Text>
+          Cancelling this power down cannot be reversed. Any progress on your current week's credit
+          will be reset, and if you power down again, you'll have to wait another 7 days for it to
+          begin.
+        </Text>
+        {account_vesting_withdraw_error && (
+          <Alert color="red" title="Operation Error" mt="md">
+            {account_vesting_withdraw_error}
+          </Alert>
+        )}
+      </Box>
+      <Group justify="space-between" mt="md">
+        <Button color="red" onClick={props.handleCancel} disabled={account_vesting_withdraw_pending}>
+          Cancel Operation
+        </Button>
+        <Button color="blue" onClick={handleConfirm} disabled={account_vesting_withdraw_pending}>
+          Cancel Power Down
+        </Button>
+      </Group>
+    </Modal>
+  );
 }
 
 function mapStateToProps(state) {

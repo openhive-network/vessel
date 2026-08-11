@@ -1,36 +1,36 @@
-import React, { Component } from 'react';
+import React, { useState } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import InputRange from 'react-input-range';
-import { Checkbox, Divider, Message, Modal, Segment } from 'semantic-ui-react';
-import { Form, Input } from 'formsy-semantic-ui-react';
+import {
+  Alert,
+  Box,
+  Button,
+  Checkbox,
+  Divider,
+  Group,
+  LoadingOverlay,
+  Modal,
+  Slider,
+  Text,
+  TextInput,
+} from '@mantine/core';
 
 import * as KeysActions from '../../actions/keys';
 
-const defaultState = {
-  target: '',
-  percent: 100,
-  autoVest: false,
-};
+function PowerDownDestinationPrompt(props: any) {
+  const [target, setTarget] = useState('');
+  const [percent, setPercent] = useState(100);
+  const [autoVest, setAutoVest] = useState(false);
 
-class PowerDownDestinationPrompt extends Component<any, any> {
-  state: any = {
-    target: '',
-    percent: 100,
-    autoVest: false,
-  };
+  const {
+    account_set_withdraw_vesting_route_error,
+    account_set_withdraw_vesting_route_pending,
+  } = props.processing;
 
-  handleKeyUp = (e) => {
-    if (this.state.decrypted && e.key === 'Enter') {
-      this.handleSubmit(e);
-    }
-  };
-
-  handleSubmit = (e: any) => {
-    const account = this.props.targetAccount;
-    const { permissions } = this.props.keys;
-    const { autoVest, target, percent } = this.state;
-    this.props.actions.useKey(
+  const handleSubmit = (e: any) => {
+    const account = props.targetAccount;
+    const { permissions } = props.keys;
+    props.actions.useKey(
       'setWithdrawVestingRoute',
       { account, target, percent, autoVest },
       permissions[account]
@@ -38,102 +38,61 @@ class PowerDownDestinationPrompt extends Component<any, any> {
     e.preventDefault();
   };
 
-  handleCancel = () => {
-    this.state = defaultState;
-  };
-
-  handleChange = (e, props) => {
-    const newState = {};
-    newState[props.name] = props.checked || props.value;
-    this.setState(newState);
-  };
-
-  handleCheckboxChange = (e, props) => {
-    const newState = {};
-    newState[props.name] = props.checked;
-    this.setState(newState);
-  };
-
-  handleSliderChange = (value) => {
-    this.setState({ percent: value });
-  };
-
-  render() {
-    const {
-      account_set_withdraw_vesting_route_error,
-      account_set_withdraw_vesting_route_pending,
-      account_set_withdraw_vesting_route_resolved,
-    } = this.props.processing;
-    return (
-      <Modal
-        size="small"
-        open
-        header="Power Down - Destination Account"
-        content={
-          <Form
-            error={account_set_withdraw_vesting_route_error}
-            loading={account_set_withdraw_vesting_route_pending}
-          >
-            <Segment padded basic>
-              <Segment basic padded clearing attached="top">
-                <Input
-                  label="Destination Account"
-                  name="target"
-                  autoFocus
-                  value={this.state.target}
-                  onChange={this.handleChange}
-                />
-              </Segment>
-              <Segment basic padded clearing attached>
-                <p>Percentage of Power Down to this account.</p>
-                <InputRange
-                  // @ts-expect-error — pre-existing: react-input-range's types don't declare `label`/`name` props
-                  label=""
-                  maxValue={100}
-                  minValue={0}
-                  name="percent"
-                  value={this.state.percent}
-                  onChange={this.handleSliderChange}
-                />
-                <Divider hidden />
-              </Segment>
-              <Segment basic padded clearing attached="bottom">
-                <Checkbox
-                  defaultChecked={false}
-                  name="autoVest"
-                  onChange={this.handleCheckboxChange}
-                  label="Should it automatically power up the target account?"
-                />
-              </Segment>
-              <Message
-                error
-                header="Operation Error"
-                content={account_set_withdraw_vesting_route_error}
-              />
-            </Segment>
-          </Form>
-        }
-        actions={[
-          {
-            key: 'no',
-            content: 'Cancel Operation',
-            floated: 'left',
-            color: 'red',
-            onClick: this.props.handleCancel,
-            disabled: account_set_withdraw_vesting_route_pending,
-          },
-          {
-            key: 'yes',
-            type: 'submit',
-            content: 'Set Withdraw Route',
-            color: 'blue',
-            onClick: this.handleSubmit,
-            disabled: account_set_withdraw_vesting_route_pending,
-          },
-        ]}
-      />
-    );
-  }
+  return (
+    <Modal opened onClose={props.handleCancel} title="Power Down - Destination Account" size="sm">
+      <Box pos="relative">
+        <LoadingOverlay visible={account_set_withdraw_vesting_route_pending} />
+        <TextInput
+          label="Destination Account"
+          name="target"
+          data-autofocus
+          value={target}
+          onChange={(e) => setTarget(e.currentTarget.value)}
+        />
+        <Box mt="md">
+          <Text>Percentage of Power Down to this account.</Text>
+          <Slider
+            min={0}
+            max={100}
+            step={1}
+            name="percent"
+            value={percent}
+            onChange={setPercent}
+          />
+          <Divider my="md" style={{ visibility: 'hidden' }} />
+        </Box>
+        <Checkbox
+          mt="md"
+          name="autoVest"
+          checked={autoVest}
+          onChange={(e) => setAutoVest(e.currentTarget.checked)}
+          label="Should it automatically power up the target account?"
+        />
+        {account_set_withdraw_vesting_route_error && (
+          <Alert color="red" title="Operation Error" mt="md">
+            {account_set_withdraw_vesting_route_error}
+          </Alert>
+        )}
+      </Box>
+      <Group justify="space-between" mt="md">
+        <Button
+          color="red"
+          onClick={props.handleCancel}
+          disabled={account_set_withdraw_vesting_route_pending}
+        >
+          Cancel Operation
+        </Button>
+        <Button
+          type="submit"
+          color="blue"
+          onClick={handleSubmit}
+          disabled={account_set_withdraw_vesting_route_pending}
+        >
+          Set Withdraw Route
+        </Button>
+      </Group>
+    </Modal>
+  );
 }
 
 function mapStateToProps(state) {

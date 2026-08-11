@@ -1,121 +1,157 @@
-import React, { Component } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { Icon, Menu } from 'semantic-ui-react';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
+import { Box, Divider, Stack, Text } from '@mantine/core';
+import {
+  IconArrowsExchange,
+  IconBolt,
+  IconFlask,
+  IconLayoutDashboard,
+  IconSend,
+  IconSettings,
+  IconUsers,
+} from '@tabler/icons-react';
 import * as AccountActions from '../actions/account';
 import * as HiveActions from '../actions/hive';
 import * as PreferencesActions from '../actions/preferences';
+import ColorSchemeToggle from '../components/global/ColorSchemeToggle';
 
 import srcHive from '../img/hive.png';
 import srcTestnet from '../img/testnet.png';
 
-class MenuBar extends Component<any, any> {
-  state = {
-    intervalId: 0,
-  };
+const NAV_ITEMS = [
+  { to: '/transactions', label: 'Overview', Icon: IconLayoutDashboard },
+  { to: '/send', label: 'Send', Icon: IconSend },
+  { to: '/convert', label: 'Convert', Icon: IconArrowsExchange },
+  { to: '/vesting', label: 'Vesting', Icon: IconBolt },
+  { to: '/accounts', label: 'Accounts', Icon: IconUsers },
+  { to: '/settings', label: 'Settings', Icon: IconSettings },
+  { to: '/advanced', label: 'Advanced', Icon: IconFlask },
+];
 
-  componentDidMount() {
-    this.interval = setInterval(this.timer.bind(this), 10000);
-    this.timer();
-    // this.props.actions.getTransactions(this.props.keys.names);
+/**
+ * Primary nav rail. Always dark (Semantic `inverted`), fixed-left, ~92px wide. Migrated
+ * class -> function in Phase 7 M2; behavior-identical (same 10s refresh interval, same
+ * connect() wiring, same Chain/Height footer).
+ */
+const MenuBar: React.FC<any> = (props) => {
+  const { actions, keys, hive } = props;
+  const location = useLocation();
+
+  // Mirrors `this.props` in the original class: the interval always reads the LATEST
+  // actions/keys, not what was in scope when the effect first ran.
+  const latestRef = useRef({ actions, keys });
+  useEffect(() => {
+    latestRef.current = { actions, keys };
+  });
+
+  useEffect(() => {
+    const timer = () => {
+      // console.log('tick');
+      latestRef.current.actions.refreshAccountData(latestRef.current.keys.names);
+      latestRef.current.actions.refreshGlobalProps();
+      // actions.getTransactions(account.names);
+    };
+
+    timer();
+    const interval = setInterval(timer, 10000);
+    return () => {
+      // console.log('unmounting');
+      clearInterval(interval);
+    };
+  }, []);
+
+  let height: React.ReactNode = 'Loading';
+  let network = 'Loading';
+  if (hive.props) {
+    height = hive.props.head_block_number;
+    network = hive.props.network || 'Hive';
   }
 
-  componentWillUnmount() {
-    // console.log('unmounting');
-    clearInterval(this.interval);
-  }
+  const chainClassName = network === 'Hive' ? 'hivered' : 'hivetestnetpink';
 
-  interval: any = 0;
-
-  timer = () => {
-    // console.log('tick');
-    this.props.actions.refreshAccountData(this.props.keys.names);
-    this.props.actions.refreshGlobalProps();
-    // this.props.actions.getTransactions(this.props.account.names);
-  };
-
-  render() {
-    let height = 'Loading';
-    let network = 'Loading';
-    if (this.props.hive.props) {
-      height = this.props.hive.props.head_block_number;
-      network = this.props.hive.props.network || 'Hive';
-    }
-    return (
-      <Menu vertical fixed="left" color="black" inverted icon="labeled">
-        <Menu.Item header>
-          <img
-            alt="Vessel"
-            className="ui tiny image"
-            src={network === 'Hive' ? srcHive : srcTestnet}
-            style={{
-              width: '50px',
-              height: '50px',
-              margin: '0 auto 1em',
-            }}
-          />
-          Vessel
-        </Menu.Item>
-        <Link className="link item" to="/transactions">
-          <Icon name="dashboard" />
-          Overview
-        </Link>
-        <Link className="link item" to="/send">
-          <Icon name="send" />
-          Send
-        </Link>
-        <Link className="link item" to="/convert">
-          <Icon name="exchange" />
-          Convert
-        </Link>
-        <Link className="link item" to="/vesting">
-          <Icon name="lightning" />
-          Vesting
-        </Link>
-        <Link className="link item" to="/accounts">
-          <Icon name="users" />
-          Accounts
-        </Link>
-        <Link className="link item" to="/settings">
-          <Icon name="settings" />
-          Settings
-        </Link>
-        <Link className="link item" to="/advanced">
-          <Icon name="lab" />
-          Advanced
-        </Link>
-        <Menu.Item
-          className="link"
+  return (
+    <Box
+      bg="dark.8"
+      c="gray.3"
+      style={{
+        position: 'fixed',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: '92px',
+        overflowY: 'auto',
+      }}
+    >
+      <Stack gap={0} align="center" py="md">
+        <img
+          alt="Vessel"
+          src={network === 'Hive' ? srcHive : srcTestnet}
           style={{
-            position: 'absolute',
-            bottom: 0,
+            width: '50px',
+            height: '50px',
+            margin: '0 auto 1em',
           }}
-        >
-          <div>
-            <span style={{ lineHeight: '1.5em' }}>Chain:</span>
-            <br />
-            <span
-              style={{ fontWeight: 700 }}
-              className={network === 'Hive' ? 'hivered' : 'hivetestnetpink'}
+        />
+        <Text size="sm" c="gray.3" mb="sm">
+          Vessel
+        </Text>
+        <ColorSchemeToggle fixed={false} />
+        <Divider w="100%" color="dark.5" mt="sm" mb="sm" />
+      </Stack>
+
+      <Stack gap={0}>
+        {NAV_ITEMS.map(({ to, label, Icon }) => {
+          const active = location.pathname === to;
+          return (
+            <Link
+              key={to}
+              to={to}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textDecoration: 'none',
+                padding: '0.9em 0',
+                color: active ? '#fff' : 'var(--mantine-color-gray-3)',
+                backgroundColor: active ? 'rgba(255,255,255,0.08)' : 'transparent',
+              }}
             >
-              {network}
-            </span>
-            <hr />
-            <span style={{ lineHeight: '1.5em' }}>Height:</span>
-            <br />
-            <span
-              style={{ fontWeight: 700 }}
-              className={network === 'Hive' ? 'hivered' : 'hivetestnetpink'}
-            >
-              {height}
-            </span>
-          </div>
-        </Menu.Item>
-      </Menu>
-    );
-  }
-}
+              <Icon size={20} />
+              <Text size="xs" mt={4} c={active ? 'white' : 'gray.3'}>
+                {label}
+              </Text>
+            </Link>
+          );
+        })}
+      </Stack>
+
+      <Box
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          width: '100%',
+        }}
+        p="sm"
+      >
+        <div>
+          <span style={{ lineHeight: '1.5em' }}>Chain:</span>
+          <br />
+          <span style={{ fontWeight: 700 }} className={chainClassName}>
+            {network}
+          </span>
+          <hr />
+          <span style={{ lineHeight: '1.5em' }}>Height:</span>
+          <br />
+          <span style={{ fontWeight: 700 }} className={chainClassName}>
+            {height}
+          </span>
+        </div>
+      </Box>
+    </Box>
+  );
+};
 
 function mapStateToProps(state: any) {
   return {

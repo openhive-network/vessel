@@ -1,14 +1,15 @@
-import React, { Component } from 'react';
-import { Divider, Header, Icon, Segment, Statistic, Table } from 'semantic-ui-react';
+import React from 'react';
+import { Box, Divider, Loader, Paper, Table, Title } from '@mantine/core';
 import _ from 'lodash';
 import NumericLabel from '../../utils/NumericLabel';
 import AccountName from '../global/AccountName';
+import { StatGroup, Statistic } from '../ui/Statistic';
 
-export default class PendingReward extends Component<any, any> {
-  getBalances(data) {
-    const { props } = this.props.hive;
-    const totalVestsHive = parseFloat(props.total_vesting_fund_hive.split(' ')[0]);
-    const totalVests = parseFloat(props.total_vesting_shares.split(' ')[0]);
+const Balances: React.FC<any> = (props) => {
+  const getBalances = (data) => {
+    const hiveProps = props.hive.props;
+    const totalVestsHive = parseFloat(hiveProps.total_vesting_fund_hive.split(' ')[0]);
+    const totalVests = parseFloat(hiveProps.total_vesting_shares.split(' ')[0]);
     const mapping = {
       HBD: ['hbd_balance'],
       HBD_SAVINGS: ['savings_hbd_balance'],
@@ -26,10 +27,10 @@ export default class PendingReward extends Component<any, any> {
     };
     if (!data) {
       return {
-        HBD: <Icon name="asterisk" loading />,
-        HIVE: <Icon name="asterisk" loading />,
-        VESTS: <Icon name="asterisk" loading />,
-        HP: <Icon name="asterisk" loading />,
+        HBD: <Loader size="xs" />,
+        HIVE: <Loader size="xs" />,
+        VESTS: <Loader size="xs" />,
+        HP: <Loader size="xs" />,
       };
     }
     _.forOwn(mapping, (fields: any, assignment: any) => {
@@ -40,138 +41,123 @@ export default class PendingReward extends Component<any, any> {
     });
     balances.HP = (totalVestsHive * balances.VESTS) / totalVests;
     return balances;
-  }
+  };
 
-  render() {
-    let display: any = false;
-    if (this.props.hive.props) {
-      const { accounts } = this.props.account;
-      const { names } = this.props.keys;
-      const t = this;
-      const balances = names.map((account) =>
-        accounts && accounts[account] ? t.getBalances(accounts[account]) : {}
-      );
-      const totals = {
-        HBD: balances.reduce(
-          (HBD, balance) => HBD + parseFloat(balance.HBD) + parseFloat(balance.HBD_SAVINGS),
-          0
-        ),
-        HIVE: balances.reduce(
-          (HIVE, balance) => HIVE + parseFloat(balance.HIVE) + parseFloat(balance.HIVE_SAVINGS),
-          0
-        ),
-        VESTS: balances.reduce((VESTS, balance) => VESTS + parseFloat(balance.VESTS), 0),
-        HP: balances.reduce((HP, balance) => HP + parseFloat(balance.HP), 0),
-      };
-      const numberFormat = {
-        shortFormat: true,
-        shortFormatMinValue: 1000,
-      };
-      const network = this.props.hive.props.network || 'Hive';
-      display = (
-        <Segment basic>
-          <Header>Total Wallet Balance</Header>
-          <Segment>
-            <Statistic.Group size="tiny" widths="four">
-              <Statistic>
-                <Statistic.Label>
-                  {network === 'Hive' || network === 'Hive Mirrornet' ? 'HBD' : 'TBD'}
-                </Statistic.Label>
-                <Statistic.Value>
-                  <NumericLabel params={numberFormat}>{totals.HBD}</NumericLabel>
-                </Statistic.Value>
-              </Statistic>
-              <Statistic>
-                <Statistic.Label>
-                  {network === 'Hive' || network === 'Hive Mirrornet' ? 'HIVE' : 'TESTS'}
-                </Statistic.Label>
-                <Statistic.Value>
-                  <NumericLabel params={numberFormat}>{totals.HIVE}</NumericLabel>
-                </Statistic.Value>
-              </Statistic>
-              <Statistic>
-                <Statistic.Label>
-                  {network === 'Hive' || network === 'Hive Mirrornet' ? 'HP' : 'TP'}
-                </Statistic.Label>
-                <Statistic.Value>
-                  <NumericLabel params={numberFormat}>{totals.HP}</NumericLabel>
-                </Statistic.Value>
-              </Statistic>
-              <Statistic>
-                <Statistic.Label>VESTS</Statistic.Label>
-                <Statistic.Value>
-                  <NumericLabel params={numberFormat}>{totals.VESTS}</NumericLabel>
-                </Statistic.Value>
-              </Statistic>
-            </Statistic.Group>
-          </Segment>
-          <Divider />
-          <Header>Account Balances</Header>
-          <Table celled unstackable attached color="grey">
-            <Table.Header>
-              <Table.Row>
-                <Table.HeaderCell textAlign="right">Account</Table.HeaderCell>
-                <Table.HeaderCell colSpan={2} textAlign="right">
-                  Available to Spend
-                </Table.HeaderCell>
-                <Table.HeaderCell colSpan={2} textAlign="right">
-                  Savings Account
-                </Table.HeaderCell>
-                <Table.HeaderCell colSpan={2} textAlign="right">
-                  Locked
-                </Table.HeaderCell>
-              </Table.Row>
-              <Table.Row>
-                <Table.HeaderCell>Name</Table.HeaderCell>
-                <Table.HeaderCell textAlign="right">
-                  {network === 'Hive' || network === 'Hive Mirrornet' ? 'HBD' : 'TBD'}
-                </Table.HeaderCell>
-                <Table.HeaderCell textAlign="right">
-                  {network === 'Hive' || network === 'Hive Mirrornet' ? 'HIVE' : 'TESTS'}
-                </Table.HeaderCell>
-                <Table.HeaderCell textAlign="right">
-                  {network === 'Hive' || network === 'Hive Mirrornet' ? 'HBD' : 'TBD'}
-                </Table.HeaderCell>
-                <Table.HeaderCell textAlign="right">
-                  {network === 'Hive' || network === 'Hive Mirrornet' ? 'HIVE' : 'TESTS'}
-                </Table.HeaderCell>
-                <Table.HeaderCell textAlign="right">
-                  {network === 'Hive' || network === 'Hive Mirrornet' ? 'HP' : 'TP'}
-                </Table.HeaderCell>
-                <Table.HeaderCell textAlign="right">VESTS</Table.HeaderCell>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {names.map((account, i) => (
-                <Table.Row key={account}>
-                  <Table.Cell>
-                    <AccountName name={account} />
-                  </Table.Cell>
-                  <Table.Cell textAlign="right">
-                    <NumericLabel params={numberFormat}>{balances[i].HBD}</NumericLabel>
-                  </Table.Cell>
-                  <Table.Cell textAlign="right">
-                    <NumericLabel params={numberFormat}>{balances[i].HIVE}</NumericLabel>
-                  </Table.Cell>
-                  <Table.Cell textAlign="right">
-                    <NumericLabel params={numberFormat}>{balances[i].HBD_SAVINGS}</NumericLabel>
-                  </Table.Cell>
-                  <Table.Cell textAlign="right">
-                    <NumericLabel params={numberFormat}>{balances[i].HIVE_SAVINGS}</NumericLabel>
-                  </Table.Cell>
-                  <Table.Cell textAlign="right">
-                    <NumericLabel params={numberFormat}>{balances[i].HP}</NumericLabel>
-                  </Table.Cell>
-                  <Table.Cell textAlign="right">
-                    <NumericLabel params={numberFormat}>{balances[i].VESTS}</NumericLabel>
-                  </Table.Cell>
-                </Table.Row>
-              ))}
-            </Table.Body>
-          </Table>
-        </Segment>
-      );
-    }
-    return display;
+  let display: any = false;
+  if (props.hive.props) {
+    const { accounts } = props.account;
+    const { names } = props.keys;
+    const balances = names.map((account) =>
+      accounts && accounts[account] ? getBalances(accounts[account]) : {}
+    );
+    const totals = {
+      HBD: balances.reduce(
+        (HBD, balance) => HBD + parseFloat(balance.HBD) + parseFloat(balance.HBD_SAVINGS),
+        0
+      ),
+      HIVE: balances.reduce(
+        (HIVE, balance) => HIVE + parseFloat(balance.HIVE) + parseFloat(balance.HIVE_SAVINGS),
+        0
+      ),
+      VESTS: balances.reduce((VESTS, balance) => VESTS + parseFloat(balance.VESTS), 0),
+      HP: balances.reduce((HP, balance) => HP + parseFloat(balance.HP), 0),
+    };
+    const numberFormat = {
+      shortFormat: true,
+      shortFormatMinValue: 1000,
+    };
+    const network = props.hive.props.network || 'Hive';
+    display = (
+      <Box p="md">
+        <Title order={3}>Total Wallet Balance</Title>
+        <Paper withBorder p="md" radius="md" mt="md">
+          <StatGroup cols={4}>
+            <Statistic
+              label={network === 'Hive' || network === 'Hive Mirrornet' ? 'HBD' : 'TBD'}
+              value={<NumericLabel params={numberFormat}>{totals.HBD}</NumericLabel>}
+            />
+            <Statistic
+              label={network === 'Hive' || network === 'Hive Mirrornet' ? 'HIVE' : 'TESTS'}
+              value={<NumericLabel params={numberFormat}>{totals.HIVE}</NumericLabel>}
+            />
+            <Statistic
+              label={network === 'Hive' || network === 'Hive Mirrornet' ? 'HP' : 'TP'}
+              value={<NumericLabel params={numberFormat}>{totals.HP}</NumericLabel>}
+            />
+            <Statistic
+              label="VESTS"
+              value={<NumericLabel params={numberFormat}>{totals.VESTS}</NumericLabel>}
+            />
+          </StatGroup>
+        </Paper>
+        <Divider my="md" />
+        <Title order={3}>Account Balances</Title>
+        <Table withTableBorder withColumnBorders mt="md">
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th ta="right">Account</Table.Th>
+              <Table.Th colSpan={2} ta="right">
+                Available to Spend
+              </Table.Th>
+              <Table.Th colSpan={2} ta="right">
+                Savings Account
+              </Table.Th>
+              <Table.Th colSpan={2} ta="right">
+                Locked
+              </Table.Th>
+            </Table.Tr>
+            <Table.Tr>
+              <Table.Th>Name</Table.Th>
+              <Table.Th ta="right">
+                {network === 'Hive' || network === 'Hive Mirrornet' ? 'HBD' : 'TBD'}
+              </Table.Th>
+              <Table.Th ta="right">
+                {network === 'Hive' || network === 'Hive Mirrornet' ? 'HIVE' : 'TESTS'}
+              </Table.Th>
+              <Table.Th ta="right">
+                {network === 'Hive' || network === 'Hive Mirrornet' ? 'HBD' : 'TBD'}
+              </Table.Th>
+              <Table.Th ta="right">
+                {network === 'Hive' || network === 'Hive Mirrornet' ? 'HIVE' : 'TESTS'}
+              </Table.Th>
+              <Table.Th ta="right">
+                {network === 'Hive' || network === 'Hive Mirrornet' ? 'HP' : 'TP'}
+              </Table.Th>
+              <Table.Th ta="right">VESTS</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {names.map((account, i) => (
+              <Table.Tr key={account}>
+                <Table.Td>
+                  <AccountName name={account} />
+                </Table.Td>
+                <Table.Td ta="right">
+                  <NumericLabel params={numberFormat}>{balances[i].HBD}</NumericLabel>
+                </Table.Td>
+                <Table.Td ta="right">
+                  <NumericLabel params={numberFormat}>{balances[i].HIVE}</NumericLabel>
+                </Table.Td>
+                <Table.Td ta="right">
+                  <NumericLabel params={numberFormat}>{balances[i].HBD_SAVINGS}</NumericLabel>
+                </Table.Td>
+                <Table.Td ta="right">
+                  <NumericLabel params={numberFormat}>{balances[i].HIVE_SAVINGS}</NumericLabel>
+                </Table.Td>
+                <Table.Td ta="right">
+                  <NumericLabel params={numberFormat}>{balances[i].HP}</NumericLabel>
+                </Table.Td>
+                <Table.Td ta="right">
+                  <NumericLabel params={numberFormat}>{balances[i].VESTS}</NumericLabel>
+                </Table.Td>
+              </Table.Tr>
+            ))}
+          </Table.Tbody>
+        </Table>
+      </Box>
+    );
   }
-}
+  return display;
+};
+
+export default Balances;

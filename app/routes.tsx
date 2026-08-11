@@ -90,7 +90,9 @@ const AppRoutes: React.FC = () => {
 
   return (
     <AppContainer>
-      <ColorSchemeToggle />
+      {/* Authenticated pages render the toggle inside the nav rail (MenuBar); the onboarding
+          screen has no nav, so fall back to the fixed top-right toggle there. */}
+      {!keys?.isUser && <ColorSchemeToggle />}
       <DecryptPrompt />
       <Routes>
         <Route path="/" element={keys?.isUser ? <TransactionsPage /> : <WelcomePage />} />

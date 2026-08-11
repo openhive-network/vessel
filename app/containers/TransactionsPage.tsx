@@ -1,8 +1,9 @@
-import React, { Component } from 'react';
+import React from 'react';
 import { bindActionCreators } from 'redux';
 import { Navigate } from 'react-router';
 import { connect } from 'react-redux';
-import { Dimmer, Header, Loader, Segment } from 'semantic-ui-react';
+import { Box, Group, Paper, Text, Title } from '@mantine/core';
+import { IconBolt } from '@tabler/icons-react';
 
 import MenuBar from './MenuBar';
 import Balances from '../components/Transactions/Balances';
@@ -14,38 +15,30 @@ import * as ProcessingActions from '../actions/processing';
 import * as KeysActions from '../actions/keys';
 import * as HiveActions from '../actions/hive';
 
-class TransactionsPage extends Component<any, any> {
-  render() {
-    let account_data = (
-      <Dimmer inverted active style={{ minHeight: '100px', display: 'block' }}>
-        <Loader size="large" content="Loading" />
-      </Dimmer>
-    );
-    if (!this.props.keys.isUser) {
-      return <Navigate to="/" replace />;
-    }
-    account_data = (
-      <Segment basic attached>
-        <PendingRewards {...this.props} />
-        <Balances {...this.props} />
-      </Segment>
-    );
-
-    return (
-      <ContentBar>
-        <Segment padded attached secondary>
-          <Header
-            icon="lightning"
-            content="Account Balances"
-            subheader="The total balance of all accounts and the individual balances of each account."
-          />
-        </Segment>
-        {account_data}
-        <MenuBar />
-      </ContentBar>
-    );
+const TransactionsPage: React.FC<any> = (props) => {
+  if (!props.keys.isUser) {
+    return <Navigate to="/" replace />;
   }
-}
+
+  return (
+    <ContentBar>
+      <Paper withBorder p="md" radius={0}>
+        <Group gap="xs" mb={4}>
+          <IconBolt size={20} />
+          <Title order={3}>Account Balances</Title>
+        </Group>
+        <Text c="dimmed" size="sm">
+          The total balance of all accounts and the individual balances of each account.
+        </Text>
+      </Paper>
+      <Box p="md">
+        <PendingRewards {...props} />
+        <Balances {...props} />
+      </Box>
+      <MenuBar />
+    </ContentBar>
+  );
+};
 
 function mapStateToProps(state) {
   return {

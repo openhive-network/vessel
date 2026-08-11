@@ -1,19 +1,17 @@
-import React, { Component } from 'react';
+import React from 'react';
 
-export default class PostLink extends Component<any, any> {
-  handleLink = () => {
-    const { author, permlink } = this.props;
+const PostLink: React.FC<any> = ({ author, permlink }) => {
+  const handleLink = () => {
     window.electronAPI?.openExternal(
       `https://hive.blog/category/@${encodeURIComponent(author)}/${encodeURIComponent(permlink)}`
     );
   };
 
-  render() {
-    const { author, permlink } = this.props;
-    return (
-      <a onClick={this.handleLink}>
-        {author}/{permlink}
-      </a>
-    );
-  }
-}
+  return (
+    <a onClick={handleLink}>
+      {author}/{permlink}
+    </a>
+  );
+};
+
+export default PostLink;

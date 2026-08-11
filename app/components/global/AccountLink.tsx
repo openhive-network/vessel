@@ -1,13 +1,11 @@
-import React, { Component } from 'react';
+import React from 'react';
 
-export default class AccountLink extends Component<any, any> {
-  handleLink = () => {
-    const { name } = this.props;
+const AccountLink: React.FC<any> = ({ name, content }) => {
+  const handleLink = () => {
     window.electronAPI?.openExternal(`https://hive.blog/@${encodeURIComponent(name)}`);
   };
 
-  render() {
-    const { name, content } = this.props;
-    return <a onClick={this.handleLink}>{content}</a>;
-  }
-}
+  return <a onClick={handleLink}>{content}</a>;
+};
+
+export default AccountLink;

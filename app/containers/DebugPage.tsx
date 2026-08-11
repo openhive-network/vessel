@@ -1,8 +1,8 @@
-import React, { Component } from 'react';
+import React from 'react';
 import { bindActionCreators } from 'redux';
 import { Navigate } from 'react-router';
 import { connect } from 'react-redux';
-import { Button, Table } from 'semantic-ui-react';
+import { Button, Table } from '@mantine/core';
 
 import MenuBar from './MenuBar';
 import ContentBar from '../components/ContentBar';
@@ -10,16 +10,10 @@ import ContentBar from '../components/ContentBar';
 import * as PreferencesActions from '../actions/preferences';
 import * as KeysActions from '../actions/keys';
 
-class DebugPage extends Component<any, any> {
-  unlock = (e: any, props: any) => {
-    console.log('unlock', props.value);
-  };
-
-  send = (e: any, props: any) => {
-    // const wif = this.props.actions.getKey(props.value);
-    const account = props.value;
-    const { permissions } = this.props.keys;
-    this.props.actions.useKey(
+const DebugPage: React.FC<any> = (props) => {
+  const send = (account: any) => {
+    const { permissions } = props.keys;
+    props.actions.useKey(
       'transfer',
       {
         from: 'webdev',
@@ -29,43 +23,34 @@ class DebugPage extends Component<any, any> {
       },
       permissions[account]
     );
-    // this.props.actions.transfer(wif, "webdev", "webdev", "0.001 HIVE", "")
   };
 
-  render() {
-    console.log('props', this.props.keys.permissions.webdev);
-    const accounts = Object.keys(this.props.keys.permissions);
-    const { permissions } = this.props.keys;
-    if (!this.props.keys.isUser) {
-      return <Navigate to="/" replace />;
-    }
-    return (
-      <ContentBar>
-        <Table celled unstackable attached>
-          <Table.Body>
-            {accounts.map((account, i) => (
-              <Table.Row key={account}>
-                <Table.Cell>{account}</Table.Cell>
-                <Table.Cell>
-                  {/* <Button
-                      content="Unlock"
-                      value={account}
-                      onClick={this.unlock}
-                    /> */}
-                  <Button content="Send" value={account} onClick={this.send} />
-                </Table.Cell>
-                <Table.Cell>{permissions[account].encrypted ? 'True' : 'False'}</Table.Cell>
-                <Table.Cell>{permissions[account].type}</Table.Cell>
-                <Table.Cell>{permissions[account].key}</Table.Cell>
-              </Table.Row>
-            ))}
-          </Table.Body>
-        </Table>
-        <MenuBar />
-      </ContentBar>
-    );
+  const accounts = Object.keys(props.keys.permissions);
+  const { permissions } = props.keys;
+  if (!props.keys.isUser) {
+    return <Navigate to="/" replace />;
   }
-}
+  return (
+    <ContentBar>
+      <Table withTableBorder withColumnBorders>
+        <Table.Tbody>
+          {accounts.map((account) => (
+            <Table.Tr key={account}>
+              <Table.Td>{account}</Table.Td>
+              <Table.Td>
+                <Button onClick={() => send(account)}>Send</Button>
+              </Table.Td>
+              <Table.Td>{permissions[account].encrypted ? 'True' : 'False'}</Table.Td>
+              <Table.Td>{permissions[account].type}</Table.Td>
+              <Table.Td>{permissions[account].key}</Table.Td>
+            </Table.Tr>
+          ))}
+        </Table.Tbody>
+      </Table>
+      <MenuBar />
+    </ContentBar>
+  );
+};
 
 function mapStateToProps(state: any) {
   return {

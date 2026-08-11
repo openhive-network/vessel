@@ -1,93 +1,72 @@
-import React, { Component } from 'react';
-import { Header, Segment, Table, Icon } from 'semantic-ui-react';
+import React from 'react';
+import { Box, Table, Text, Title } from '@mantine/core';
 
 import AccountName from '../global/AccountName';
 
-export default class AccountsAuths extends Component<any, any> {
-  handleAddAuth = (username) => {
-    this.props.actions.addAuthPrompt(username);
-  };
-
-  handleRemoveAuth = (username) => {
-    this.props.actions.removeAuthPrompt(username);
-  };
-
-  render() {
-    const { names } = this.props.keys;
-    const accounts = names.map((name) => {
-      const account = this.props.account.accounts[name];
-      return (
-        <Table.Row key={name}>
-          <Table.Cell>
-            <Header size="small">
-              <p>
-                <AccountName name={name} />
-              </p>
-              {/* eslint-disable-next-line no-constant-binary-expression */}
-              {false && (
-                <div>
-                  <a onClick={() => this.handleAddAuth(name)}>
-                    <Icon size="large" color="blue" name="plus" alt="add auth" />
-                  </a>
-                  <a onClick={() => this.handleRemoveAuth(name)}>
-                    <Icon size="large" color="red" name="remove" alt="remove auth" />
-                  </a>
-                </div>
-              )}
-            </Header>
-          </Table.Cell>
-          <Table.Cell textAlign="center">
-            <Table size="small" definition>
-              <Table.Body>
-                {['posting', 'active', 'owner'].map((key_type) =>
-                  account[key_type].key_auths.map((auth) => (
-                    <Table.Row>
-                      <Table.Cell>{key_type}</Table.Cell>
-                      <Table.Cell>{auth[0]}</Table.Cell>
-                      <Table.Cell>{auth[1]}</Table.Cell>
-                    </Table.Row>
-                  ))
-                )}
-              </Table.Body>
-            </Table>
-          </Table.Cell>
-          <Table.Cell textAlign="center">
-            <Table size="small" definition>
-              <Table.Body>
-                {['posting', 'active', 'owner'].map((key_type) =>
-                  account[key_type].account_auths.map((auth) => (
-                    <Table.Row>
-                      <Table.Cell>{key_type}</Table.Cell>
-                      <Table.Cell>{auth[0]}</Table.Cell>
-                      <Table.Cell>{auth[1]}</Table.Cell>
-                    </Table.Row>
-                  ))
-                )}
-              </Table.Body>
-            </Table>
-          </Table.Cell>
-        </Table.Row>
-      );
-    });
+export default function AccountsAuths(props: any) {
+  const { names } = props.keys;
+  const accounts = names.map((name: any) => {
+    const account = props.account.accounts[name];
     return (
-      <Segment basic padded>
-        <Header>
-          <Header.Subheader>
-            Each account can grant authority over portions of control to external accounts. These
-            authorities for each account are listed below.
-          </Header.Subheader>
-        </Header>
-        <Table celled>
-          <Table.Header>
-            <Table.Row>
-              <Table.HeaderCell textAlign="center">Name</Table.HeaderCell>
-              <Table.HeaderCell textAlign="center">Key Auths</Table.HeaderCell>
-              <Table.HeaderCell textAlign="center">Account Auths</Table.HeaderCell>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>{accounts}</Table.Body>
-        </Table>
-      </Segment>
+      <Table.Tr key={name}>
+        <Table.Td>
+          <Title order={5} fw={500}>
+            <p>
+              <AccountName name={name} />
+            </p>
+          </Title>
+        </Table.Td>
+        <Table.Td style={{ textAlign: 'center' }}>
+          <Table>
+            <Table.Tbody>
+              {['posting', 'active', 'owner'].map((key_type) =>
+                account[key_type].key_auths.map((auth: any) => (
+                  <Table.Tr key={`${key_type}-${auth[0]}`}>
+                    <Table.Td>{key_type}</Table.Td>
+                    <Table.Td>{auth[0]}</Table.Td>
+                    <Table.Td>{auth[1]}</Table.Td>
+                  </Table.Tr>
+                ))
+              )}
+            </Table.Tbody>
+          </Table>
+        </Table.Td>
+        <Table.Td style={{ textAlign: 'center' }}>
+          <Table>
+            <Table.Tbody>
+              {['posting', 'active', 'owner'].map((key_type) =>
+                account[key_type].account_auths.map((auth: any) => (
+                  <Table.Tr key={`${key_type}-${auth[0]}`}>
+                    <Table.Td>{key_type}</Table.Td>
+                    <Table.Td>{auth[0]}</Table.Td>
+                    <Table.Td>{auth[1]}</Table.Td>
+                  </Table.Tr>
+                ))
+              )}
+            </Table.Tbody>
+          </Table>
+        </Table.Td>
+      </Table.Tr>
     );
-  }
+  });
+  return (
+    <Box p="md">
+      <Title order={4} fw={400} mb="sm">
+        <Text c="dimmed">
+          Each account can grant authority over portions of control to external accounts. These
+          authorities for each account are listed below.
+        </Text>
+      </Title>
+      <Table withTableBorder withColumnBorders>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th style={{ textAlign: 'center' }}>Name</Table.Th>
+            <Table.Th style={{ textAlign: 'center' }}>Key Auths</Table.Th>
+            <Table.Th style={{ textAlign: 'center' }}>Account Auths</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>{accounts}</Table.Tbody>
+      </Table>
+    </Box>
+  );
 }

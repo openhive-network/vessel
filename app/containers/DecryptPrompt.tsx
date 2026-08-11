@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useRef } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
@@ -20,18 +20,19 @@ import { encryptKey, isEncrypted, needsReencrypt } from '../utils/keyEnvelope';
  *
  * The props `auth` object is NEVER mutated (mutating it was the old cleartext-at-rest leak, §6a).
  */
-class DecryptPrompt extends Component<any, any> {
+function DecryptPrompt(props: any) {
   // The ciphertext envelope last pushed into main by the self-heal, so a stale/missing record is
-  // repaired at most once per distinct envelope (not on every failed keystroke probe).
-  syncedKey = null;
+  // repaired at most once per distinct envelope (not on every failed keystroke probe). A ref (not
+  // state) so it persists without triggering a re-render.
+  const syncedKey = useRef(null);
 
   // REMOTE probe: validate the password against the main-process keystore (returns a boolean; the WIF
   // stays in main). If main can't validate — the record is missing (migration gap) or stale (the wallet
   // password was changed by re-importing after migration) — push the renderer's current ciphertext
   // envelope into main ONCE, then re-check. localStorage is never staler than main under the dual store,
   // so this only repairs main forward, and only the envelope (never a WIF) crosses the boundary.
-  handleVerify = async (password) => {
-    const { auth } = this.props.keys.decrypt;
+  const handleVerify = async (password) => {
+    const { auth } = props.keys.decrypt;
     const keystore = window.electronAPI && window.electronAPI.keystore;
     if (!keystore) return false;
     let ok = false;
@@ -40,8 +41,8 @@ class DecryptPrompt extends Component<any, any> {
     } catch (e) {
       ok = false;
     }
-    if (!ok && this.syncedKey !== auth.key) {
-      this.syncedKey = auth.key;
+    if (!ok && syncedKey.current !== auth.key) {
+      syncedKey.current = auth.key;
       try {
         await keystore.putEnvelope({
           account: auth.account,
@@ -58,8 +59,8 @@ class DecryptPrompt extends Component<any, any> {
     return ok;
   };
 
-  handleDecrypted = async (wif, password) => {
-    const { operation, params, auth } = this.props.keys.decrypt;
+  const handleDecrypted = async (wif, password) => {
+    const { operation, params, auth } = props.keys.decrypt;
 
     let signer;
     if (wif == null) {
@@ -80,38 +81,36 @@ class DecryptPrompt extends Component<any, any> {
         reenc.memo = await encryptKey(auth.memo, password);
       }
       if (reenc.key || reenc.memo) {
-        this.props.actions.keyReencrypted({ account: auth.account, ...reenc });
+        props.actions.keyReencrypted({ account: auth.account, ...reenc });
       }
       signer = wif;
     }
 
     const localAuth = { ...auth, encrypted: false, key: signer };
-    this.props.actions.useKey(operation, params, localAuth);
-    this.props.actions.useKeyRequestDecryptClose();
+    props.actions.useKey(operation, params, localAuth);
+    props.actions.useKeyRequestDecryptClose();
   };
 
-  handleCancel = () => {
-    this.props.actions.useKeyRequestDecryptClose();
+  const handleCancel = () => {
+    props.actions.useKeyRequestDecryptClose();
   };
 
-  render() {
-    const { decrypt } = this.props.keys;
-    if (!decrypt || !decrypt.auth) return null;
-    const remote = !!(
-      typeof window !== 'undefined' &&
-      window.electronAPI &&
-      window.electronAPI.keystore
-    );
-    return (
-      <DecryptModal
-        ciphertext={decrypt.auth.key}
-        header="Decrypt Wallet to Broadcast Transaction"
-        onDecrypted={this.handleDecrypted}
-        onCancel={this.handleCancel}
-        onVerify={remote ? this.handleVerify : undefined}
-      />
-    );
-  }
+  const { decrypt } = props.keys;
+  if (!decrypt || !decrypt.auth) return null;
+  const remote = !!(
+    typeof window !== 'undefined' &&
+    window.electronAPI &&
+    window.electronAPI.keystore
+  );
+  return (
+    <DecryptModal
+      ciphertext={decrypt.auth.key}
+      header="Decrypt Wallet to Broadcast Transaction"
+      onDecrypted={handleDecrypted}
+      onCancel={handleCancel}
+      onVerify={remote ? handleVerify : undefined}
+    />
+  );
 }
 
 function mapStateToProps(state) {

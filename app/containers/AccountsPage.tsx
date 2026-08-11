@@ -1,8 +1,16 @@
-import React, { Component } from 'react';
+import React, { useState } from 'react';
 import { bindActionCreators } from 'redux';
 import { Navigate } from 'react-router';
 import { connect } from 'react-redux';
-import { Button, Header, Icon, Menu, Modal, Segment, Table } from 'semantic-ui-react';
+import { Box, Button, Group, Modal, Paper, Tabs, Text, Title } from '@mantine/core';
+import {
+  IconCheck,
+  IconChecklist,
+  IconLock,
+  IconPlus,
+  IconSitemap,
+  IconUsers,
+} from '@tabler/icons-react';
 
 import Accounts from '../components/Accounts';
 import AccountsAuths from '../components/Accounts/Auths';
@@ -19,266 +27,212 @@ import KeysCreate from '../components/Keys/Create';
 import KeysMemo from '../components/Keys/Memo';
 import KeysAuth from '../components/Keys/Auth';
 
-class AccountsPage extends Component<any, any> {
-  state = {
-    activeItem: 'keys',
-    addAccount: false,
+const AccountsPage: React.FC<any> = (props) => {
+  const [activeItem, setActiveItem] = useState('keys');
+
+  const handleItemClick = (name: any) => setActiveItem(name);
+
+  const handleAddAccount = () => {
+    props.actions.addKeyPrompt();
   };
 
-  constructor(props: any) {
-    super(props);
-    // props.actions.getMinimumAccountDelegation(props.preferences);
+  const handleAddAccountCancel = () => {
+    props.actions.addKeyCancel();
+  };
+
+  const handleAddMemoKeyCancel = () => {
+    props.actions.addMemoKeyCancel();
+  };
+
+  const handleCreateAccountCancel = () => {
+    props.actions.createKeyCancel();
+  };
+
+  const handleRemoveKeyCancel = () => {
+    props.actions.removeKeyCancel();
+  };
+
+  const handleRemoveKeyConfirmed = () => {
+    props.actions.removeKeyConfirmed(props.keys.remove);
+  };
+
+  const handleAddAuthCancel = () => {
+    props.actions.addAuthCancel();
+  };
+
+  if (!props.keys.isUser) {
+    return <Navigate to="/" replace />;
   }
 
-  handleItemClick = (e: any, { name }: any) => this.setState({ activeItem: name });
-
-  handleAddAccount = () => {
-    this.props.actions.addKeyPrompt();
-  };
-
-  handleAddAccountCancel = () => {
-    this.props.actions.addKeyCancel();
-  };
-
-  handleAddMemoKeyCancel = () => {
-    this.props.actions.addMemoKeyCancel();
-  };
-
-  handleAddMemoKeyConfirmed = () => {
-    this.props.actions.addMemoKeyConfirmed();
-  };
-
-  handleCreateAccount = () => {
-    this.props.actions.createKeyPrompt();
-  };
-
-  handleCreateAccountCancel = () => {
-    this.props.actions.createKeyCancel();
-  };
-
-  handleRemoveKeyCancel = () => {
-    this.props.actions.removeKeyCancel();
-  };
-
-  handleRemoveKeyConfirmed = () => {
-    this.props.actions.removeKeyConfirmed(this.props.keys.remove);
-  };
-
-  handleAddAuthCancel = () => {
-    this.props.actions.addAuthCancel();
-  };
-
-  handleAddAuthConfirmed = () => {
-    this.props.actions.addAuthConfirmed();
-  };
-
-  render() {
-    if (!this.props.keys.isUser) {
-      return <Navigate to="/" replace />;
-    }
-    const { activeItem } = this.state;
-    let modal: any = false;
-    if (this.props.keys.addPrompt) {
-      modal = (
-        <Modal
-          open
-          closeIcon="close"
-          className="large"
-          content={
-            <Segment basic>
-              <KeysAdd {...this.props} />
-            </Segment>
-          }
-          onClose={this.handleAddAccountCancel}
-        />
-      );
-    }
-    if (this.props.keys.createPrompt) {
-      modal = (
-        <Modal
-          open
-          closeIcon="close"
-          className="large"
-          content={
-            <Segment basic>
-              <KeysCreate handleMethodReset={this.handleCreateAccountCancel} {...this.props} />
-            </Segment>
-          }
-          onClose={this.handleCreateAccountCancel}
-        />
-      );
-    }
-    let activeTab = <Accounts {...this.props} />;
-    switch (activeItem) {
-      case 'auths': {
-        activeTab = <AccountsAuths {...this.props} />;
-        break;
-      }
-      case 'delegation': {
-        activeTab = <AccountsDelegation {...this.props} />;
-        break;
-      }
-      case 'proxy': {
-        activeTab = <AccountsProxy {...this.props} />;
-        break;
-      }
-      case 'voting': {
-        activeTab = <AccountsVoting {...this.props} />;
-        break;
-      }
-      default: {
-        activeTab = <Accounts {...this.props} />;
-        break;
-      }
-    }
-
-    if (this.props.keys.remove) {
-      modal = (
-        <Modal
-          open
-          header="Remove this account?"
-          content={
-            <Segment padded basic>
-              <p>
-                Are you sure you want to remove this account? All keys associated to this account
-                will be removed from the wallet. If you do not have backups, your account may be
-                lost.
-              </p>
-              <Header>Account: {this.props.keys.remove}</Header>
-            </Segment>
-          }
-          actions={[
-            {
-              key: 'no',
-              content: 'No',
-              color: 'red',
-              onClick: this.handleRemoveKeyCancel,
-            },
-            {
-              key: 'yes',
-              content: 'Yes',
-              color: 'green',
-              onClick: this.handleRemoveKeyConfirmed,
-            },
-          ]}
-        />
-      );
-    }
-    if (this.props.keys.addMemoPrompt) {
-      modal = (
-        <Modal
-          open
-          header="Add a Memo Key"
-          content={<KeysMemo actions={this.props.actions} keys={this.props.keys} />}
-          actions={[
-            {
-              key: 'no',
-              content: 'Cancel',
-              color: 'red',
-              onClick: this.handleAddMemoKeyCancel,
-            },
-          ]}
-        />
-      );
-    }
-    if (this.props.keys.addAuthPrompt) {
-      modal = (
-        <Modal
-          open
-          header="Add a Key or Account Auth"
-          content={<KeysAuth actions={this.props.actions} keys={this.props.keys} />}
-          actions={[
-            {
-              key: 'no',
-              content: 'Cancel',
-              color: 'red',
-              onClick: this.handleAddAuthCancel,
-            },
-          ]}
-        />
-      );
-    }
-    if (this.props.keys.removeAuthPrompt) {
-      modal = (
-        <Modal
-          open
-          header="Remove a Key or Account Auth"
-          content={<KeysAuth actions={this.props.actions} keys={this.props.keys} />}
-          actions={[
-            {
-              key: 'no',
-              content: 'Cancel',
-              color: 'red',
-              onClick: (this as any).handleRemoveAuthCancel,
-            },
-          ]}
-        />
-      );
-    }
-    return (
-      <ContentBar>
-        {modal}
-        <Segment basic padded attached secondary>
-          <Header>
-            <Button
-              color="green"
-              onClick={this.handleAddAccount}
-              icon="plus"
-              floated="right"
-              content="Add account"
-            />
-            <Icon name="users" />
-            <Header.Content>
-              Accounts
-              <Header.Subheader>
-                The accounts imported into this wallet and their permissions.
-              </Header.Subheader>
-            </Header.Content>
-          </Header>
-        </Segment>
-        <Menu tabular attached>
-          <Menu.Item
-            name="keys"
-            icon="lock"
-            content="Account Keys"
-            active={activeItem === 'keys'}
-            onClick={this.handleItemClick}
-          />
-          <Menu.Item
-            name="auths"
-            icon="users"
-            content="Account Auths"
-            active={activeItem === 'auths'}
-            onClick={this.handleItemClick}
-          />
-          <Menu.Item
-            name="delegation"
-            icon="tasks"
-            content="HP Delegation"
-            active={activeItem === 'delegation'}
-            onClick={this.handleItemClick}
-          />
-          <Menu.Item
-            name="proxy"
-            icon="sitemap"
-            content="Witness Proxy"
-            active={activeItem === 'proxy'}
-            onClick={this.handleItemClick}
-          />
-          <Menu.Item
-            name="voting"
-            icon="check"
-            content="Witness Voting"
-            active={activeItem === 'voting'}
-            onClick={this.handleItemClick}
-          />
-        </Menu>
-        {activeTab}
-        <MenuBar />
-      </ContentBar>
+  let modal: any = false;
+  if (props.keys.addPrompt) {
+    modal = (
+      <Modal opened onClose={handleAddAccountCancel} size="lg" title="Add Account">
+        <KeysAdd {...props} />
+      </Modal>
     );
   }
-}
+  if (props.keys.createPrompt) {
+    modal = (
+      <Modal opened onClose={handleCreateAccountCancel} size="lg" title="Create Account">
+        <KeysCreate handleMethodReset={handleCreateAccountCancel} {...props} />
+      </Modal>
+    );
+  }
+  let activeTab = <Accounts {...props} />;
+  switch (activeItem) {
+    case 'auths': {
+      activeTab = <AccountsAuths {...props} />;
+      break;
+    }
+    case 'delegation': {
+      activeTab = <AccountsDelegation {...props} />;
+      break;
+    }
+    case 'proxy': {
+      activeTab = <AccountsProxy {...props} />;
+      break;
+    }
+    case 'voting': {
+      activeTab = <AccountsVoting {...props} />;
+      break;
+    }
+    default: {
+      activeTab = <Accounts {...props} />;
+      break;
+    }
+  }
+
+  if (props.keys.remove) {
+    modal = (
+      <Modal
+        opened
+        onClose={handleRemoveKeyCancel}
+        title="Remove this account?"
+        closeOnEscape={false}
+        closeOnClickOutside={false}
+        withCloseButton={false}
+      >
+        <Text>
+          Are you sure you want to remove this account? All keys associated to this account will be
+          removed from the wallet. If you do not have backups, your account may be lost.
+        </Text>
+        <Title order={5} mt="md">
+          Account: {props.keys.remove}
+        </Title>
+        <Group justify="flex-end" mt="md">
+          <Button color="red" onClick={handleRemoveKeyCancel}>
+            No
+          </Button>
+          <Button color="green" onClick={handleRemoveKeyConfirmed}>
+            Yes
+          </Button>
+        </Group>
+      </Modal>
+    );
+  }
+  if (props.keys.addMemoPrompt) {
+    modal = (
+      <Modal
+        opened
+        onClose={handleAddMemoKeyCancel}
+        title="Add a Memo Key"
+        closeOnEscape={false}
+        closeOnClickOutside={false}
+        withCloseButton={false}
+      >
+        <KeysMemo actions={props.actions} keys={props.keys} />
+        <Group justify="flex-end" mt="md">
+          <Button color="red" onClick={handleAddMemoKeyCancel}>
+            Cancel
+          </Button>
+        </Group>
+      </Modal>
+    );
+  }
+  if (props.keys.addAuthPrompt) {
+    modal = (
+      <Modal
+        opened
+        onClose={handleAddAuthCancel}
+        title="Add a Key or Account Auth"
+        closeOnEscape={false}
+        closeOnClickOutside={false}
+        withCloseButton={false}
+      >
+        <KeysAuth actions={props.actions} keys={props.keys} />
+        <Group justify="flex-end" mt="md">
+          <Button color="red" onClick={handleAddAuthCancel}>
+            Cancel
+          </Button>
+        </Group>
+      </Modal>
+    );
+  }
+  if (props.keys.removeAuthPrompt) {
+    modal = (
+      <Modal
+        opened
+        // No onClose in the original (no handleRemoveAuthCancel method existed on the class;
+        // the Cancel button's onClick resolved to undefined there too). Preserved as-is.
+        onClose={() => {}}
+        title="Remove a Key or Account Auth"
+        closeOnEscape={false}
+        closeOnClickOutside={false}
+        withCloseButton={false}
+      >
+        <KeysAuth actions={props.actions} keys={props.keys} />
+        <Group justify="flex-end" mt="md">
+          <Button color="red" onClick={undefined}>
+            Cancel
+          </Button>
+        </Group>
+      </Modal>
+    );
+  }
+  return (
+    <ContentBar>
+      {modal}
+      <Paper withBorder p="md" radius={0}>
+        <Group justify="space-between" wrap="nowrap">
+          <Group gap="xs">
+            <IconUsers size={20} />
+            <Box>
+              <Title order={3}>Accounts</Title>
+              <Text c="dimmed" size="sm">
+                The accounts imported into this wallet and their permissions.
+              </Text>
+            </Box>
+          </Group>
+          <Button color="green" leftSection={<IconPlus size={16} />} onClick={handleAddAccount}>
+            Add account
+          </Button>
+        </Group>
+      </Paper>
+      <Tabs value={activeItem} onChange={handleItemClick}>
+        <Tabs.List>
+          <Tabs.Tab value="keys" leftSection={<IconLock size={16} />}>
+            Account Keys
+          </Tabs.Tab>
+          <Tabs.Tab value="auths" leftSection={<IconUsers size={16} />}>
+            Account Auths
+          </Tabs.Tab>
+          <Tabs.Tab value="delegation" leftSection={<IconChecklist size={16} />}>
+            HP Delegation
+          </Tabs.Tab>
+          <Tabs.Tab value="proxy" leftSection={<IconSitemap size={16} />}>
+            Witness Proxy
+          </Tabs.Tab>
+          <Tabs.Tab value="voting" leftSection={<IconCheck size={16} />}>
+            Witness Voting
+          </Tabs.Tab>
+        </Tabs.List>
+      </Tabs>
+      {activeTab}
+      <MenuBar />
+    </ContentBar>
+  );
+};
 
 function mapStateToProps(state: any) {
   return {

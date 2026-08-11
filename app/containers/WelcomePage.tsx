@@ -1,18 +1,16 @@
-import React, { Component } from 'react';
+import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import Welcome from '../components/Welcome';
 import * as KeyActions from '../actions/keys';
 import * as PreferencesActions from '../actions/preferences';
 
-class WelcomePage extends Component<any, any> {
-  render() {
-    return (
-      <div>
-        <Welcome {...this.props} />
-      </div>
-    );
-  }
+function WelcomePage(props: any) {
+  return (
+    <div>
+      <Welcome {...props} />
+    </div>
+  );
 }
 
 function mapStateToProps(state: any) {

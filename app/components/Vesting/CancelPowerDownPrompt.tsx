@@ -45,7 +45,7 @@ function CancelPowerDownPrompt(props: any) {
   );
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: any) {
   return {
     account: state.account,
     keys: state.keys,
@@ -53,7 +53,7 @@ function mapStateToProps(state) {
   };
 }
 
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch: any) {
   return {
     actions: bindActionCreators(
       {

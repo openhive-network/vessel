@@ -3,7 +3,7 @@ import { Button, LoadingOverlay, Paper, Table, Title } from '@mantine/core';
 import AccountName from '../global/AccountName';
 
 const PendingReward: React.FC<any> = (props) => {
-  const claimRewardBalance = (e, data) => {
+  const claimRewardBalance = (e: any, data: any) => {
     const { accounts } = props.account;
     const account = data.value;
     const { permissions } = props.keys;
@@ -20,7 +20,7 @@ const PendingReward: React.FC<any> = (props) => {
   let display: any = false;
   const { names } = props.keys;
   const { accounts } = props.account;
-  const pendingAccounts = names.filter((name) =>
+  const pendingAccounts = names.filter((name: any) =>
     accounts && accounts[name]
       ? accounts[name].reward_vesting_balance !== '0.000000 VESTS'
       : false
@@ -43,7 +43,7 @@ const PendingReward: React.FC<any> = (props) => {
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {pendingAccounts.map((account) => (
+            {pendingAccounts.map((account: any) => (
               <Table.Tr key={account}>
                 <Table.Td>
                   <Button onClick={(e) => claimRewardBalance(e, { value: account })}>

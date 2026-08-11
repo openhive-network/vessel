@@ -20,7 +20,7 @@ export default function OperationsPromptDelegation(props: any) {
   if (props.account.vestingDelegations && props.account.vestingDelegations[opData.delegator]) {
     const existingDelegations = props.account.vestingDelegations[opData.delegator];
     existingDelegation = existingDelegations.reduce(
-      (a, b) =>
+      (a: any, b: any) =>
         b.delegator === opData.delegator && b.delegatee === opData.delegatee
           ? a + parseFloat(b.vesting_shares.split(' ')[0])
           : 0,

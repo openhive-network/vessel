@@ -165,7 +165,7 @@ const AccountsProxy: React.FC<any> = (props) => {
     if (props.account.vestingDelegations && props.account.vestingDelegations[name]) {
       const existingDelegations = props.account.vestingDelegations[name];
       existingDelegation = existingDelegations.reduce(
-        (a, b) =>
+        (a: any, b: any) =>
           b.delegatee === delegateeMap[name] ? a + parseFloat(b.vesting_shares.split(' ')[0]) : 0,
         0
       );
@@ -272,7 +272,7 @@ const AccountsProxy: React.FC<any> = (props) => {
   }
 
   const { names } = props.keys;
-  const accounts = names.map((name) => {
+  const accounts = names.map((name: any) => {
     const account = props.account.accounts[name];
     const delegatees = (props.account.vestingDelegations || {})[name];
     const delegated = account.delegated_vesting_shares;
@@ -325,7 +325,7 @@ const AccountsProxy: React.FC<any> = (props) => {
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
-                {delegatees.map((delegatee) => {
+                {delegatees.map((delegatee: any) => {
                   const dVests = parseFloat(delegatee.vesting_shares.split(' ')[0]);
                   return (
                     <Table.Tr key={delegatee.id}>

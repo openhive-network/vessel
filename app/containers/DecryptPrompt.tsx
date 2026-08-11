@@ -31,7 +31,7 @@ function DecryptPrompt(props: any) {
   // password was changed by re-importing after migration) — push the renderer's current ciphertext
   // envelope into main ONCE, then re-check. localStorage is never staler than main under the dual store,
   // so this only repairs main forward, and only the envelope (never a WIF) crosses the boundary.
-  const handleVerify = async (password) => {
+  const handleVerify = async (password: any) => {
     const { auth } = props.keys.decrypt;
     const keystore = window.electronAPI && window.electronAPI.keystore;
     if (!keystore) return false;
@@ -59,7 +59,7 @@ function DecryptPrompt(props: any) {
     return ok;
   };
 
-  const handleDecrypted = async (wif, password) => {
+  const handleDecrypted = async (wif: any, password: any) => {
     const { operation, params, auth } = props.keys.decrypt;
 
     let signer;
@@ -113,13 +113,13 @@ function DecryptPrompt(props: any) {
   );
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: any) {
   return {
     keys: state.keys,
   };
 }
 
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch: any) {
   return {
     actions: bindActionCreators(
       {

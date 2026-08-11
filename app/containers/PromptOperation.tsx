@@ -18,7 +18,7 @@ import { parseAndValidateSignOps } from '../utils/signPayload';
 import OperationsPrompt from '../components/sign/operations/prompt';
 import SignConfirmModal from '../components/sign/SignConfirmModal';
 
-const accountFields = {
+const accountFields: Record<string, any> = {
   account_create: ['creator'],
   account_create_with_delegation: ['creator'],
   account_update: ['account'],
@@ -66,7 +66,7 @@ function PromptOperation(props: any) {
     }
   }, [props.processing.account_custom_ops_resolved]);
 
-  const submitOps = (e) => {
+  const submitOps = (e: any) => {
     e.preventDefault();
     // Never sign an invalid/oversized payload, even if something re-enabled the button.
     if (payloadError) return;
@@ -104,7 +104,7 @@ function PromptOperation(props: any) {
   // Approved in the confirm modal. For an encrypted key the modal already verified `password` against
   // main; sign there via a main signer { account, password } (encrypted:false so useKey won't re-prompt).
   // A plaintext legacy key signs with its stored WIF, exactly as before — the modal was just a confirm.
-  const handleConfirmSign = (password) => {
+  const handleConfirmSign = (password: any) => {
     if (!confirming) return;
     const { role, auth } = confirming;
     const params = { operations: ops, extensions: [], role };
@@ -119,21 +119,21 @@ function PromptOperation(props: any) {
     setConfirming(null);
   };
 
-  const modifyOpsPrompt = (e, data) => {
+  const modifyOpsPrompt = (e: any, data: any) => {
     const { index, name, value } = data;
     ops[index][1][name] = value;
     setOps([...ops]);
   };
 
-  const modifyOpsByAccount = (account) => {
+  const modifyOpsByAccount = (account: any) => {
     const modOps = ops.slice(0);
     const accountFieldTypes = Object.keys(accountFields);
-    ops.forEach((op, idx) => {
+    ops.forEach((op: any, idx: any) => {
       const opType = op[0];
       const opData = op[1];
       if (accountFieldTypes.indexOf(opType) > -1) {
         const modData = { ...opData };
-        accountFields[opType].forEach((field) => {
+        accountFields[opType].forEach((field: any) => {
           modData[field] = account;
         });
         modOps[idx] = [opType, modData];
@@ -191,7 +191,7 @@ function PromptOperation(props: any) {
   );
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: any) {
   return {
     account: state.account,
     keys: state.keys,
@@ -201,7 +201,7 @@ function mapStateToProps(state) {
   };
 }
 
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch: any) {
   return {
     actions: bindActionCreators(
       {

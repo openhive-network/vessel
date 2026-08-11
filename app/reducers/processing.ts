@@ -58,7 +58,7 @@ import {
   ACCOUNT_COLLATERALIZED_CONVERT_RESOLVED,
 } from '../actions/account';
 
-function setError(response) {
+function setError(response: any) {
   try {
     const stack = response.payload.error.data.stack[0];
     const values = Object.keys(stack.data);

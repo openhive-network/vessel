@@ -68,15 +68,15 @@ const PowerUpPrompt: React.FC<any> = (props) => {
     e.preventDefault();
   };
 
-  const handleOnChange = (value) => {
+  const handleOnChange = (value: any) => {
     setHiveAmount(parseFloat(String(value)).toFixed(3));
   };
 
-  const handleOnChangeComplete = (value) => {
+  const handleOnChangeComplete = (value: any) => {
     setHiveAmount(parseFloat(String(value)).toFixed(3));
   };
 
-  const handleAccountChange = (event) => {
+  const handleAccountChange = (event: any) => {
     setToAccount(event.currentTarget.value);
   };
 
@@ -225,7 +225,7 @@ const PowerUpPrompt: React.FC<any> = (props) => {
   return prompt;
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state: any) {
   return {
     account: state.account,
     keys: state.keys,
@@ -233,7 +233,7 @@ function mapStateToProps(state) {
   };
 }
 
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch: any) {
   return {
     actions: bindActionCreators(
       {

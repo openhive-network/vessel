@@ -245,7 +245,7 @@ const Send: React.FC<any> = (props) => {
   };
 
   const handleExternalLink = () => {
-    window.electronAPI?.openExternal(exchangeLinks[to]);
+    window.electronAPI?.openExternal(exchangeLinks[to as keyof typeof exchangeLinks]);
   };
 
   const handleFromChange = (value: any) => {
@@ -473,7 +473,7 @@ const Send: React.FC<any> = (props) => {
 
   const { accounts } = props.account;
   const { keys } = props;
-  const availableFrom = keys.names.map((name) => {
+  const availableFrom = keys.names.map((name: any) => {
     const hasPermission =
       keys.permissions[name].type === 'active' || keys.permissions[name].type === 'owner';
     return hasPermission
@@ -525,8 +525,8 @@ const Send: React.FC<any> = (props) => {
     if (to) {
       externalLink = (
         <Text component="div" ml="sm" mt="xs">
-          {exchangeNotes[to]}
-          <Anchor onClick={handleExternalLink}> {exchangeLinks[to]}</Anchor>
+          {exchangeNotes[to as keyof typeof exchangeNotes]}
+          <Anchor onClick={handleExternalLink}> {exchangeLinks[to as keyof typeof exchangeLinks]}</Anchor>
         </Text>
       );
     }
@@ -547,7 +547,7 @@ const Send: React.FC<any> = (props) => {
   }
   if (destination === 'contact') {
     let contactList = props.account.contacts ? props.account.contacts.slice() : [];
-    contactList = contactList.map((contact) => ({
+    contactList = contactList.map((contact: any) => ({
       value: contact,
       label: `@${contact}`,
     }));

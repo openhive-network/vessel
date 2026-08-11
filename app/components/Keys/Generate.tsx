@@ -54,7 +54,7 @@ export default function KeysGenerate(props: any) {
     setPrv(newPrv);
   };
 
-  function setClipboardText(text) {
+  function setClipboardText(text: any) {
     const id = 'mycustom-clipboard-textarea-hidden-id';
     let existsTextarea: any = document.getElementById(id);
 

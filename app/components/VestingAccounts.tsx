@@ -45,11 +45,11 @@ const VestingAccounts: React.FC<any> = (props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.processing.account_vesting_withdraw_resolved]);
 
-  const handlePowerDownPrompt = (value) => {
+  const handlePowerDownPrompt = (value: any) => {
     setPowerDown(value);
   };
 
-  const handlePowerDownDestinationRemove = (e, value) => {
+  const handlePowerDownDestinationRemove = (e: any, value: any) => {
     const { permissions } = props.keys;
     const account = value.route.from_account;
     const target = value.route.to_account;
@@ -63,15 +63,15 @@ const VestingAccounts: React.FC<any> = (props) => {
     e.preventDefault();
   };
 
-  const handlePowerDownDestinationPrompt = (value) => {
+  const handlePowerDownDestinationPrompt = (value: any) => {
     setPowerDownDestination(value);
   };
 
-  const handlePowerDownCancelPrompt = (value) => {
+  const handlePowerDownCancelPrompt = (value: any) => {
     setCancelPowerDown(value);
   };
 
-  const handlePowerUpPrompt = (value) => {
+  const handlePowerUpPrompt = (value: any) => {
     setPowerUp(value);
   };
 
@@ -106,7 +106,7 @@ const VestingAccounts: React.FC<any> = (props) => {
   };
   const { account_set_withdraw_vesting_route_pending } = props.processing;
   const hiveProps = props.hive.props;
-  const accounts = names.map((name) => {
+  const accounts = names.map((name: any) => {
     const account = props.account.accounts[name];
     const withdrawRoutes = props.account.withdrawRoutes
       ? props.account.withdrawRoutes[name]
@@ -131,7 +131,7 @@ const VestingAccounts: React.FC<any> = (props) => {
       withdrawRoutesDisplay = (
         <Table>
           <Table.Tbody>
-            {withdrawRoutes.map((route) => {
+            {withdrawRoutes.map((route: any) => {
               total += route.percent;
               return (
                 <Table.Tr key={route.to_account}>

@@ -16,7 +16,7 @@ import KeysConfirm from './Confirm';
 import { hiveAuth } from '../../utils/hiveApi';
 
 export default function KeysImport(props: any) {
-  const validate = (newState) => {
+  const validate = (newState: any) => {
     const errors: any = {};
     const { lock1, lock2 } = newState;
     // Password is now mandatory (§5.1 — no unencrypted opt-out).

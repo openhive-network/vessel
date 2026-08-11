@@ -40,7 +40,7 @@ const TransactionsPage: React.FC<any> = (props) => {
   );
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state: any) {
   return {
     account: state.account,
     account_data: state.account_data,
@@ -50,7 +50,7 @@ function mapStateToProps(state) {
   };
 }
 
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch: any) {
   return {
     actions: bindActionCreators(
       {

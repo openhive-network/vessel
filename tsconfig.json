@@ -8,8 +8,6 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
-    // noImplicitAny deferred to Phase 5: ~17 TS7016s from untyped legacy .js imports (hive-js, etc.)
-    "noImplicitAny": false,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,

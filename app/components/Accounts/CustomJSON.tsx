@@ -37,7 +37,7 @@ const AccountsCustomJSON: React.FC<any> = (props) => {
     e.preventDefault();
   };
 
-  const availableFrom = keys.names.map((name) => {
+  const availableFrom = keys.names.map((name: any) => {
     const hasPermission =
       keys.permissions[name].type === 'active' || keys.permissions[name].type === 'owner';
     return hasPermission

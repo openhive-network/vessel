@@ -204,7 +204,7 @@ export function useKey(operation: any, params: any, auth: any) {
     } else {
       // Permanent read path for pre-existing plaintext records. Route the role so account.js
       // signs with the correct authority (D1: account.js send { [role]: wif }).
-      dispatch(AccountActions[operation](auth.key, { ...params, role: required }));
+      dispatch((AccountActions as Record<string, any>)[operation](auth.key, { ...params, role: required }));
       dispatch(useKeyRequestDecryptClose());
     }
   };

@@ -9,7 +9,7 @@ const KeysMemo: React.FC<any> = (props) => {
   const [wif, setWif] = useState<any>('');
   const [password, setPassword] = useState<any>('');
 
-  const validate = (newState) => {
+  const validate = (newState: any) => {
     const errors: any = {};
     errors.wif_error_invalid = !hiveAuth.isWif(newState.wif);
     errors.wif_not_valid = true;

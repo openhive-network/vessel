@@ -37,7 +37,7 @@ const Settings: React.FC<any> = (props) => {
 
   const contactList =
     account.contacts &&
-    account.contacts.map((contact) => (
+    account.contacts.map((contact: any) => (
       <Table.Tr key={contact}>
         <Table.Td>{contact}</Table.Td>
         <Table.Td>

@@ -1,9 +1,9 @@
 import React from 'react';
 import { Tooltip } from '@mantine/core';
 
-function NumericLabel(props) {
+function NumericLabel(props: any) {
   // inspired by http://stackoverflow.com/a/9462382
-  function nFormatter(num, minValue) {
+  function nFormatter(num: any, minValue: any) {
     if (!num || !+num || typeof +num !== 'number') {
       return {
         number: num,

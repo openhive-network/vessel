@@ -6,7 +6,7 @@ import AccountName from '../global/AccountName';
 import { StatGroup, Statistic } from '../ui/Statistic';
 
 const Balances: React.FC<any> = (props) => {
-  const getBalances = (data) => {
+  const getBalances = (data: any) => {
     const hiveProps = props.hive.props;
     const totalVestsHive = parseFloat(hiveProps.total_vesting_fund_hive.split(' ')[0]);
     const totalVests = parseFloat(hiveProps.total_vesting_shares.split(' ')[0]);
@@ -17,7 +17,7 @@ const Balances: React.FC<any> = (props) => {
       HIVE_SAVINGS: ['savings_balance'],
       VESTS: ['vesting_shares'],
     };
-    const balances = {
+    const balances: Record<string, any> = {
       HBD: 0,
       HBD_SAVINGS: 0,
       HIVE: 0,
@@ -47,20 +47,20 @@ const Balances: React.FC<any> = (props) => {
   if (props.hive.props) {
     const { accounts } = props.account;
     const { names } = props.keys;
-    const balances = names.map((account) =>
+    const balances = names.map((account: any) =>
       accounts && accounts[account] ? getBalances(accounts[account]) : {}
     );
     const totals = {
       HBD: balances.reduce(
-        (HBD, balance) => HBD + parseFloat(balance.HBD) + parseFloat(balance.HBD_SAVINGS),
+        (HBD: any, balance: any) => HBD + parseFloat(balance.HBD) + parseFloat(balance.HBD_SAVINGS),
         0
       ),
       HIVE: balances.reduce(
-        (HIVE, balance) => HIVE + parseFloat(balance.HIVE) + parseFloat(balance.HIVE_SAVINGS),
+        (HIVE: any, balance: any) => HIVE + parseFloat(balance.HIVE) + parseFloat(balance.HIVE_SAVINGS),
         0
       ),
-      VESTS: balances.reduce((VESTS, balance) => VESTS + parseFloat(balance.VESTS), 0),
-      HP: balances.reduce((HP, balance) => HP + parseFloat(balance.HP), 0),
+      VESTS: balances.reduce((VESTS: any, balance: any) => VESTS + parseFloat(balance.VESTS), 0),
+      HP: balances.reduce((HP: any, balance: any) => HP + parseFloat(balance.HP), 0),
     };
     const numberFormat = {
       shortFormat: true,
@@ -127,7 +127,7 @@ const Balances: React.FC<any> = (props) => {
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {names.map((account, i) => (
+            {names.map((account: any, i: any) => (
               <Table.Tr key={account}>
                 <Table.Td>
                   <AccountName name={account} />

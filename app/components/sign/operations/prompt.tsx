@@ -26,7 +26,7 @@ const opData = {};
 
 // Templates for Operation Messaging
 // Colors indicate level of risk - green, yellow, orange, red
-const opTemplates = {
+const opTemplates: Record<string, any> = {
   account_create: {
     color: 'orange',
     message: () => 'Create new account (Review JSON for info).',
@@ -41,15 +41,15 @@ const opTemplates = {
   },
   account_witness_vote: {
     color: 'orange',
-    message: (op) => `Voting ${op.witness} for witness.`,
+    message: (op: any) => `Voting ${op.witness} for witness.`,
   },
   account_witness_proxy: {
     color: 'orange',
-    message: (op) => `Set ${op.proxy} as witness voting proxy.`,
+    message: (op: any) => `Set ${op.proxy} as witness voting proxy.`,
   },
   cancel_transfer_from_savings: {
     color: 'orange',
-    message: (op) => `Cancel savings withdraw ${op.request_id} from ${op.from}.`,
+    message: (op: any) => `Cancel savings withdraw ${op.request_id} from ${op.from}.`,
   },
   claim_reward_balance: {
     color: 'green',
@@ -65,54 +65,54 @@ const opTemplates = {
   },
   convert: {
     color: 'orange',
-    message: (op) => `Convert ${op.amount} to equiv HIVE in 3.5 days.`,
+    message: (op: any) => `Convert ${op.amount} to equiv HIVE in 3.5 days.`,
   },
   collateralizedConvert: {
     color: 'orange',
-    message: (op) =>
+    message: (op: any) =>
       `Collateralized Convert ${op.amount} to equiv HBD and HIVE coll. return in 3.5 days.`,
   },
   delegate_vesting_shares: {
     color: 'orange',
-    message: (op) => `Delegate ${op.delegatee} ${op.vesting_shares}.`,
+    message: (op: any) => `Delegate ${op.delegatee} ${op.vesting_shares}.`,
   },
   feed_publish: {
     color: 'green',
-    message: (op) => `Publish price feed of ${op.exchange_rate}.`,
+    message: (op: any) => `Publish price feed of ${op.exchange_rate}.`,
   },
   set_withdraw_vesting_route: {
     color: 'orange',
-    message: (op) =>
+    message: (op: any) =>
       `Set power down route to ${op.to_account} @ ${(op.percent / 100).toFixed(2)}%.`,
   },
   transfer: {
     color: 'red',
-    message: (op) => `Send ${op.to} ${op.amount}.`,
+    message: (op: any) => `Send ${op.to} ${op.amount}.`,
   },
   transfer_from_savings: {
     color: 'orange',
-    message: (op) =>
+    message: (op: any) =>
       `Withdraw ${op.amount} from ${op.from}'s savings account to ${op.to}'s account.`,
   },
   transfer_to_savings: {
     color: 'red',
-    message: (op) => `Send ${op.amount} from ${op.from}'s account to ${op.to}'s savings account.`,
+    message: (op: any) => `Send ${op.amount} from ${op.from}'s account to ${op.to}'s savings account.`,
   },
   transfer_to_vesting: {
     color: 'red',
-    message: (op) => `Send ${op.to} ${op.amount} as Hive Power.`,
+    message: (op: any) => `Send ${op.to} ${op.amount} as Hive Power.`,
   },
   vote: {
     color: 'green',
-    message: (op) => `${(op.weight / 100).toFixed(2)}% vote for ${op.author}.`,
+    message: (op: any) => `${(op.weight / 100).toFixed(2)}% vote for ${op.author}.`,
   },
   withdraw_vesting: {
     color: 'orange',
-    message: (op) => `Power down ${op.vesting_shares} from account ${op.account}.`,
+    message: (op: any) => `Power down ${op.vesting_shares} from account ${op.account}.`,
   },
   witness_update: {
     color: 'green',
-    message: (op) => `Witness info update for ${op.owner}.`,
+    message: (op: any) => `Witness info update for ${op.owner}.`,
   },
 };
 
@@ -250,7 +250,7 @@ const OperationsPrompt: React.FC<any> = (props) => {
   };
 
   const { ops } = props;
-  const accounts = props.accounts.map((account) => ({
+  const accounts = props.accounts.map((account: any) => ({
     value: account,
     label: account,
   }));

@@ -16,7 +16,7 @@ import { hiveAuth } from '../../utils/hiveApi';
 
 // FROZEN key logic ported verbatim from the class version (this.state -> local,
 // this.props -> props). No WIF is persisted or logged.
-const validate = (newState) => {
+const validate = (newState: any) => {
   const errors: any = {};
   errors.wif_error_invalid = !hiveAuth.isWif(newState.wif);
   errors.wif_not_valid = true;

@@ -83,7 +83,7 @@ export default function SignConfirmModal(props: any) {
           You are about to sign as <strong>@{account}</strong>:
         </Text>
         <List withPadding listStyleType="disc" mt="xs">
-          {(ops || []).map((op, i) => (
+          {(ops || []).map((op: any, i: any) => (
             <List.Item key={`op-${i}`}>{describeOp(op)}</List.Item>
           ))}
         </List>

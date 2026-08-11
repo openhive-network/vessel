@@ -18,6 +18,7 @@ import VestingPage from './containers/VestingPage';
 import ConvertPage from './containers/ConvertPage';
 import DecryptPrompt from './containers/DecryptPrompt';
 import ColorSchemeToggle from './components/global/ColorSchemeToggle';
+import NetworkBanner from './components/global/NetworkBanner';
 
 const isURL = (str: string): boolean => {
   const pattern = new RegExp(
@@ -94,6 +95,7 @@ const AppRoutes: React.FC = () => {
           screen has no nav, so fall back to the fixed top-right toggle there. */}
       {!keys?.isUser && <ColorSchemeToggle />}
       <DecryptPrompt />
+      <NetworkBanner />
       <Routes>
         <Route path="/" element={keys?.isUser ? <TransactionsPage /> : <WelcomePage />} />
         <Route path="/transactions" element={<TransactionsPage />} />

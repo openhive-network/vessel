@@ -12,7 +12,7 @@ import {
   TextInput,
   Title,
 } from '@mantine/core';
-import PreferredNode from './global/PreferredNode';
+import NetworkSettings from './global/NetworkSettings';
 
 const Settings: React.FC<any> = (props) => {
   const { actions, account, preferences } = props;
@@ -50,7 +50,7 @@ const Settings: React.FC<any> = (props) => {
 
   return (
     <Box p="md">
-      <PreferredNode {...props} />
+      <NetworkSettings {...props} />
 
       <Divider my="md" />
 

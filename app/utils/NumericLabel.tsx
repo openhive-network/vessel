@@ -1,5 +1,5 @@
 import React from 'react';
-import { Popup } from 'semantic-ui-react';
+import { Tooltip } from '@mantine/core';
 
 function NumericLabel(props) {
   // inspired by http://stackoverflow.com/a/9462382
@@ -152,14 +152,11 @@ function NumericLabel(props) {
   // without title
   number = Math.round(number * 1000000) / 1000000;
   return (
-    <Popup
-      hoverable
-      className={css}
-      style={mystyle}
-      trigger={<span>{theFormattedNumber}</span>}
-      content={<span>{number.toFixed(3)}</span>}
-      position="right center"
-    />
+    <Tooltip label={number.toFixed(3)} position="right" withArrow>
+      <span style={mystyle} className={css}>
+        {theFormattedNumber}
+      </span>
+    </Tooltip>
   );
 }
 

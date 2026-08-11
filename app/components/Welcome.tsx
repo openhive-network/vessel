@@ -1,67 +1,58 @@
-import React, { Component } from 'react';
-import { Button, Divider, Grid, Header, Segment } from 'semantic-ui-react';
+import React from 'react';
+
+import { Box, Grid, Paper, Title, Text } from '@mantine/core';
 
 import KeysAdd from './Keys/Add';
-import KeysGenerate from './Keys/Generate';
-import KeysImport from './Keys/Import';
-import KeysLogin from './Keys/Login';
 import PreferredNode from './global/PreferredNode';
 import logo from '../img/hive.png';
 
-export default class Welcome extends Component<any, any> {
-  state = {
-    importMethod: false,
-  };
+const Welcome: React.FC<any> = (props) => {
+  return (
+    <Grid columns={16}>
+      <Grid.Col span={5}>
+        <Box
+          p="md"
+          ta="center"
+          style={{
+            // NB: the original had a typo'd `alignitems` key that the browser ignored, so the
+            // effective align-items was the flex default (stretch). Omit it to keep that rendering.
+            display: 'flex',
+            justifyContent: 'center',
+            flexFlow: 'column',
+            maxHeight: '100vh',
+          }}
+        >
+          <img
+            alt="logo"
+            className="ui tiny image"
+            src={logo}
+            style={{
+              margin: '-1em auto 1em',
+            }}
+          />
+          <Title order={2} style={{ marginTop: '0px' }}>
+            Vessel
+          </Title>
+          <Text c="dimmed" size="sm">
+            Your Desktop Wallet for Hive
+          </Text>
+        </Box>
+      </Grid.Col>
+      <Grid.Col span={11}>
+        <Box p="md">
+          <Paper withBorder p="md" radius="md">
+            <Title order={3}>Getting Started</Title>
+            <Text c="dimmed" size="sm" mb="sm">
+              To get started with Vessel, an account must be added to the wallet.
+            </Text>
 
-  render() {
-    return (
-      <Grid divided stretched>
-        <Grid.Row centered>
-          <Grid.Column width={5} stretched>
-            <Segment
-              basic
-              textAlign="center"
-              style={{
-                display: 'flex',
-                alignitems: 'center',
-                justifyContent: 'center',
-                flexFlow: 'column',
-                maxHeight: '100vh',
-              }}
-            >
-              <img
-                alt="logo"
-                className="ui tiny image"
-                src={logo}
-                style={{
-                  margin: '-1em auto 1em',
-                }}
-              />
-              <Header size="large" style={{ marginTop: '0px' }}>
-                Vessel
-                <Header.Subheader>
-                  <p>Your Desktop Wallet for Hive</p>
-                </Header.Subheader>
-              </Header>
-            </Segment>
-          </Grid.Column>
-          <Grid.Column width={11}>
-            <Segment basic padded>
-              <Segment padded>
-                <Header>
-                  Getting Started
-                  <Header.Subheader>
-                    To get started with Vessel, an account must be added to the wallet.
-                  </Header.Subheader>
-                </Header>
+            <KeysAdd {...props} />
+            <PreferredNode {...props} />
+          </Paper>
+        </Box>
+      </Grid.Col>
+    </Grid>
+  );
+};
 
-                <KeysAdd {...this.props} />
-                <PreferredNode {...this.props} />
-              </Segment>
-            </Segment>
-          </Grid.Column>
-        </Grid.Row>
-      </Grid>
-    );
-  }
-}
+export default Welcome;

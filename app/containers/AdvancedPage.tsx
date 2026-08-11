@@ -1,64 +1,55 @@
-import React, { Component } from 'react';
+import React, { useState } from 'react';
 import { bindActionCreators } from 'redux';
 import { Navigate } from 'react-router';
 import { connect } from 'react-redux';
-import { Button, Header, Icon, Menu, Modal, Segment, Table } from 'semantic-ui-react';
+import { Group, Paper, Tabs, Text, Title } from '@mantine/core';
+import { IconFlask, IconLock } from '@tabler/icons-react';
 
-import AccountsCustomJson from '../components/Accounts/CustomJSON.js';
+import AccountsCustomJson from '../components/Accounts/CustomJSON';
 import * as AccountActions from '../actions/account';
 import * as KeyActions from '../actions/keys';
 import * as ProcessingActions from '../actions/processing';
 import MenuBar from './MenuBar';
 import ContentBar from '../components/ContentBar';
 
-class AccountsPage extends Component<any, any> {
-  state = {
-    activeItem: 'custom_json',
-  };
+const AccountsPage: React.FC<any> = (props) => {
+  const [activeItem, setActiveItem] = useState('custom_json');
 
-  handleItemClick = (e: any, { name }: any) => this.setState({ activeItem: name });
-
-  render() {
-    if (!this.props.keys.isUser) {
-      return <Navigate to="/" replace />;
-    }
-    const { activeItem } = this.state;
-    let activeTab = <AccountsCustomJson {...this.props} />;
-    switch (activeItem) {
-      default: {
-        activeTab = <AccountsCustomJson {...this.props} />;
-        break;
-      }
-    }
-    return (
-      <ContentBar>
-        <Segment basic padded attached secondary>
-          <Header>
-            <Icon name="lab" />
-            <Header.Content>
-              Advanced Operations
-              <Header.Subheader>
-                This section can be used to perform more advanced operations using the loaded
-                accounts.
-              </Header.Subheader>
-            </Header.Content>
-          </Header>
-        </Segment>
-        <Menu tabular attached>
-          <Menu.Item
-            name="custom_json"
-            icon="lock"
-            content="Custom JSON"
-            active={activeItem === 'custom_json'}
-            onClick={this.handleItemClick}
-          />
-        </Menu>
-        {activeTab}
-        <MenuBar />
-      </ContentBar>
-    );
+  if (!props.keys.isUser) {
+    return <Navigate to="/" replace />;
   }
-}
+
+  let activeTab = <AccountsCustomJson {...props} />;
+  switch (activeItem) {
+    default: {
+      activeTab = <AccountsCustomJson {...props} />;
+      break;
+    }
+  }
+
+  return (
+    <ContentBar>
+      <Paper withBorder p="md" radius={0}>
+        <Group gap="xs" mb={4}>
+          <IconFlask size={20} />
+          <Title order={3}>Advanced Operations</Title>
+        </Group>
+        <Text c="dimmed" size="sm">
+          This section can be used to perform more advanced operations using the loaded accounts.
+        </Text>
+      </Paper>
+      <Tabs value={activeItem} onChange={(value) => setActiveItem(value ?? 'custom_json')}>
+        <Tabs.List>
+          <Tabs.Tab value="custom_json" leftSection={<IconLock size={16} />}>
+            Custom JSON
+          </Tabs.Tab>
+        </Tabs.List>
+      </Tabs>
+      {activeTab}
+      <MenuBar />
+    </ContentBar>
+  );
+};
 
 function mapStateToProps(state: any) {
   return {

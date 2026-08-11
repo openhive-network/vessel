@@ -1,17 +1,21 @@
-import React, { Component } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  Alert,
+  Anchor,
+  Box,
   Button,
   Checkbox,
   Grid,
-  Label,
-  Message,
+  Group,
+  LoadingOverlay,
   Modal,
   Radio,
-  Segment,
   Select,
+  Stack,
   Table,
-} from 'semantic-ui-react';
-import { Form, Input } from 'formsy-semantic-ui-react';
+  Text,
+  TextInput,
+} from '@mantine/core';
 import { hiveApi, hiveAuth, hiveMemo } from '../utils/hiveApi';
 
 import DecryptModal from './DecryptModal';
@@ -73,98 +77,87 @@ const exchangeLinks = {
 
 const exchangeNotes = {
   deepcrypto8: (
-    <Message>
+    <Alert color="yellow" mt="xs">
       <strong>Warning</strong>: Binance changed their deposit address from @deepcrypto8 to
       @bdhivesteem. Use @bdhivesteem instead and make sure to generate a new deposit address memo as
       well.
-    </Message>
+    </Alert>
   ),
   bdhivesteem: (
-    <Message>
+    <Alert color="yellow" mt="xs">
       <strong>Warning</strong>: Binance changed their deposit address from @deepcrypto8 to
       @bdhivesteem. Make sure to have generated a new deposit address memo instead of using the old
       one for @deepcrypto8.
-    </Message>
+    </Alert>
   ),
 };
 
 const exchangeSupportingEncryption = ['bittrex'];
 
-const defaultState = {
-  sourceType: 'liquid',
-  destinationType: 'liquid',
-  from: '',
-  to: '',
-  amount: '',
-  symbol: 'HIVE',
-  memo: '',
-  memoEncrypted: false,
-  encryptMemo: false,
-  destination: 'account_liquid',
-  // destination: 'exchange',
-  memoMissing: false,
-  modalPreview: false,
-  addContactModal: false,
-  newContact: '',
-  memoDecryptPrompt: false,
-  memoDecrypt: null,
-};
+const Send: React.FC<any> = (props) => {
+  const [sourceType, setSourceType] = useState<any>('liquid');
+  const [destinationType, setDestinationType] = useState<any>('liquid');
+  const [from, setFrom] = useState<any>(props.keys.names[0]);
+  const [to, setTo] = useState<any>('');
+  const [amountValue, setAmountValue] = useState<any>('');
+  const [symbol, setSymbol] = useState<any>('HIVE');
+  const [memo, setMemo] = useState<any>('');
+  const [memoEncrypted, setMemoEncrypted] = useState<any>(false);
+  const [encryptMemo, setEncryptMemo] = useState<any>(false);
+  const [destination, setDestination] = useState<any>('account_liquid');
+  const [memoMissing, setMemoMissing] = useState<any>(false);
+  const [modalPreview, setModalPreview] = useState<any>(false);
+  const [addContactModal, setAddContactModal] = useState<any>(false);
+  const [newContact, setNewContact] = useState<any>('');
+  const [memoDecryptPrompt, setMemoDecryptPrompt] = useState<any>(false);
+  const [memoDecrypt, setMemoDecrypt] = useState<any>(null);
+  const [memoDetected, setMemoDetected] = useState<any>(false);
 
-export default class Send extends Component<any, any> {
-  constructor(props) {
-    super(props);
-    this.state = {
-      ...defaultState,
-      from: props.keys.names[0],
-      network: props.hive.props.network || 'Hive',
-    };
-  }
+  const resetState = () => {
+    setTo('');
+    setAmountValue('');
+    setMemo('');
+    setMemoEncrypted(false);
+    setEncryptMemo(false);
+    setModalPreview(false);
+    setMemoDetected(false);
+    setMemoDecryptPrompt(false);
+    setMemoDecrypt(null);
+  };
 
-  componentDidMount() {}
-
-  componentWillUpdate(nextProps, nextState) {}
-
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.processing.account_transfer_resolved) {
-      nextProps.actions.transferCompleted();
-      this.resetState();
+  // componentWillReceiveProps(account_transfer_resolved -> transferCompleted() + resetState()).
+  // useRef seed so the effect fires on the truthy transition, not on mount.
+  const didMount = useRef(false);
+  useEffect(() => {
+    if (!didMount.current) {
+      didMount.current = true;
+      return;
     }
-  }
+    if (props.processing.account_transfer_resolved) {
+      props.actions.transferCompleted();
+      resetState();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.processing.account_transfer_resolved]);
 
-  resetState() {
-    const { props } = this;
-    this.setState({
-      to: '',
-      amount: '',
-      memo: '',
-      memoEncrypted: false,
-      encryptMemo: false,
-      modalPreview: false,
-      memoDetected: false,
-      memoDecryptPrompt: false,
-      memoDecrypt: null,
-    });
-  }
-
-  handleSourceTypeChange = (e: any, { value }: any) => {
+  const handleSourceTypeChange = (value: any) => {
     const obj: any = {
       sourceType: value,
     };
-    if (this.state.destinationType === 'same_account') {
+    if (destinationType === 'same_account') {
       obj.destinationType = value === 'liquid' ? 'savings' : 'liquid';
     } else {
       obj.destinationType = value === 'liquid' ? 'liquid' : 'savings';
     }
-    this.setState(obj);
+    setSourceType(obj.sourceType);
+    setDestinationType(obj.destinationType);
   };
 
-  handleDestinationTypeChange = (e: any, { value }: any) => {
-    this.setState({
-      destinationType: value,
-    });
+  const handleDestinationTypeChange = (value: any) => {
+    setDestinationType(value);
   };
 
-  handleDestinationChange = (e: any, { value }: any) => {
+  const handleDestinationChange = (value: any) => {
     const obj: any = {
       to: '',
       memo: '',
@@ -176,41 +169,36 @@ export default class Send extends Component<any, any> {
       obj.destinationType = 'liquid';
     } else if (value === 'same_account') {
       // obj.destinationType = this.state.sourceType === 'liquid' ? 'savings' : 'liquid'
-      obj.to = this.state.from;
+      obj.to = from;
     }
-    // } else if (this.state.destinationType === 'same_account') {
-    //   obj.destinationType = this.state.sourceType === 'liquid' ? 'liquid' : 'savings'
-    // }
-    this.setState(obj);
+    setTo(obj.to);
+    setMemo(obj.memo);
+    setDestination(obj.destination);
+    setEncryptMemo(obj.encryptMemo);
+    setMemoEncrypted(obj.memoEncrypted);
+    if (obj.destinationType !== undefined) setDestinationType(obj.destinationType);
   };
 
-  handleSymbolChange = (e: any, { value }: any) => {
-    const detectMemo = this.detectMemo(this.state.to, value);
-    const newState = {
-      amount: '',
-      symbol: value,
-      memo: detectMemo || '',
-      memoDetected: detectMemo,
-    };
-    this.setState(newState);
+  const handleSymbolChange = (value: any) => {
+    const detectMemoResult = detectMemo(to, value);
+    setAmountValue('');
+    setSymbol(value);
+    setMemo(detectMemoResult || '');
+    setMemoDetected(detectMemoResult);
   };
 
-  handleMemoEncryptChange = (e: any, { value }: any) => {
-    if (this.state.encryptMemo === false) {
-      this.setState({
-        encryptMemo: true,
-        memoEncrypted: false,
-      });
+  const handleMemoEncryptChange = () => {
+    if (encryptMemo === false) {
+      setEncryptMemo(true);
+      setMemoEncrypted(false);
     } else {
-      this.setState({
-        encryptMemo: false,
-        memoEncrypted: false,
-      });
+      setEncryptMemo(false);
+      setMemoEncrypted(false);
     }
   };
 
-  detectMemo = (to: any, symbol: any) => {
-    const { preferences } = this.props;
+  const detectMemo = (to: any, symbol: any) => {
+    const { preferences } = props;
     const foundExchange = exchangeOptions.filter((e) => e.value === to || e.key === to)[0];
     const preferenceKey = [foundExchange ? foundExchange.key : to, symbol].join('_').toLowerCase();
     // eslint-disable-next-line no-prototype-builtins
@@ -220,105 +208,89 @@ export default class Send extends Component<any, any> {
     return false;
   };
 
-  handleToChange = (e: any, { value }: any) => {
+  const handleToChange = (value: any, e?: any) => {
     const cleaned = value.replace('@', '').trim();
     if (cleaned === 'add-contact') {
-      e.preventDefault();
-      this.setState({ addContactModal: true });
+      if (e) e.preventDefault();
+      setAddContactModal(true);
       return;
     }
-    const newState = {
-      encryptMemo: false,
-      to: cleaned,
-      memo: this.detectMemo(cleaned, this.state.symbol) || '',
-      memoDetected: this.detectMemo(cleaned, this.state.symbol),
-      memoEncrypted: false,
-    };
-    // Set state
-    this.setState(newState);
+    setEncryptMemo(false);
+    setTo(cleaned);
+    setMemo(detectMemo(cleaned, symbol) || '');
+    setMemoDetected(detectMemo(cleaned, symbol));
+    setMemoEncrypted(false);
   };
 
-  handleMemoChange = (e: any, { value }: any) => {
+  const handleMemoChange = (value: any) => {
     const cleaned = value.replace(/\s+/gim, ' ');
-    this.setState({
-      memo: cleaned,
-      encryptMemo: false,
-      memoEncrypted: false,
-    });
+    setMemo(cleaned);
+    setEncryptMemo(false);
+    setMemoEncrypted(false);
   };
 
-  handleAmountChange = (e: any, { value }: any) => {
+  const handleAmountChange = (value: any) => {
     const cleaned = value.replace(/[a-z\s]+/gim, '');
-    this.setState({ amount: cleaned });
+    setAmountValue(cleaned);
   };
 
-  setAmountMaximum = (e: any) => {
-    const { accounts } = this.props.account;
-    const { from, symbol } = this.state;
+  const setAmountMaximum = () => {
+    const { accounts } = props.account;
     let field = symbol === 'HBD' ? 'hbd_balance' : 'balance';
-    if (this.state.sourceType === 'savings') {
+    if (sourceType === 'savings') {
       field = `savings_${field}`;
     }
     const amount = accounts[from][field].split(' ')[0];
-    this.setState({ amount });
+    setAmountValue(amount);
   };
 
-  handleExternalLink = (e: any) => {
-    window.electronAPI?.openExternal(exchangeLinks[this.state.to]);
+  const handleExternalLink = () => {
+    window.electronAPI?.openExternal(exchangeLinks[to]);
   };
 
-  handleFromChange = (e: any, { value }: any) => {
-    this.setState({
-      from: value,
-      encryptMemo: false,
-      memoEncrypted: false,
-    });
+  const handleFromChange = (value: any) => {
+    setFrom(value);
+    setEncryptMemo(false);
+    setMemoEncrypted(false);
   };
 
-  handleContactChange = (e: any, { value }: any) => {
+  const handleContactChange = (value: any) => {
     const cleaned = value.replace(/(@|\s)+/gim, ' ');
-    this.setState({
-      newContact: cleaned,
-    });
+    setNewContact(cleaned);
   };
 
-  isFormValid = () => {
-    const cleaned = this.state.memo.trim();
-    if (this.state.destination === 'exchange' && cleaned.length === 0) {
-      this.setState({ memoMissing: true });
+  const isFormValid = () => {
+    const cleaned = memo.trim();
+    if (destination === 'exchange' && cleaned.length === 0) {
+      setMemoMissing(true);
       return false;
     }
-    this.setState({ memoMissing: false });
+    setMemoMissing(false);
     return true;
   };
 
-  handlePreview = (e: any) => {
+  const handlePreview = (e: any) => {
     e.preventDefault();
-    if (!this.isFormValid()) {
+    if (!isFormValid()) {
       console.log('form not valid');
       return;
     }
-    const cleaned = this.state.memo.trim();
-    if (!this.state.encryptMemo) {
-      this.setState({
-        memo: cleaned,
-        modalPreview: true,
-      });
+    const cleaned = memo.trim();
+    if (!encryptMemo) {
+      setMemo(cleaned);
+      setModalPreview(true);
       return;
     }
-    const { from, to } = this.state;
-    const memoStored = this.props.keys.permissions[from].memo;
-    const memoPublic = this.props.account.accounts[from].memo_key;
+    const memoStored = props.keys.permissions[from].memo;
+    const memoPublic = props.account.accounts[from].memo_key;
     if (isEncrypted(memoStored)) {
       // §7.3 — the memo key is a v2 envelope (or legacy blob); decrypting it needs the wallet
       // password. Resolve the recipient's public memo key first, then prompt. The decrypted memo
       // WIF is used exactly once (in handleMemoDecrypted) and never held across renders.
       hiveApi.getAccounts([to]).then((result) => {
         if (result && result.length > 0) {
-          this.setState({
-            memoDecrypt: { toMemoPublic: result[0].memo_key, cleaned },
-            memoDecryptPrompt: true,
-          });
+          setMemoDecrypt({ toMemoPublic: result[0].memo_key, cleaned });
+          setMemoDecryptPrompt(true);
         } else {
           // no account found
         }
@@ -336,11 +308,9 @@ export default class Send extends Component<any, any> {
             const toMemoPublic = result[0].memo_key;
             // Generate encrypted memo based on their public memo key + our private memo key
             const memoEncrypted = hiveMemo.encode(memoStored, toMemoPublic, `#${cleaned}`);
-            this.setState({
-              memo: cleaned,
-              memoEncrypted,
-              modalPreview: true,
-            });
+            setMemo(cleaned);
+            setMemoEncrypted(memoEncrypted);
+            setModalPreview(true);
           } else {
             // no account found
           }
@@ -359,11 +329,10 @@ export default class Send extends Component<any, any> {
   //    against main by the modal's onVerify; `memoPublic` re-enforces the stale-memo-key guard in main.
   //  - LOCAL (non-Electron): the modal decrypted the memo WIF; encode it here, exactly as before. The
   //    decrypted WIF is scoped to this handler — encoded immediately, never stored across renders.
-  handleMemoDecrypted = async (memoWif: any, password: any) => {
-    const { from, memoDecrypt } = this.state;
+  const handleMemoDecrypted = async (memoWif: any, password: any) => {
     if (!memoDecrypt) return;
     const { toMemoPublic, cleaned } = memoDecrypt;
-    const memoPublic = this.props.account.accounts[from].memo_key;
+    const memoPublic = props.account.accounts[from].memo_key;
     const keystore = window.electronAPI && window.electronAPI.keystore;
 
     if (memoWif == null && keystore) {
@@ -374,52 +343,49 @@ export default class Send extends Component<any, any> {
         } catch (e) {
           // Main missing/stale for this account (e.g. the memo key was added after migration) -> push
           // the renderer's current record and retry once.
-          await this.syncRecordToMain(from);
+          await syncRecordToMain(from);
           encoded = await keystore.encodeMemo(from, password, toMemoPublic, `#${cleaned}`, memoPublic);
         }
-        this.setState({
-          memo: cleaned,
-          memoEncrypted: encoded,
-          modalPreview: true,
-          memoDecryptPrompt: false,
-          memoDecrypt: null,
-        });
+        setMemo(cleaned);
+        setMemoEncrypted(encoded);
+        setModalPreview(true);
+        setMemoDecryptPrompt(false);
+        setMemoDecrypt(null);
       } catch (e) {
         // Could not encode in main (e.g. the stored memo key no longer matches on chain). Abort the
         // encrypt path without surfacing anything sensitive; the user can retry or send unencrypted.
-        this.setState({ memoDecryptPrompt: false, memoDecrypt: null });
+        setMemoDecryptPrompt(false);
+        setMemoDecrypt(null);
       }
       return;
     }
 
     // LOCAL path.
-    const memoStored = this.props.keys.permissions[from].memo;
+    const memoStored = props.keys.permissions[from].memo;
     // The decrypted memo key must still match the account's on-file memo public key.
     if (hiveAuth.wifToPublic(memoWif) !== memoPublic) {
-      this.setState({ memoDecryptPrompt: false, memoDecrypt: null });
+      setMemoDecryptPrompt(false);
+      setMemoDecrypt(null);
       return;
     }
     // Lazy-upgrade a stale/legacy memo envelope under the same password.
     if (needsReencrypt(memoStored)) {
-      this.props.actions.keyReencrypted({
+      props.actions.keyReencrypted({
         account: from,
         memo: await encryptKey(memoWif, password),
       });
     }
     const memoEncrypted = hiveMemo.encode(memoWif, toMemoPublic, `#${cleaned}`);
-    this.setState({
-      memo: cleaned,
-      memoEncrypted,
-      modalPreview: true,
-      memoDecryptPrompt: false,
-      memoDecrypt: null,
-    });
+    setMemo(cleaned);
+    setMemoEncrypted(memoEncrypted);
+    setModalPreview(true);
+    setMemoDecryptPrompt(false);
+    setMemoDecrypt(null);
   };
 
   // REMOTE memo probe: the memo key shares the account's wallet password (C6), so validate against the
   // main key via keystore.verify; self-heal a missing/stale main record (incl. the memo envelope) once.
-  handleMemoVerify = async (password: any) => {
-    const { from } = this.state;
+  const handleMemoVerify = async (password: any) => {
     const keystore = window.electronAPI && window.electronAPI.keystore;
     if (!keystore) return false;
     let ok = false;
@@ -430,7 +396,7 @@ export default class Send extends Component<any, any> {
     }
     if (!ok) {
       try {
-        await this.syncRecordToMain(from);
+        await syncRecordToMain(from);
         ok = await keystore.verify(from, password);
       } catch (e) {
         ok = false;
@@ -441,9 +407,9 @@ export default class Send extends Component<any, any> {
 
   // Push the renderer's current record (main key + memo envelope) into main, overwrite-allowed, to
   // repair a record that is missing or stale. Ciphertext only — no WIF crosses the boundary.
-  syncRecordToMain = async (account: any) => {
+  const syncRecordToMain = async (account: any) => {
     const keystore = window.electronAPI && window.electronAPI.keystore;
-    const rec = this.props.keys.permissions[account];
+    const rec = props.keys.permissions[account];
     if (!keystore || !rec) return;
     await keystore.putEnvelope({
       account,
@@ -454,31 +420,27 @@ export default class Send extends Component<any, any> {
     });
   };
 
-  handleMemoDecryptCancel = () => {
-    this.setState({ memoDecryptPrompt: false, memoDecrypt: null });
+  const handleMemoDecryptCancel = () => {
+    setMemoDecryptPrompt(false);
+    setMemoDecrypt(null);
   };
 
-  handleCancel = (e: any) => {
-    this.setState({
-      modalPreview: false,
-    });
-    e.preventDefault();
+  const handleCancel = (e?: any) => {
+    setModalPreview(false);
+    if (e && e.preventDefault) e.preventDefault();
   };
 
-  handleConfirm = (e: any) => {
-    const { from, to, symbol, memo, memoEncrypted } = this.state;
-    // symbol = symbol.replace("HIVE","STEEM");
-    // symbol = symbol.replace("HBD","SBD");
+  const handleConfirm = (e: any) => {
     const usedMemo = memoEncrypted || memo;
-    const amount = parseFloat(this.state.amount).toFixed(3);
+    const amount = parseFloat(amountValue).toFixed(3);
     const amountFormat = [amount, symbol].join(' ');
-    if (this.state.sourceType === 'liquid') {
-      this.props.actions.useKey(
-        this.state.destinationType !== 'savings' || this.state.destination === 'exchange'
+    if (sourceType === 'liquid') {
+      props.actions.useKey(
+        destinationType !== 'savings' || destination === 'exchange'
           ? 'transfer'
           : 'transferToSavings',
         { from, to, amount: amountFormat, memo: usedMemo },
-        this.props.keys.permissions[from]
+        props.keys.permissions[from]
       );
     } else {
       let requestId = 0;
@@ -486,507 +448,353 @@ export default class Send extends Component<any, any> {
         if (result.length !== 0) {
           requestId = result[result.length - 1].request_id + 1;
         }
-        this.props.actions.useKey(
+        props.actions.useKey(
           'transferFromSavings',
           { from, requestId, to, amount: amountFormat, memo: usedMemo },
-          this.props.keys.permissions[from]
+          props.keys.permissions[from]
         );
       }, () => {});
     }
-    this.setState({
-      modalPreview: false,
-    });
+    setModalPreview(false);
     e.preventDefault();
   };
 
-  handleCancelContact = (e: any) => {
-    this.setState({
-      addContactModal: false,
-    });
+  const handleCancelContact = (e?: any) => {
+    setAddContactModal(false);
+    if (e && e.preventDefault) e.preventDefault();
+  };
+
+  const handleConfirmContact = (e: any) => {
+    if (newContact !== '') props.actions.addContact(newContact);
+    setAddContactModal(false);
+    setNewContact('');
     e.preventDefault();
   };
 
-  handleConfirmContact = (e: any) => {
-    const { newContact } = this.state;
-    if (newContact !== '') this.props.actions.addContact(newContact);
-    this.setState({
-      addContactModal: false,
-      newContact: '',
-    });
-    e.preventDefault();
-  };
+  const { accounts } = props.account;
+  const { keys } = props;
+  const availableFrom = keys.names.map((name) => {
+    const hasPermission =
+      keys.permissions[name].type === 'active' || keys.permissions[name].type === 'owner';
+    return hasPermission
+      ? {
+          value: name,
+          label: name,
+        }
+      : {
+          value: name,
+          label: `${name} (unavailable - active/owner key not loaded)`,
+          disabled: true,
+        };
+  });
+  let field = symbol === 'HBD' ? 'hbd_balance' : 'balance';
+  if (sourceType === 'savings') {
+    field = `savings_${field}`;
+  }
+  const availableAmount = accounts[from][field];
+  let modal: any = false;
 
-  render() {
-    const { accounts } = this.props.account;
-    const { keys } = this.props;
-    const availableFrom = keys.names.map((name) => {
-      const hasPermission =
-        keys.permissions[name].type === 'active' || keys.permissions[name].type === 'owner';
-      return hasPermission
-        ? {
-            key: name,
-            text: name,
-            value: name,
-          }
-        : {
-            key: name,
-            disabled: true,
-            text: `${name} (unavailable - active/owner key not loaded)`,
-          };
-    });
-    let field = this.state.symbol === 'HBD' ? 'hbd_balance' : 'balance';
-    if (this.state.sourceType === 'savings') {
-      field = `savings_${field}`;
-    }
-    const availableAmount = accounts[this.state.from][field];
-    const errorLabel = <Label color="red" pointing />;
-    let modal: any = false;
-
-    const getDestinationTypeField = () => {
-      if (this.state.destination === 'exchange') return null;
-      return (
-        <Grid.Column width={4} style={{ marginTop: '25px' }}>
-          <div className="field" style={{ marginBottom: '5px' }}>
-            <label htmlFor="from">Select the specific destination</label>
-          </div>
-          <Grid.Row style={{ display: 'flex' }}>
-            <Form.Field
-              control={Radio}
-              name="destinationType"
-              label="liquid"
-              value="liquid"
-              checked={this.state.destinationType === 'liquid'}
-              onChange={this.handleDestinationTypeChange}
-              style={{ marginRight: '10px' }}
-            />
-            <Form.Field
-              control={Radio}
-              name="destinationType"
-              label="savings"
-              value="savings"
-              checked={this.state.destinationType === 'savings'}
-              onChange={this.handleDestinationTypeChange}
-            />
-          </Grid.Row>
-        </Grid.Column>
-      );
-    };
-
-    let toField: any = (
-      <Grid.Row>
-        <Form.Field
-          control={Input}
-          name="to"
-          label="Enter the account name"
-          placeholder="Enter the account name to send to..."
-          value={this.state.to}
-          onChange={this.handleToChange}
-          // validationErrors={{
-          // accountName: 'Invalid account name'
-          // }}
-          errorLabel={errorLabel}
-        />
-      </Grid.Row>
+  const destinationTypeField =
+    destination === 'exchange' ? null : (
+      <Box mt="md">
+        <Radio.Group
+          value={destinationType}
+          onChange={handleDestinationTypeChange}
+          label="Select the specific destination"
+        >
+          <Group mt="xs">
+            <Radio value="liquid" label="liquid" />
+            <Radio value="savings" label="savings" />
+          </Group>
+        </Radio.Group>
+      </Box>
     );
 
-    const destinationTypeField = getDestinationTypeField();
+  let toField: any = (
+    <TextInput
+      label="Enter the account name"
+      placeholder="Enter the account name to send to..."
+      value={to}
+      onChange={(e) => handleToChange(e.currentTarget.value, e)}
+    />
+  );
 
-    let encryptedField: any = false;
-    if (this.state.destination === 'exchange') {
-      let externalLink: any = false;
-      if (this.state.to) {
-        externalLink = (
-          <p style={{ marginLeft: '1em' }}>
-            {exchangeNotes[this.state.to]}
-            {/* @ts-expect-error pre-existing (unchanged from the Flow source): `value` is not a valid <a> prop */}
-            <a onClick={this.handleExternalLink} value={this.state.to}>
-              {' '}
-              {exchangeLinks[this.state.to]}
-            </a>
-          </p>
-        );
-      }
-      toField = (
-        <div>
-          <Form.Field
-            control={Select}
-            search
-            value={this.state.to}
-            label="Select an exchange:"
-            options={exchangeOptions}
-            onChange={this.handleToChange}
-            placeholder="Receiving exchange..."
-          />
-          {externalLink}
-        </div>
+  let encryptedField: any = false;
+  if (destination === 'exchange') {
+    let externalLink: any = false;
+    if (to) {
+      externalLink = (
+        <Text component="div" ml="sm" mt="xs">
+          {exchangeNotes[to]}
+          <Anchor onClick={handleExternalLink}> {exchangeLinks[to]}</Anchor>
+        </Text>
       );
     }
-    if (this.state.destination === 'contact') {
-      let contactList = this.props.account.contacts ? this.props.account.contacts.slice() : [];
-      contactList = contactList.map((contact) => ({
-        key: contact,
-        text: `@${contact}`,
-        value: contact,
-      }));
-      contactList.push({
-        key: 'add-contact',
-        text: 'Add a New Contact',
-        value: 'add-contact',
-      });
-      toField = (
-        <div>
-          <Form.Field
-            control={Select}
-            search
-            value={this.state.to}
-            label="Select a contact:"
-            options={contactList}
-            onChange={this.handleToChange}
-            placeholder="Saved contact..."
-          />
-        </div>
-      );
-    }
-    if (
-      keys.permissions[this.state.from] &&
-      keys.permissions[this.state.from].memo &&
-      (isEncrypted(keys.permissions[this.state.from].memo) ||
-        hiveAuth.isWif(keys.permissions[this.state.from].memo))
-    ) {
-      // Offer memo encryption to any Hive-account recipient (another user / same account / saved
-      // contact) — all have a memo key that can decrypt it. Exchanges are excluded (they need the
-      // PLAINTEXT memo to credit the deposit) except those historically supporting it (Bittrex). The
-      // old check compared against 'account', a destination value no radio sets ("another user" is
-      // 'account_liquid'), so this option was unreachable for user-to-user transfers.
-      if (
-        exchangeSupportingEncryption.indexOf(this.state.to) >= 0 ||
-        this.state.destination === 'account_liquid' ||
-        this.state.destination === 'same_account' ||
-        this.state.destination === 'contact'
-      ) {
-        encryptedField = (
-          <Form.Field>
-            <Checkbox
-              label="Encrypt Memo?"
-              checked={this.state.encryptMemo}
-              onChange={this.handleMemoEncryptChange}
-            />
-          </Form.Field>
-        );
-      }
-    }
-    if (this.state.modalPreview) {
-      modal = (
-        <Modal
-          open
-          header="Please confirm the details of this transaction"
-          autoFocus
-          content={
-            <Segment basic padded>
-              <p>
-                Ensure that all of the data below looks correct before continuing. If you mistakenly
-                send to the wrong accout (or with the wrong memo) you may lose funds.
-              </p>
-              <Table definition collapsing style={{ minWidth: '300px', margin: '0 auto' }}>
-                <Table.Body>
-                  <Table.Row>
-                    <Table.Cell textAlign="right">From:</Table.Cell>
-                    <Table.Cell>{this.state.from}</Table.Cell>
-                    <Table.Cell>{this.state.sourceType}</Table.Cell>
-                  </Table.Row>
-                  <Table.Row>
-                    <Table.Cell textAlign="right">To:</Table.Cell>
-                    <Table.Cell>{this.state.to}</Table.Cell>
-                    <Table.Cell
-                      style={{ fontWeight: this.state.destinationType === 'savings' ? 800 : 300 }}
-                    >
-                      {this.state.destinationType}
-                    </Table.Cell>
-                  </Table.Row>
-
-                  <Table.Row>
-                    <Table.Cell textAlign="right">Amount:</Table.Cell>
-                    <Table.Cell>
-                      {this.state.amount} {this.state.symbol}
-                    </Table.Cell>
-                    <Table.Cell />
-                  </Table.Row>
-                  <Table.Row>
-                    <Table.Cell textAlign="right">Memo:</Table.Cell>
-                    <Table.Cell>
-                      <code>
-                        {this.state.memoEncrypted ? this.state.memoEncrypted : this.state.memo}
-                      </code>
-                    </Table.Cell>
-                    <Table.Cell />
-                  </Table.Row>
-                </Table.Body>
-              </Table>
-            </Segment>
-          }
-          actions={[
-            {
-              key: 'no',
-              icon: 'cancel',
-              content: 'Cancel',
-              color: 'red',
-              floated: 'left',
-              onClick: this.handleCancel,
-              disabled: this.props.processing.account_transfer_pending,
-            },
-            {
-              key: 'yes',
-              icon: 'checkmark',
-              content: 'Confirmed - this is correct',
-              color: 'green',
-              onClick: this.handleConfirm,
-              disabled: this.props.processing.account_transfer_pending,
-            },
-          ]}
+    const exchangeData = exchangeOptions.map((e) => ({ value: e.value, label: e.text }));
+    toField = (
+      <div>
+        <Select
+          searchable
+          value={to}
+          label="Select an exchange:"
+          data={exchangeData}
+          onChange={(value) => value && handleToChange(value)}
+          placeholder="Receiving exchange..."
         />
-      );
-    }
-    if (this.state.addContactModal) {
-      modal = (
-        <Modal
-          open
-          header="Add a New Contact"
-          content={
-            <Segment basic padded>
-              <Form>
-                <Form.Field
-                  control={Input}
-                  name="contact"
-                  label="Username to add to contact list"
-                  placeholder="username (without @)"
-                  value={this.state.newContact}
-                  onChange={this.handleContactChange}
-                />
-              </Form>
-            </Segment>
-          }
-          actions={[
-            {
-              key: 'no',
-              icon: 'cancel',
-              content: 'Cancel',
-              color: 'red',
-              floated: 'left',
-              onClick: this.handleCancelContact,
-            },
-            {
-              key: 'yes',
-              icon: 'checkmark',
-              content: 'Confirmed - add contact',
-              color: 'green',
-              onClick: this.handleConfirmContact,
-            },
-          ]}
-        />
-      );
-    }
-    let memoDecryptModal: any = false;
-    if (this.state.memoDecryptPrompt && keys.permissions[this.state.from]) {
-      const remoteMemo = !!(window.electronAPI && window.electronAPI.keystore);
-      memoDecryptModal = (
-        <DecryptModal
-          ciphertext={keys.permissions[this.state.from].memo}
-          header="Unlock Encrypted Memo Key"
-          onDecrypted={this.handleMemoDecrypted}
-          onCancel={this.handleMemoDecryptCancel}
-          onVerify={remoteMemo ? this.handleMemoVerify : undefined}
-        />
-      );
-    }
-    return (
-      <Form
-        error={!!this.props.processing.account_transfer_error}
-        loading={this.props.processing.account_transfer_pending}
-      >
-        {modal}
-        {memoDecryptModal}
-        <Grid divided centered>
-          <Grid.Row>
-            <Message
-              warning
-              visible={
-                this.state.sourceType === 'savings' || this.state.destination === 'account_savings'
-              }
-              header="Savings Account Warning"
-              content="Transferring from savings account takes 3.5 days and can be cancelled anytime before completion."
-            />
-          </Grid.Row>
-          <Grid.Row>
-            <Grid.Column width={4}>
-              <div className="field">
-                <label htmlFor="from">Send from...</label>
-              </div>
-              <Form.Field
-                control={Radio}
-                name="sourceType"
-                label="liquid"
-                value="liquid"
-                checked={this.state.sourceType === 'liquid'}
-                onChange={this.handleSourceTypeChange}
-              />
-              <Form.Field
-                control={Radio}
-                name="sourceType"
-                label="savings"
-                value="savings"
-                checked={this.state.sourceType === 'savings'}
-                onChange={this.handleSourceTypeChange}
-              />
-            </Grid.Column>
-            <Grid.Column width={12}>
-              <Form.Field
-                control={Select}
-                value={this.state.from}
-                name="from"
-                label="Select a loaded account"
-                options={availableFrom}
-                placeholder="Sending Account..."
-                onChange={this.handleFromChange}
-              />
-            </Grid.Column>
-          </Grid.Row>
-          <Grid.Row>
-            <Grid.Column width={4}>
-              <div className="field">
-                <label htmlFor="destination">Send to a...</label>
-              </div>
-
-              <Form.Field
-                control={Radio}
-                name="destination"
-                label="another user"
-                value="account_liquid"
-                checked={this.state.destination === 'account_liquid'}
-                onChange={this.handleDestinationChange}
-              />
-              <Form.Field
-                control={Radio}
-                name="destination"
-                label="an exchange"
-                value="exchange"
-                checked={this.state.destination === 'exchange'}
-                onChange={this.handleDestinationChange}
-              />
-              <Form.Field
-                control={Radio}
-                name="destination"
-                label="same account"
-                value="same_account"
-                checked={this.state.destination === 'same_account'}
-                onChange={this.handleDestinationChange}
-              />
-              <Form.Field
-                control={Radio}
-                name="destination"
-                label="saved contact"
-                value="contact"
-                checked={this.state.destination === 'contact'}
-                onChange={this.handleDestinationChange}
-              />
-            </Grid.Column>
-            <Grid.Column width={12}>
-              <Grid.Column width={12}>{toField}</Grid.Column>
-              <Grid.Column width={12}>{destinationTypeField}</Grid.Column>
-            </Grid.Column>
-          </Grid.Row>
-          <Grid.Row>
-            <Grid.Column width={4}>
-              <div className="field">
-                <label htmlFor="symbol">Select Currency Type</label>
-              </div>
-              <Form.Field
-                control={Radio}
-                name="symbol"
-                label="HIVE"
-                value="HIVE"
-                checked={this.state.symbol === 'HIVE'}
-                onChange={this.handleSymbolChange}
-              />
-              <Form.Field
-                control={Radio}
-                name="symbol"
-                label="HBD"
-                value="HBD"
-                checked={this.state.symbol === 'HBD'}
-                onChange={this.handleSymbolChange}
-              />
-            </Grid.Column>
-            <Grid.Column width={12}>
-              <div className="field">
-                <label htmlFor="amount">Total {this.state.symbol} to Send</label>
-              </div>
-              <Form.Field
-                control={Input}
-                name="amount"
-                placeholder="Enter the amount to transfer..."
-                value={this.state.amount}
-                onChange={this.handleAmountChange}
-                validationErrors={{
-                  isNumeric: 'The amount must be a number',
-                }}
-                errorLabel={errorLabel}
-              />
-              <p>
-                <a
-                  onClick={this.setAmountMaximum}
-                  style={{
-                    color: 'black',
-                    cursor: 'pointer',
-                    fontWeight: 'bold',
-                    textDecoration: 'underline',
-                  }}
-                >
-                  {availableAmount}
-                </a>{' '}
-                available to send.
-              </p>
-            </Grid.Column>
-          </Grid.Row>
-          <Grid.Row>
-            <Grid.Column width={16}>
-              <Form.Field
-                control={Input}
-                name="memo"
-                label={
-                  this.state.memoDetected
-                    ? 'Memo automatically set via preferences.'
-                    : 'Optional memo to include'
-                }
-                placeholder="Enter a memo to include with the transaction"
-                value={this.state.memo}
-                onChange={this.handleMemoChange}
-              />
-              {encryptedField}
-              <Message
-                error
-                visible={this.state.memoMissing}
-                header="Form Validation Error"
-                content="A memo is required when sending to an exchange otherwise you may lose your tokens."
-              />
-            </Grid.Column>
-          </Grid.Row>
-          <Grid.Row>
-            <Grid.Column width={16} textAlign="center">
-              <Message
-                error
-                header="Operation Error"
-                content={this.props.processing.account_transfer_error}
-              />
-              <Form.Field
-                control={Button}
-                color="purple"
-                content="Preview Transaction"
-                onClick={this.handlePreview}
-              />
-            </Grid.Column>
-          </Grid.Row>
-        </Grid>
-      </Form>
+        {externalLink}
+      </div>
     );
   }
-}
+  if (destination === 'contact') {
+    let contactList = props.account.contacts ? props.account.contacts.slice() : [];
+    contactList = contactList.map((contact) => ({
+      value: contact,
+      label: `@${contact}`,
+    }));
+    contactList.push({
+      value: 'add-contact',
+      label: 'Add a New Contact',
+    });
+    toField = (
+      <div>
+        <Select
+          searchable
+          value={to}
+          label="Select a contact:"
+          data={contactList}
+          onChange={(value) => value && handleToChange(value)}
+          placeholder="Saved contact..."
+        />
+      </div>
+    );
+  }
+  if (
+    keys.permissions[from] &&
+    keys.permissions[from].memo &&
+    (isEncrypted(keys.permissions[from].memo) || hiveAuth.isWif(keys.permissions[from].memo))
+  ) {
+    // Offer memo encryption to any Hive-account recipient (another user / same account / saved
+    // contact) — all have a memo key that can decrypt it. Exchanges are excluded (they need the
+    // PLAINTEXT memo to credit the deposit) except those historically supporting it (Bittrex). The
+    // old check compared against 'account', a destination value no radio sets ("another user" is
+    // 'account_liquid'), so this option was unreachable for user-to-user transfers.
+    if (
+      exchangeSupportingEncryption.indexOf(to) >= 0 ||
+      destination === 'account_liquid' ||
+      destination === 'same_account' ||
+      destination === 'contact'
+    ) {
+      encryptedField = (
+        <Checkbox
+          mt="sm"
+          label="Encrypt Memo?"
+          checked={encryptMemo}
+          onChange={handleMemoEncryptChange}
+        />
+      );
+    }
+  }
+  if (modalPreview) {
+    modal = (
+      <Modal
+        opened
+        onClose={handleCancel}
+        title="Please confirm the details of this transaction"
+        size="lg"
+      >
+        <Box p="md">
+          <Text>
+            Ensure that all of the data below looks correct before continuing. If you mistakenly send
+            to the wrong accout (or with the wrong memo) you may lose funds.
+          </Text>
+          <Table mt="md" style={{ minWidth: '300px', margin: '0 auto' }}>
+            <Table.Tbody>
+              <Table.Tr>
+                <Table.Td ta="right">From:</Table.Td>
+                <Table.Td>{from}</Table.Td>
+                <Table.Td>{sourceType}</Table.Td>
+              </Table.Tr>
+              <Table.Tr>
+                <Table.Td ta="right">To:</Table.Td>
+                <Table.Td>{to}</Table.Td>
+                <Table.Td style={{ fontWeight: destinationType === 'savings' ? 800 : 300 }}>
+                  {destinationType}
+                </Table.Td>
+              </Table.Tr>
+
+              <Table.Tr>
+                <Table.Td ta="right">Amount:</Table.Td>
+                <Table.Td>
+                  {amountValue} {symbol}
+                </Table.Td>
+                <Table.Td />
+              </Table.Tr>
+              <Table.Tr>
+                <Table.Td ta="right">Memo:</Table.Td>
+                <Table.Td>
+                  <code>{memoEncrypted ? memoEncrypted : memo}</code>
+                </Table.Td>
+                <Table.Td />
+              </Table.Tr>
+            </Table.Tbody>
+          </Table>
+        </Box>
+        <Group justify="space-between" mt="md">
+          <Button
+            color="red"
+            onClick={handleCancel}
+            disabled={props.processing.account_transfer_pending}
+          >
+            Cancel
+          </Button>
+          <Button
+            color="green"
+            onClick={handleConfirm}
+            disabled={props.processing.account_transfer_pending}
+          >
+            Confirmed - this is correct
+          </Button>
+        </Group>
+      </Modal>
+    );
+  }
+  if (addContactModal) {
+    modal = (
+      <Modal opened onClose={handleCancelContact} title="Add a New Contact">
+        <Box p="md">
+          <TextInput
+            label="Username to add to contact list"
+            placeholder="username (without @)"
+            data-autofocus
+            value={newContact}
+            onChange={(e) => handleContactChange(e.currentTarget.value)}
+          />
+        </Box>
+        <Group justify="flex-end" mt="md">
+          <Button color="red" onClick={handleCancelContact}>
+            Cancel
+          </Button>
+          <Button color="green" onClick={handleConfirmContact}>
+            Confirmed - add contact
+          </Button>
+        </Group>
+      </Modal>
+    );
+  }
+  let memoDecryptModal: any = false;
+  if (memoDecryptPrompt && keys.permissions[from]) {
+    const remoteMemo = !!(window.electronAPI && window.electronAPI.keystore);
+    memoDecryptModal = (
+      <DecryptModal
+        ciphertext={keys.permissions[from].memo}
+        header="Unlock Encrypted Memo Key"
+        onDecrypted={handleMemoDecrypted}
+        onCancel={handleMemoDecryptCancel}
+        onVerify={remoteMemo ? handleMemoVerify : undefined}
+      />
+    );
+  }
+  return (
+    <Box pos="relative" p="md">
+      <LoadingOverlay visible={props.processing.account_transfer_pending} />
+      {modal}
+      {memoDecryptModal}
+      <Grid columns={16} gutter="lg">
+        <Grid.Col span={16}>
+          {(sourceType === 'savings' || destination === 'account_savings') && (
+            <Alert color="yellow" title="Savings Account Warning">
+              Transferring from savings account takes 3.5 days and can be cancelled anytime before
+              completion.
+            </Alert>
+          )}
+        </Grid.Col>
+        <Grid.Col span={4}>
+          <Radio.Group value={sourceType} onChange={handleSourceTypeChange} label="Send from...">
+            <Group mt="xs">
+              <Radio value="liquid" label="liquid" />
+              <Radio value="savings" label="savings" />
+            </Group>
+          </Radio.Group>
+        </Grid.Col>
+        <Grid.Col span={12}>
+          <Select
+            value={from}
+            label="Select a loaded account"
+            data={availableFrom}
+            placeholder="Sending Account..."
+            onChange={(value) => value && handleFromChange(value)}
+          />
+        </Grid.Col>
+        <Grid.Col span={4}>
+          <Radio.Group value={destination} onChange={handleDestinationChange} label="Send to a...">
+            <Stack gap="xs" mt="xs">
+              <Radio value="account_liquid" label="another user" />
+              <Radio value="exchange" label="an exchange" />
+              <Radio value="same_account" label="same account" />
+              <Radio value="contact" label="saved contact" />
+            </Stack>
+          </Radio.Group>
+        </Grid.Col>
+        <Grid.Col span={12}>
+          {toField}
+          {destinationTypeField}
+        </Grid.Col>
+        <Grid.Col span={4}>
+          <Radio.Group value={symbol} onChange={handleSymbolChange} label="Select Currency Type">
+            <Group mt="xs">
+              <Radio value="HIVE" label="HIVE" />
+              <Radio value="HBD" label="HBD" />
+            </Group>
+          </Radio.Group>
+        </Grid.Col>
+        <Grid.Col span={12}>
+          <TextInput
+            label={`Total ${symbol} to Send`}
+            placeholder="Enter the amount to transfer..."
+            value={amountValue}
+            onChange={(e) => handleAmountChange(e.currentTarget.value)}
+          />
+          <Text mt="xs">
+            <Anchor
+              onClick={setAmountMaximum}
+              c="var(--mantine-color-text)"
+              fw={700}
+              style={{ cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              {availableAmount}
+            </Anchor>{' '}
+            available to send.
+          </Text>
+        </Grid.Col>
+        <Grid.Col span={16}>
+          <TextInput
+            label={
+              memoDetected ? 'Memo automatically set via preferences.' : 'Optional memo to include'
+            }
+            placeholder="Enter a memo to include with the transaction"
+            value={memo}
+            onChange={(e) => handleMemoChange(e.currentTarget.value)}
+          />
+          {encryptedField}
+          {memoMissing && (
+            <Alert color="red" title="Form Validation Error" mt="sm">
+              A memo is required when sending to an exchange otherwise you may lose your tokens.
+            </Alert>
+          )}
+        </Grid.Col>
+        <Grid.Col span={16} ta="center">
+          {props.processing.account_transfer_error && (
+            <Alert color="red" title="Operation Error" mb="md">
+              {props.processing.account_transfer_error}
+            </Alert>
+          )}
+          <Button color="grape" onClick={handlePreview}>
+            Preview Transaction
+          </Button>
+        </Grid.Col>
+      </Grid>
+    </Box>
+  );
+};
+
+export default Send;

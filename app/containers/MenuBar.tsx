@@ -1,8 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Link, useLocation } from 'react-router';
-import { Box, Divider, Stack, Text } from '@mantine/core';
+import { Box, Divider, Group, Stack, Text } from '@mantine/core';
 import {
   IconArrowsExchange,
   IconBolt,
@@ -62,14 +62,29 @@ const MenuBar: React.FC<any> = (props) => {
     };
   }, []);
 
-  let height: React.ReactNode = 'Loading';
+  // Re-evaluate connection freshness on a local tick, so a stale/dead node flips to "Behind" even when
+  // no new props arrive (refreshGlobalProps stops dispatching once the node stops responding).
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 5000);
+    return () => clearInterval(t);
+  }, []);
+
   let network = 'Loading';
+  let synced: boolean | null = null;
   if (hive.props) {
-    height = hive.props.head_block_number;
-    network = hive.props.network || 'Hive';
+    network = (hive.props.network || 'Hive').replace(/^Hive\s+/, ''); // "Hive Mirrornet" -> "Mirrornet"
+    const headMs = hive.props.time ? new Date(`${hive.props.time}Z`).getTime() : 0;
+    synced = headMs > 0 ? (now - headMs) / 1000 < 30 : null;
   }
 
   const chainClassName = network === 'Hive' ? 'hivered' : 'hivetestnetpink';
+  const syncTitle =
+    synced === null
+      ? 'Connecting to the Hive node…'
+      : synced
+        ? `Up to date — head block ${hive.props?.head_block_number}`
+        : 'Not receiving new blocks — possible node or connection issue';
 
   return (
     <Box
@@ -82,6 +97,8 @@ const MenuBar: React.FC<any> = (props) => {
         bottom: 0,
         width: '92px',
         overflowY: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
       <Stack gap={0} align="center" py="md">
@@ -113,7 +130,7 @@ const MenuBar: React.FC<any> = (props) => {
                 flexDirection: 'column',
                 alignItems: 'center',
                 textDecoration: 'none',
-                padding: '0.9em 0',
+                padding: '0.7em 0',
                 color: active ? '#fff' : 'var(--mantine-color-gray-3)',
                 backgroundColor: active ? 'rgba(255,255,255,0.08)' : 'transparent',
               }}
@@ -127,27 +144,32 @@ const MenuBar: React.FC<any> = (props) => {
         })}
       </Stack>
 
-      <Box
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          width: '100%',
-        }}
-        p="sm"
-      >
-        <div>
-          <span style={{ lineHeight: '1.5em' }}>Chain:</span>
-          <br />
-          <span style={{ fontWeight: 700 }} className={chainClassName}>
-            {network}
-          </span>
-          <hr />
-          <span style={{ lineHeight: '1.5em' }}>Height:</span>
-          <br />
-          <span style={{ fontWeight: 700 }} className={chainClassName}>
-            {height}
-          </span>
-        </div>
+      {/* mt="auto" pins this to the bottom of the flex column — no absolute overlap with the nav items */}
+      <Box mt="auto" p="sm" ta="center">
+        <Text size="xs" c="gray.5">
+          Chain
+        </Text>
+        <Text size="sm" fw={700} mb="xs" className={chainClassName}>
+          {network}
+        </Text>
+        <Group gap={6} justify="center" wrap="nowrap" title={syncTitle}>
+          <Box
+            w={8}
+            h={8}
+            style={{
+              borderRadius: '50%',
+              backgroundColor:
+                synced === null
+                  ? 'var(--mantine-color-gray-5)'
+                  : synced
+                    ? 'var(--mantine-color-green-5)'
+                    : 'var(--mantine-color-red-5)',
+            }}
+          />
+          <Text size="xs" c={synced === null ? 'gray.5' : synced ? 'green.4' : 'red.4'}>
+            {synced === null ? '…' : synced ? 'Latest' : 'Behind'}
+          </Text>
+        </Group>
       </Box>
     </Box>
   );

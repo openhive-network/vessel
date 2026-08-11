@@ -18,7 +18,6 @@ import VestingPage from './containers/VestingPage';
 import ConvertPage from './containers/ConvertPage';
 import DecryptPrompt from './containers/DecryptPrompt';
 import ColorSchemeToggle from './components/global/ColorSchemeToggle';
-import NetworkBanner from './components/global/NetworkBanner';
 
 const isURL = (str: string): boolean => {
   const pattern = new RegExp(
@@ -34,21 +33,23 @@ const isURL = (str: string): boolean => {
 };
 
 const changeNode = (url: string, refreshGlobalProps: () => void): void => {
-  if (url && isURL(url)) {
-    // If it's a valid URL, set
-    hiveApi.setOptions({ url });
-    hiveApi.getConfig().then((result: any) => {
+  const target = url && isURL(url) ? url : 'https://api.hive.blog';
+  hiveApi.setOptions({ url: target });
+  // Resolve the node's chain config FIRST, then refresh global props. The network detection in
+  // refreshGlobalProps keys off chain_id, so refreshing before getConfig lands briefly mislabels the
+  // network after a node switch (e.g. shows "Hive" for a mirrornet until the next poll).
+  hiveApi.getConfig().then(
+    (result: any) => {
       if (result) {
         hiveConfig.set('chain_id', result.HIVE_CHAIN_ID);
         hiveConfig.set('address_prefix', result.HIVE_ADDRESS_PREFIX);
       }
-    }, () => {});
-  } else {
-    // Otherwise set to the api.hive.blog node
-    hiveApi.setOptions({ url: 'https://api.hive.blog' });
-  }
-  // Force a refresh immediately after change
-  refreshGlobalProps();
+      refreshGlobalProps();
+    },
+    () => {
+      refreshGlobalProps();
+    }
+  );
 };
 
 const AppRoutes: React.FC = () => {
@@ -95,7 +96,6 @@ const AppRoutes: React.FC = () => {
           screen has no nav, so fall back to the fixed top-right toggle there. */}
       {!keys?.isUser && <ColorSchemeToggle />}
       <DecryptPrompt />
-      <NetworkBanner />
       <Routes>
         <Route path="/" element={keys?.isUser ? <TransactionsPage /> : <WelcomePage />} />
         <Route path="/transactions" element={<TransactionsPage />} />

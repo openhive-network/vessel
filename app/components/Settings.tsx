@@ -1,302 +1,235 @@
-import React, { Component } from 'react';
+import React, { useState } from 'react';
 
-import { Form, Input } from 'formsy-semantic-ui-react';
 import {
-  Divider,
-  Grid,
-  Header,
-  Label,
-  Segment,
-  Select,
-  Table,
+  Box,
   Button,
+  Divider,
+  Group,
   Modal,
-} from 'semantic-ui-react';
+  Paper,
+  Table,
+  Text,
+  TextInput,
+  Title,
+} from '@mantine/core';
 import PreferredNode from './global/PreferredNode';
 
-export default class Settings extends Component<any, any> {
-  constructor(props) {
-    super(props);
-    this.state = {
-      addContactModal: false,
-      newContact: '',
-    };
-  }
+const Settings: React.FC<any> = (props) => {
+  const { actions, account, preferences } = props;
 
-  handleChange = (e: any, { name, value }: any) => {
-    const { setPreference } = this.props.actions;
-    setPreference(name, value);
+  const [addContactModal, setAddContactModal] = useState(false);
+  const [newContact, setNewContact] = useState('');
+
+  const handleContactChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const cleaned = e.currentTarget.value.replace(/(@|\s)+/gim, ' ');
+    setNewContact(cleaned);
   };
 
-  onValidSubmit = (e: any) => {
-    const { setPreference } = this.props.actions;
-    setPreference('hived_node', e.hived_node);
+  const handleCancelContact = () => {
+    setAddContactModal(false);
   };
 
-  handleContactChange = (e: any, { value }: any) => {
-    const cleaned = value.replace(/(@|\s)+/gim, ' ');
-    this.setState({
-      newContact: cleaned,
-    });
+  const handleConfirmContact = () => {
+    if (newContact !== '') actions.addContact(newContact);
+    setAddContactModal(false);
+    setNewContact('');
   };
 
-  handleCancelContact = (e: any) => {
-    this.setState({
-      addContactModal: false,
-    });
-    e.preventDefault();
-  };
+  const contactList =
+    account.contacts &&
+    account.contacts.map((contact) => (
+      <Table.Tr key={contact}>
+        <Table.Td>{contact}</Table.Td>
+        <Table.Td>
+          <Button onClick={() => actions.removeContact(contact)} variant="default">
+            Remove
+          </Button>
+        </Table.Td>
+      </Table.Tr>
+    ));
 
-  handleConfirmContact = (e: any) => {
-    const { newContact } = this.state;
-    if (newContact !== '') this.props.actions.addContact(newContact);
-    this.setState({
-      addContactModal: false,
-      newContact: '',
-    });
-    e.preventDefault();
-  };
+  return (
+    <Box p="md">
+      <PreferredNode {...props} />
 
-  render() {
-    let modal: any = false;
-    const contactList =
-      this.props.account.contacts &&
-      this.props.account.contacts.map((contact) => (
-        <Table.Row key={contact} textAlign="center">
-          <Table.Cell>{contact}</Table.Cell>
-          <Table.Cell width={5}>
-            <Button onClick={() => this.props.actions.removeContact(contact)} secondary>
-              Remove
-            </Button>
-          </Table.Cell>
-        </Table.Row>
-      ));
+      <Divider my="md" />
 
-    if (this.state.addContactModal) {
-      modal = (
-        <Modal
-          open
-          header="Add a New Contact"
-          content={
-            <Segment basic padded>
-              <Form>
-                <Form.Field
-                  control={Input}
-                  name="contact"
-                  label="Username to add to contact list"
-                  placeholder="username (without @)"
-                  autoFocus
-                  value={this.state.newContact}
-                  onChange={this.handleContactChange}
-                />
-              </Form>
-            </Segment>
-          }
-          actions={[
-            {
-              key: 'no',
-              icon: 'cancel',
-              content: 'Cancel',
-              color: 'red',
-              floated: 'left',
-              onClick: this.handleCancelContact,
-            },
-            {
-              key: 'yes',
-              icon: 'checkmark',
-              content: 'Confirmed - add contact',
-              color: 'green',
-              onClick: this.handleConfirmContact,
-            },
-          ]}
-        />
-      );
-    }
+      <Title order={3}>Exchange Configuration</Title>
+      <Text c="dimmed" size="sm" mb="sm">
+        Configure the required <strong>unencrypted memo</strong> for each individual currency and
+        exchange. Do <strong>NOT</strong> add the
+        <strong>#</strong> prefix for encryption, only the memo that the exchange specifies.
+      </Text>
 
-    return (
-      <Segment basic padded>
-        <PreferredNode {...this.props} />
+      <Paper withBorder p="md" radius={0}>
+        <Title order={5}>Binance (@bdhivesteem)</Title>
+        <Group grow mt="sm">
+          <TextInput
+            label="HIVE Memo (Unencrypted)"
+            value={preferences.binance_bdhivesteem_hive ?? ''}
+            onChange={(e) =>
+              actions.setPreference('binance_bdhivesteem_hive', e.currentTarget.value)
+            }
+            placeholder="Enter your HIVE Memo for Binance"
+          />
+        </Group>
+      </Paper>
 
-        <Divider />
+      <Paper withBorder p="md" radius={0}>
+        <Title order={5}>Binance (DEPRECATED - @deepcrypto8)</Title>
+        <Group grow mt="sm">
+          <TextInput
+            label="HIVE Memo (Unencrypted)"
+            value={preferences.binance_hive ?? ''}
+            onChange={(e) => actions.setPreference('binance_hive', e.currentTarget.value)}
+            placeholder="Enter your HIVE Memo for Binance"
+          />
+        </Group>
+      </Paper>
 
-        <Form>
-          <Header>
-            Exchange Configuration
-            <Header.Subheader>
-              Configure the required <strong>unencrypted memo</strong> for each individual currency
-              and exchange. Do <strong>NOT</strong> add the
-              <strong>#</strong> prefix for encryption, only the memo that the exchange specifies.
-            </Header.Subheader>
-          </Header>
+      <Paper withBorder p="md" radius={0}>
+        <Title order={5}>Bittrex</Title>
+        <Group grow mt="sm">
+          <TextInput
+            label="HIVE Memo (Unencrypted)"
+            value={preferences.bittrex_hive ?? ''}
+            onChange={(e) => actions.setPreference('bittrex_hive', e.currentTarget.value)}
+            placeholder="Enter your HIVE Memo for Bittrex"
+          />
+          <TextInput
+            label="HBD Memo (Unencrypted)"
+            value={preferences.bittrex_hbd ?? ''}
+            onChange={(e) => actions.setPreference('bittrex_hbd', e.currentTarget.value)}
+            placeholder="Enter your HBD Memo for Bittrex"
+          />
+        </Group>
+      </Paper>
 
-          <Segment attached>
-            <Header size="small">Binance (@bdhivesteem)</Header>
-            <Form.Group widths="equal">
-              <Form.Input
-                label="HIVE Memo (Unencrypted)"
-                name="binance_bdhivesteem_hive"
-                value={this.props.preferences.binance_bdhivesteem_hive}
-                onChange={this.handleChange}
-                placeholder="Enter your HIVE Memo for Binance"
-              />
-            </Form.Group>
-          </Segment>
+      <Paper withBorder p="md" radius={0}>
+        <Title order={5}>Huobi</Title>
+        <Group grow mt="sm">
+          <TextInput
+            label="HIVE Memo (Unencrypted)"
+            value={preferences.huobi_hive ?? ''}
+            onChange={(e) => actions.setPreference('huobi_hive', e.currentTarget.value)}
+            placeholder="Enter your HIVE Memo for Huobi"
+          />
+          <TextInput
+            label="HBD Memo (Unencrypted)"
+            value={preferences.huobi_hbd ?? ''}
+            onChange={(e) => actions.setPreference('huobi_hbd', e.currentTarget.value)}
+            placeholder="Enter your HBD Unencrypted Memo for Huobi"
+          />
+        </Group>
+      </Paper>
 
-          <Segment attached>
-            <Header size="small">Binance (DEPRECATED - @deepcrypto8)</Header>
-            <Form.Group widths="equal">
-              <Form.Input
-                label="HIVE Memo (Unencrypted)"
-                name="binance_hive"
-                value={this.props.preferences.binance_hive}
-                onChange={this.handleChange}
-                placeholder="Enter your HIVE Memo for Binance"
-              />
-            </Form.Group>
-          </Segment>
+      <Paper withBorder p="md" radius={0}>
+        <Title order={5}>Gate.io</Title>
+        <Group grow mt="sm">
+          <TextInput
+            label="HIVE Memo (Unencrypted)"
+            value={preferences.gateio_hive ?? ''}
+            onChange={(e) => actions.setPreference('gateio_hive', e.currentTarget.value)}
+            placeholder="Enter your HIVE Memo for Gate.io"
+          />
+        </Group>
+      </Paper>
 
-          <Segment attached>
-            <Header size="small">Bittrex</Header>
-            <Form.Group widths="equal">
-              <Form.Input
-                label="HIVE Memo (Unencrypted)"
-                name="bittrex_hive"
-                value={this.props.preferences.bittrex_hive}
-                onChange={this.handleChange}
-                placeholder="Enter your HIVE Memo for Bittrex"
-              />
-              <Form.Input
-                label="HBD Memo (Unencrypted)"
-                name="bittrex_hbd"
-                value={this.props.preferences.bittrex_hbd}
-                onChange={this.handleChange}
-                placeholder="Enter your HBD Memo for Bittrex"
-              />
-            </Form.Group>
-          </Segment>
+      <Paper withBorder p="md" radius={0}>
+        <Title order={5}>Ionomy</Title>
+        <Group grow mt="sm">
+          <TextInput
+            label="HIVE Memo (Unencrypted)"
+            value={preferences.ionomy_hive ?? ''}
+            onChange={(e) => actions.setPreference('ionomy_hive', e.currentTarget.value)}
+            placeholder="Enter your HIVE Memo for Ionomy"
+          />
+          <TextInput
+            label="HBD Memo (Unencrypted)"
+            value={preferences.ionomy_hbd ?? ''}
+            onChange={(e) => actions.setPreference('ionomy_hbd', e.currentTarget.value)}
+            placeholder="Enter your HBD Memo for Ionomy"
+          />
+        </Group>
+      </Paper>
 
-          <Segment attached>
-            <Header size="small">Huobi</Header>
-            <Form.Group widths="equal">
-              <Form.Input
-                label="HIVE Memo (Unencrypted)"
-                name="huobi_hive"
-                value={this.props.preferences.huobi_hive}
-                onChange={this.handleChange}
-                placeholder="Enter your HIVE Memo for Huobi"
-              />
-              <Form.Input
-                label="HBD Memo (Unencrypted)"
-                name="huobi_hbd"
-                value={this.props.preferences.huobi_hbd}
-                onChange={this.handleChange}
-                placeholder="Enter your HBD Unencrypted Memo for Huobi"
-              />
-            </Form.Group>
-          </Segment>
+      <Paper withBorder p="md" radius={0}>
+        <Title order={5}>ProBit</Title>
+        <Group grow mt="sm">
+          <TextInput
+            label="HIVE Memo (Unencrypted)"
+            value={preferences.probit_hive ?? ''}
+            onChange={(e) => actions.setPreference('probit_hive', e.currentTarget.value)}
+            placeholder="Enter your HIVE Memo for ProBit"
+          />
+          <TextInput
+            label="HBD Memo (Unencrypted)"
+            value={preferences.probit_hbd ?? ''}
+            onChange={(e) => actions.setPreference('probit_hbd', e.currentTarget.value)}
+            placeholder="Enter your HBD Memo for ProBit"
+          />
+        </Group>
+      </Paper>
 
-          <Segment attached>
-            <Header size="small">Gate.io</Header>
-            <Form.Group widths="equal">
-              <Form.Input
-                label="HIVE Memo (Unencrypted)"
-                name="gateio_hive"
-                value={this.props.preferences.gateio_hive}
-                onChange={this.handleChange}
-                placeholder="Enter your HIVE Memo for Gate.io"
-              />
-            </Form.Group>
-          </Segment>
+      <Paper withBorder p="md" radius={0}>
+        <Title order={5}>MXC</Title>
+        <Group grow mt="sm">
+          <TextInput
+            label="HIVE Memo (Unencrypted)"
+            value={preferences.mxc_hive ?? ''}
+            onChange={(e) => actions.setPreference('mxc_hive', e.currentTarget.value)}
+            placeholder="Enter your HIVE Memo for MXC"
+          />
+          <TextInput
+            label="HBD Memo (Unencrypted)"
+            value={preferences.mxc_hbd ?? ''}
+            onChange={(e) => actions.setPreference('mxc_hbd', e.currentTarget.value)}
+            placeholder="Enter your HBD Memo for MXC"
+          />
+        </Group>
+      </Paper>
 
-          <Segment attached>
-            <Header size="small">Ionomy</Header>
-            <Form.Group widths="equal">
-              <Form.Input
-                label="HIVE Memo (Unencrypted)"
-                name="ionomy_hive"
-                value={this.props.preferences.ionomy_hive}
-                onChange={this.handleChange}
-                placeholder="Enter your HIVE Memo for Ionomy"
-              />
-              <Form.Input
-                label="HBD Memo (Unencrypted)"
-                name="ionomy_hbd"
-                value={this.props.preferences.ionomy_hbd}
-                onChange={this.handleChange}
-                placeholder="Enter your HBD Memo for Ionomy"
-              />
-            </Form.Group>
-          </Segment>
+      <Divider my="md" />
 
-          <Segment attached>
-            <Header size="small">ProBit</Header>
-            <Form.Group widths="equal">
-              <Form.Input
-                label="HIVE Memo (Unencrypted)"
-                name="probit_hive"
-                value={this.props.preferences.probit_hive}
-                onChange={this.handleChange}
-                placeholder="Enter your HIVE Memo for ProBit"
-              />
-              <Form.Input
-                label="HBD Memo (Unencrypted)"
-                name="probit_hbd"
-                value={this.props.preferences.probit_hbd}
-                onChange={this.handleChange}
-                placeholder="Enter your HBD Memo for ProBit"
-              />
-            </Form.Group>
-          </Segment>
+      <Title order={3}>Contact List</Title>
+      <Text c="dimmed" size="sm" mb="sm">
+        Add or remove users from your contact list.
+      </Text>
 
-          <Segment attached>
-            <Header size="small">MXC</Header>
-            <Form.Group widths="equal">
-              <Form.Input
-                label="HIVE Memo (Unencrypted)"
-                name="mxc_hive"
-                value={this.props.preferences.mxc_hive}
-                onChange={this.handleChange}
-                placeholder="Enter your HIVE Memo for MXC"
-              />
-              <Form.Input
-                label="HBD Memo (Unencrypted)"
-                name="mxc_hbd"
-                value={this.props.preferences.mxc_hbd}
-                onChange={this.handleChange}
-                placeholder="Enter your HBD Memo for MXC"
-              />
-            </Form.Group>
-          </Segment>
-        </Form>
+      <Paper withBorder p="md" radius={0}>
+        <Table style={{ minWidth: '300px', margin: '0 auto', width: '100%' }}>
+          <Table.Tbody>
+            {contactList}
+            <Table.Tr>
+              <Table.Td colSpan={2} align="center">
+                <Button onClick={() => setAddContactModal(true)}>Add New Contact</Button>
+              </Table.Td>
+            </Table.Tr>
+          </Table.Tbody>
+        </Table>
+      </Paper>
 
-        <Divider />
+      <Modal opened={addContactModal} onClose={handleCancelContact} title="Add a New Contact">
+        <Box p="md">
+          <TextInput
+            label="Username to add to contact list"
+            placeholder="username (without @)"
+            data-autofocus
+            value={newContact}
+            onChange={handleContactChange}
+          />
+        </Box>
+        <Group justify="flex-end" mt="md">
+          <Button color="red" onClick={handleCancelContact}>
+            Cancel
+          </Button>
+          <Button color="green" onClick={handleConfirmContact}>
+            Confirmed - add contact
+          </Button>
+        </Group>
+      </Modal>
+    </Box>
+  );
+};
 
-        <Header>
-          Contact List
-          <Header.Subheader>Add or remove users from your contact list.</Header.Subheader>
-        </Header>
-
-        <Segment attached>
-          <Table
-            definition
-            collapsing
-            style={{ minWidth: '300px', margin: '0 auto', width: '100%' }}
-          >
-            <Table.Body>
-              {contactList}
-              <Table.Row>
-                <Table.Cell colSpan={2} textAlign="center">
-                  <Button onClick={() => this.setState({ addContactModal: true })} primary>
-                    Add New Contact
-                  </Button>
-                </Table.Cell>
-              </Table.Row>
-            </Table.Body>
-          </Table>
-        </Segment>
-
-        {modal}
-      </Segment>
-    );
-  }
-}
+export default Settings;

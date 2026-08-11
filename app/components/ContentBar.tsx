@@ -1,15 +1,11 @@
-import React, { Component } from 'react';
+import React from 'react';
 
-export default class ContentBar extends Component<any, any> {
-  render() {
-    return (
-      <div
-        style={{
-          marginLeft: '92px',
-        }}
-      >
-        {this.props.children}
-      </div>
-    );
-  }
-}
+/**
+ * Left-offset content wrapper (clears the fixed 92px MenuBar rail). Migrated class -> function in
+ * Phase 7 M1; behavior-identical.
+ */
+const ContentBar: React.FC<{ children?: React.ReactNode }> = ({ children }) => (
+  <div style={{ marginLeft: '92px' }}>{children}</div>
+);
+
+export default ContentBar;

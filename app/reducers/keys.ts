@@ -25,6 +25,7 @@ import {
   KEY_ADD_MEMO_FAILED_PASSWORD_MISMATCH,
   KEY_ADD_MEMO_FAILED_PLAINTEXT_MAIN,
   KEY_USE_ROLE_MISMATCH,
+  KEY_ERROR_CLEAR,
   KEY_REENCRYPTED,
 } from '../actions/keys';
 
@@ -174,9 +175,13 @@ const keysSlice = createSlice({
       })
       .addCase(KEY_USE_ROLE_MISMATCH, (state: any, action: any) => ({
         ...state,
+        // Dedicated field so the global KeyErrorModal can surface it (lastError is only read by the
+        // onboarding key-import screens, which aren't visible when an in-app op fails the gate).
+        roleError: action.payload,
         lastError: action.payload.message,
         decrypt: false,
       }))
+      .addCase(KEY_ERROR_CLEAR, (state: any) => ({ ...state, roleError: false, lastError: false }))
       .addCase(KEY_REMOVE_CANCEL, (state: any) => ({ ...state, remove: false }))
       .addCase(KEY_REMOVE_CONFIRM, (state: any, action: any) => ({
         ...state,

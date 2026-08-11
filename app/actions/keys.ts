@@ -41,7 +41,13 @@ export const KEY_ADD_FAILED_PASSWORD_REQUIRED = 'KEY_ADD_FAILED_PASSWORD_REQUIRE
 export const KEY_ADD_MEMO_FAILED_PASSWORD_MISMATCH = 'KEY_ADD_MEMO_FAILED_PASSWORD_MISMATCH';
 export const KEY_ADD_MEMO_FAILED_PLAINTEXT_MAIN = 'KEY_ADD_MEMO_FAILED_PLAINTEXT_MAIN';
 export const KEY_USE_ROLE_MISMATCH = 'KEY_USE_ROLE_MISMATCH';
+export const KEY_ERROR_CLEAR = 'KEY_ERROR_CLEAR';
 export const KEY_REENCRYPTED = 'KEY_REENCRYPTED';
+
+// Dismiss the in-app operation-error notice (e.g. an authority/role mismatch surfaced to the user).
+export function clearKeyError() {
+  return { type: KEY_ERROR_CLEAR };
+}
 
 export function addKey(account: any, wif: any) {
   const isValidKey = hiveAuth.isWif(wif);

@@ -365,11 +365,13 @@ if (process.defaultApp) {
 }
 
 // Dev/unpackaged macOS launches (`npm start`, the e2e/profile-copy harness) otherwise show the generic
-// Electron dock icon — the packaged app gets its icon from electron-builder and is unaffected. Set the
-// Vessel icon for dev using the STYLED image extracted from the packaged .icns (dock-icon.png — a
-// rounded-square with transparent corners; the raw .icns is unreadable by nativeImage and the bare
-// png/ logos have no macOS treatment, which is why the earlier attempt was reverted). __dirname is
-// out/main under the vite build, so the repo's assets/ sit two levels up.
+// Electron dock icon — the packaged app gets its icon from electron-builder (the .icns) and is
+// unaffected. dock-icon.png is the styled macOS "app tile" — the red rounded-square with the white Hive
+// hexagon padded inside and the standard transparent margin, i.e. the SAME artwork baked into icon.icns
+// (nativeImage can't read .icns directly, so we keep a PNG mirror). app.dock.setIcon replaces the dock
+// image outright, so it must already carry the rounded-square treatment — a bare transparent logo here
+// is exactly what made the dock icon ignore the macOS frame. __dirname is out/main under the vite build,
+// so the repo's assets/ sit two levels up.
 function setDevDockIcon(): void {
   if (app.isPackaged || process.platform !== 'darwin' || !app.dock) return;
   try {

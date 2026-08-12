@@ -42,6 +42,7 @@
   "build": {
     "productName": "Vessel",
     "appId": "com.greymass.vessel",
+    "afterPack": "build/afterPackIcon.js",
     "files": [
       "out/**",
       "package.json"

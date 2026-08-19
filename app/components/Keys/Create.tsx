@@ -12,7 +12,9 @@ import {
   Modal,
   Paper,
   PasswordInput,
+  Radio,
   Select,
+  Stack,
   Table,
   Text,
   TextInput,
@@ -39,6 +41,29 @@ export default function KeysCreate(props: any) {
   const [pub, setPub] = useState<any>(undefined);
   const [prv, setPrv] = useState<any>(undefined);
   const [password, setPassword] = useState<any>(undefined);
+  // 'token' = free via a claimed account-creation token; 'fee' = pay the account_creation_fee.
+  const [method, setMethod] = useState<'token' | 'fee'>('fee');
+  const [creationFee, setCreationFee] = useState<string>('3.000 HIVE');
+
+  // Fetch the chain's current account_creation_fee (its own asset symbol) for the paid option.
+  useEffect(() => {
+    let mounted = true;
+    hiveApi.getChainProperties().then(
+      (props2: any) => {
+        if (mounted && props2?.account_creation_fee) setCreationFee(String(props2.account_creation_fee));
+      },
+      () => {}
+    );
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // The creator's available claim tokens come from its on-chain record (refreshed elsewhere + after a
+  // claim). Undefined until the creator's data loads -> treat as 0 (paid path).
+  const availableTokens = Number(
+    props.account?.accounts?.[requestedOwner]?.pending_claimed_accounts || 0
+  );
 
   // FROZEN — debounced availability check (this.setState -> setters only).
   const checkUsername = useRef(
@@ -148,14 +173,24 @@ export default function KeysCreate(props: any) {
     const creatorKey = props.keys.permissions[requestedOwner];
     // eslint-disable-next-line react-hooks/rules-of-hooks
     useKey(
-      'createAccountDelegated',
+      'createAccount',
       {
         creator: requestedOwner,
         username: requestedName,
         password,
+        method, // 'token' -> free create_claimed_account; 'fee' -> paid account_create
       },
       creatorKey
     );
+  };
+
+  // Claim one account-creation token for the selected creator (free, via Resource Credits). Signed
+  // with the creator's active key through the same main-custody path as every other op.
+  const handleClaimToken = () => {
+    if (!requestedOwner) return;
+    const creatorKey = props.keys.permissions[requestedOwner];
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    props.actions.useKey('claimAccountToken', { creator: requestedOwner }, creatorKey);
   };
 
   let modal: any = false;
@@ -230,13 +265,9 @@ export default function KeysCreate(props: any) {
       keys: (({ owner, active, posting, memo }) => ({ owner, active, posting, memo }))(prv),
     };
   }
-  let delegation: any = {};
-  if (props.account && props.account.minimumDelegation) {
-    delegation = props.account.minimumDelegation;
-  }
   const passwordValid = !!lock1 && lock1 === lock2;
 
-  if (modalPreview && delegation) {
+  if (modalPreview) {
     modal = (
       <Modal
         opened
@@ -393,20 +424,49 @@ export default function KeysCreate(props: any) {
       </Box>
       <Grid columns={16} gutter="lg">
         <Grid.Col span={7}>
-          <Alert color="red" title="New accounts require initial funds">
-            <Text>
-              New accounts require funding in order to be created, which is transfered from the
-              originating account. Currently to create an account, you must fund it initially with a
-              minimum of:
+          <Paper withBorder p="md" radius="md">
+            <Title order={4}>Funding</Title>
+            <Text size="sm" c="dimmed" mt="xs">
+              Choose how {requestedOwner || 'the originating account'} pays to create the new account.
             </Text>
-            <List mt="xs">
-              <List.Item>HIVE: {delegation.fee.amount}</List.Item>
-              <List.Item>
-                VESTS: {delegation.delegation.amount.toFixed(6)} (~
-                {delegation.sp.amount.toFixed(3)} HP)
-              </List.Item>
-            </List>
-          </Alert>
+            <Radio.Group
+              value={method}
+              onChange={(v) => setMethod(v === 'token' ? 'token' : 'fee')}
+              mt="md"
+            >
+              <Stack gap="xs">
+                <Radio
+                  value="token"
+                  disabled={availableTokens < 1}
+                  label={`Use a claim token — free (${availableTokens} available)`}
+                />
+                <Radio value="fee" label={`Pay the creation fee (${creationFee})`} />
+              </Stack>
+            </Radio.Group>
+            <Group mt="md" justify="space-between" align="center" wrap="nowrap">
+              <Text size="sm" c="dimmed">
+                Claim tokens let you create accounts for free using your Resource Credits.
+              </Text>
+              <Button
+                variant="light"
+                loading={!!props.processing?.account_claim_pending}
+                disabled={!ownerAvailable}
+                onClick={handleClaimToken}
+              >
+                Claim a token
+              </Button>
+            </Group>
+            {props.processing?.account_claim_error ? (
+              <Alert color="red" icon={<IconAlertTriangle size={18} />} mt="xs">
+                {props.processing.account_claim_error}
+              </Alert>
+            ) : null}
+            {props.processing?.account_claim_resolved ? (
+              <Alert color="green" icon={<IconCheck size={18} />} mt="xs">
+                Token claimed — you now have {availableTokens}.
+              </Alert>
+            ) : null}
+          </Paper>
           <Title order={4} mt="md">
             Next steps...
           </Title>

@@ -1,6 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
 import {
-  ACCOUNT_DATA_MINIMUM_ACCOUNT_DELEGATION,
   ACCOUNT_DATA_UPDATE,
   ACCOUNT_DATA_WITHDRAW_ROUTES_UPDATE,
   ACCOUNT_DATA_VESTING_DELEGATIONS_UPDATE,
@@ -19,9 +18,6 @@ const accountSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(ACCOUNT_DATA_MINIMUM_ACCOUNT_DELEGATION, (state: any, action: any) => {
-        return { ...state, minimumDelegation: action.payload };
-      })
       .addCase(ACCOUNT_DATA_UPDATE, (state: any, action: any) => {
         const accounts = state.accounts ? state.accounts : {};
         const amended = { ...accounts, ...action.payload };

@@ -1,6 +1,5 @@
 import reducer from '../account';
 import {
-  ACCOUNT_DATA_MINIMUM_ACCOUNT_DELEGATION,
   ACCOUNT_DATA_UPDATE,
   ACCOUNT_DATA_WITHDRAW_ROUTES_UPDATE,
   ACCOUNT_DATA_VESTING_DELEGATIONS_UPDATE,
@@ -13,19 +12,6 @@ describe('account reducer', () => {
     expect(reducer(undefined, { type: '@@INIT' })).toEqual({
       updated: false,
       accounts: {},
-    });
-  });
-
-  it('ACCOUNT_DATA_MINIMUM_ACCOUNT_DELEGATION sets minimumDelegation from the payload', () => {
-    const prev = { updated: false, accounts: {} };
-    const next = reducer(prev, {
-      type: ACCOUNT_DATA_MINIMUM_ACCOUNT_DELEGATION,
-      payload: '5.000000 VESTS',
-    });
-    expect(next).toEqual({
-      updated: false,
-      accounts: {},
-      minimumDelegation: '5.000000 VESTS',
     });
   });
 

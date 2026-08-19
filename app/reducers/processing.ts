@@ -5,6 +5,9 @@ import {
   PROCESSING_ACCOUNT_CREATE_CANCEL,
   PROCESSING_ACCOUNT_CREATE_COMPLETE,
   PROCESSING_ACCOUNT_CREATE_FAILED,
+  PROCESSING_ACCOUNT_CLAIM,
+  PROCESSING_ACCOUNT_CLAIM_COMPLETE,
+  PROCESSING_ACCOUNT_CLAIM_FAILED,
   PROCESSING_ACCOUNT_LOADING,
   PROCESSING_ACCOUNT_LOADING_COMPLETE,
   PROCESSING_REWARD_CLAIM,
@@ -113,9 +116,33 @@ const processingSlice = createSlice({
       .addCase(PROCESSING_ACCOUNT_CREATE_FAILED, (state: any, action: any) => {
         return {
           ...state,
-          account_create_error: action.payload.message,
+          account_create_error: action.payload?.message || 'Account creation failed.',
           account_create_pending: false,
           account_create_resolved: false,
+        };
+      })
+      .addCase(PROCESSING_ACCOUNT_CLAIM, (state: any) => {
+        return {
+          ...state,
+          account_claim_error: false,
+          account_claim_pending: true,
+          account_claim_resolved: false,
+        };
+      })
+      .addCase(PROCESSING_ACCOUNT_CLAIM_COMPLETE, (state: any) => {
+        return {
+          ...state,
+          account_claim_error: false,
+          account_claim_pending: false,
+          account_claim_resolved: true,
+        };
+      })
+      .addCase(PROCESSING_ACCOUNT_CLAIM_FAILED, (state: any, action: any) => {
+        return {
+          ...state,
+          account_claim_error: action.payload?.message || 'Could not claim a token.',
+          account_claim_pending: false,
+          account_claim_resolved: false,
         };
       })
       .addCase(ACCOUNT_TRANSFER_STARTED, (state: any) => {

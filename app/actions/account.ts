@@ -2,6 +2,7 @@ import { hiveApi, hiveConfig } from '../utils/hiveApi';
 import * as ProcessingActions from './processing';
 import { requiredRoleForOps } from '../utils/authorityRoles';
 import { broadcastOps, signAndBroadcast } from '../utils/broadcast';
+import { accountAuthoritiesFromPassword, freeClaimFee } from '../utils/accountCreation';
 
 export const ACCOUNT_CUSTOM_JSON_STARTED = 'ACCOUNT_CUSTOM_JSON_STARTED';
 export const ACCOUNT_CUSTOM_JSON_RESOLVED = 'ACCOUNT_CUSTOM_JSON_RESOLVED';
@@ -11,7 +12,6 @@ export const ACCOUNT_CUSTOM_OPS_STARTED = 'ACCOUNT_CUSTOM_OPS_STARTED';
 export const ACCOUNT_CUSTOM_OPS_RESOLVED = 'ACCOUNT_CUSTOM_OPS_RESOLVED';
 export const ACCOUNT_CUSTOM_OPS_FAILED = 'ACCOUNT_CUSTOM_OPS_FAILED';
 export const ACCOUNT_CUSTOM_OPS_COMPLETED = 'ACCOUNT_CUSTOM_OPS_COMPLETED';
-export const ACCOUNT_DATA_MINIMUM_ACCOUNT_DELEGATION = 'ACCOUNT_DATA_MINIMUM_ACCOUNT_DELEGATION';
 export const ACCOUNT_DATA_UPDATE = 'ACCOUNT_DATA_UPDATE';
 export const ACCOUNT_DATA_UPDATE_FAILED = 'ACCOUNT_DATA_UPDATE_FAILED';
 export const ACCOUNT_DATA_UPDATE_PENDING = 'ACCOUNT_DATA_UPDATE_PENDING';
@@ -90,62 +90,60 @@ export function claimRewardBalance(wif: any, params: any) {
   };
 }
 
-// This function automatically attempts to use the minimal account creation fee
-// and delegation amount.
-export function createAccountDelegated(wif: any, params: any, preferences = {}) {
-  return (dispatch: any) => {
-    // const { creator, username, password } = params;
-    // let client
-    // if(preferences && preferences.hived_node) {
-    //   client = new Client(preferences.hived_node);
-    // } else {
-    //   client = new Client('https://api.hive.blog');
-    // }
-    // const dsteem = require('dsteem');
-    // const creatorKey = dhive.PrivateKey.fromString(wif);
+/**
+ * Create a new Hive account. `method`:
+ *  - 'token'   -> create_claimed_account (FREE; spends one of the creator's pending claimed tokens)
+ *  - otherwise -> account_create (creator pays the current account_creation_fee)
+ * The new account's authorities are derived from (username, password) — the SAME derivation
+ * Keys/Create uses to generate + display the keys — so the on-chain account's keys match what the
+ * user backs up and what Vessel imports on success. Signed by the creator's active key (main custody).
+ */
+export function createAccount(signer: any, params: any) {
+  return async (dispatch: any) => {
+    const { creator, username, password, method } = params;
     dispatch(ProcessingActions.processingAccountCreate());
-    // client.broadcast.createAccount({
-    //   creator, username, password
-    // }, creatorKey).then(function(result) {
-    dispatch(ProcessingActions.processingAccountCreateComplete());
-    //   client.disconnect()
-    // }, function(error) {
-    //   dispatch(ProcessingActions.processingAccountCreateFailed(error));
-    // });
+    try {
+      const auths = accountAuthoritiesFromPassword(username, password);
+      const common = {
+        creator,
+        newAccountName: username,
+        owner: auths.owner,
+        active: auths.active,
+        posting: auths.posting,
+        memoKey: auths.memoKey,
+      };
+      if (method === 'token') {
+        await broadcastOps.createClaimedAccount(signer, common);
+      } else {
+        const props = await hiveApi.getChainProperties();
+        await broadcastOps.accountCreate(signer, { ...common, fee: props.account_creation_fee });
+      }
+      dispatch(ProcessingActions.processingAccountCreateComplete());
+    } catch (err) {
+      dispatch(ProcessingActions.processingAccountCreateFailed(err));
+    }
   };
 }
 
-export function getMinimumAccountDelegation(preferences = {}) {
+/**
+ * Claim one account-creation token for `creator` via Resource Credits (fee 0). The token lands in the
+ * creator's pending_claimed_accounts and can later fund a free create_claimed_account. Active key.
+ */
+export function claimAccountToken(signer: any, params: any) {
   return async (dispatch: any) => {
-    // let client
-    // if(preferences && preferences.hived_node) {
-    //   client = new Client(preferences.hived_node);
-    // } else {
-    //   client = new Client('https://api.hive.blog');
-    // }
-    // const constants = await client.database.getConfig();
-    // const chainProps = await client.database.getChainProperties();
-    // const dynamicProps = await client.database.getDynamicGlobalProperties();
-
-    // const creationFee = Asset.from(chainProps.account_creation_fee);
-    // const sharePrice = Praiice.from({
-    //   base: dynamicProps.total_vesting_shares,
-    //   quote: dynamicProps.total_vesting_fund_hive
-    // });
-
-    // const ratio = constants.HIVE_CREATE_ACCOUNT_DELEGATION_RATIO;
-    // const modifier = constants.HIVE_CREATE_ACCOUNT_WITH_HIVE_MODIFIER;
-
-    // const fee = Asset.from('0.200 HIVE');
-
-    // const targetDelegation = sharePrice.convert(creationFee.multiply(modifier * ratio));
-    // const delegation = targetDelegation.subtract(sharePrice.convert(fee.multiply(ratio)));
-    // const sp = sharePrice.convert(delegation);
-    // client.disconnect();
-    dispatch({
-      type: ACCOUNT_DATA_MINIMUM_ACCOUNT_DELEGATION,
-      payload: {},
-    });
+    const { creator } = params;
+    dispatch(ProcessingActions.processingAccountClaim());
+    try {
+      const props = await hiveApi.getChainProperties();
+      await broadcastOps.claimAccount(signer, {
+        creator,
+        fee: freeClaimFee(props.account_creation_fee),
+      });
+      dispatch(ProcessingActions.processingAccountClaimComplete());
+      dispatch(refreshAccountData([creator]));
+    } catch (err) {
+      dispatch(ProcessingActions.processingAccountClaimFailed(err));
+    }
   };
 }
 

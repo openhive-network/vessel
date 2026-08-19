@@ -166,7 +166,8 @@ export function requiredRoleForAction(operation: string, params: any): Authority
     case 'setDelegateVestingShares':
     case 'setVotingProxy':
     case 'voteWitness':
-    case 'createAccountDelegated':
+    case 'createAccount':
+    case 'claimAccountToken':
       return 'active';
     default:
       console.warn(`[authority] unknown operation '${operation}', requiring 'active'`);

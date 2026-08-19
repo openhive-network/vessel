@@ -17,6 +17,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { hiveApi, hiveConfig, hiveAuth, hiveMemo } from '../hiveApi';
 import { broadcastOps } from '../broadcast';
+import { accountAuthoritiesFromPassword, freeClaimFee } from '../accountCreation';
 
 const NODE = process.env.VESSEL_TESTNET_NODE;
 const ACCOUNT = process.env.VESSEL_TESTNET_ACCOUNT;
@@ -34,6 +35,7 @@ let uniqueId = 100;
 let alreadyVotingGtg = false;
 let vestsAvailable = 0;
 let savingsAvailable = 0;
+let creationFee = '3.000 HIVE';
 
 // Proves an op serialized + signed + SUBMITTED end-to-end: hived either APPLIED it (returns a
 // signature) or declined it AT THE EVALUATOR, which arrives via the facade error adapter as
@@ -68,6 +70,9 @@ describe.skipIf(!CONFIGURED)('Phase 4 — live testnet broadcast round-trip (opt
     // seed a per-run-unique convert requestid from the head block number
     const props = await hiveApi.getDynamicGlobalProperties();
     uniqueId = Number(props.head_block_number) % 2000000000;
+    // the chain's own account_creation_fee string (symbol included), for the account-creation ops
+    const cp = await hiveApi.getChainProperties();
+    if (cp?.account_creation_fee) creationFee = String(cp.account_creation_fee);
   }, 30000);
 
   it.skipIf(!POSTING)(
@@ -269,6 +274,65 @@ describe.skipIf(!CONFIGURED)('Phase 4 — live testnet broadcast round-trip (opt
           to: ACCOUNT,
           amount: '0.001 HIVE',
           memo: 'vessel smoke',
+        })
+      );
+    },
+    30000
+  );
+
+  // --- Account creation (claim token / free create / paid create). All signed by the creator's
+  // active key. expectSubmitted: the creator may lack RC (claim), a pending token (free create), or
+  // funds (paid create) — a decline AT THE EVALUATOR still proves the op serialized + signed + built
+  // correctly (a bad authority/field would fail to parse, not reach the evaluator). Fresh account
+  // names per run (derived from the head block) avoid "account already exists".
+  const base = uniqueId.toString(36).replace(/[^a-z0-9]/g, '');
+
+  it.skipIf(!ACTIVE)(
+    'account creation: claim_account (free, RC-based) is submitted',
+    async () => {
+      await expectSubmitted(() =>
+        broadcastOps.claimAccount(ACTIVE as string, {
+          creator: ACCOUNT,
+          fee: freeClaimFee(creationFee), // "0.000 <symbol>" -> claim via Resource Credits
+        })
+      );
+    },
+    30000
+  );
+
+  it.skipIf(!ACTIVE)(
+    'account creation: create_claimed_account (free, spends a token) is submitted',
+    async () => {
+      const newAccountName = `vsl${base}c`.slice(0, 16);
+      const auths = accountAuthoritiesFromPassword(newAccountName, `vessel-smoke-${base}-c`);
+      await expectSubmitted(() =>
+        broadcastOps.createClaimedAccount(ACTIVE as string, {
+          creator: ACCOUNT,
+          newAccountName,
+          owner: auths.owner,
+          active: auths.active,
+          posting: auths.posting,
+          memoKey: auths.memoKey,
+        })
+      );
+    },
+    30000
+  );
+
+  it.skipIf(!ACTIVE)(
+    'account creation: account_create (paid, account_creation_fee) is submitted',
+    async () => {
+      const newAccountName = `vsl${base}p`.slice(0, 16);
+      const auths = accountAuthoritiesFromPassword(newAccountName, `vessel-smoke-${base}-p`);
+      await expectSubmitted(() =>
+        broadcastOps.accountCreate(ACTIVE as string, {
+          creator: ACCOUNT,
+          newAccountName,
+          fee: creationFee,
+          owner: auths.owner,
+          active: auths.active,
+          posting: auths.posting,
+          memoKey: auths.memoKey,
         })
       );
     },

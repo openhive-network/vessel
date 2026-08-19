@@ -210,4 +210,49 @@ export const broadcastOps = {
       'posting',
       wif
     ),
+
+  // Account creation. `owner`/`active`/`posting` are authority objects
+  // ({ weight_threshold, account_auths, key_auths }), `memo_key` a bare public key — build them with
+  // utils/accountCreation.newAccountAuthorities. All three are signed by the CREATOR's active key.
+
+  // Claim one account-creation token. fee "0.000 <SYMBOL>" claims via the creator's Resource Credits
+  // (free); a non-zero fee (= account_creation_fee) claims by paying. Token lands in
+  // the creator's `pending_claimed_accounts`, spendable later by create_claimed_account.
+  claimAccount: (wif: Signer, p: any) =>
+    signAndBroadcast(op('claim_account', { creator: p.creator, fee: p.fee, extensions: [] }), 'active', wif),
+
+  // Create an account for FREE using one previously-claimed token (no fee field).
+  createClaimedAccount: (wif: Signer, p: any) =>
+    signAndBroadcast(
+      op('create_claimed_account', {
+        creator: p.creator,
+        new_account_name: p.newAccountName,
+        owner: p.owner,
+        active: p.active,
+        posting: p.posting,
+        memo_key: p.memoKey,
+        json_metadata: p.jsonMetadata || '',
+        extensions: [],
+      }),
+      'active',
+      wif
+    ),
+
+  // Create an account by PAYING the account_creation_fee up front (no claimed token needed).
+  // Note: account_create_with_delegation is disabled on Hive since HF20, so this is the paid path.
+  accountCreate: (wif: Signer, p: any) =>
+    signAndBroadcast(
+      op('account_create', {
+        fee: p.fee,
+        creator: p.creator,
+        new_account_name: p.newAccountName,
+        owner: p.owner,
+        active: p.active,
+        posting: p.posting,
+        memo_key: p.memoKey,
+        json_metadata: p.jsonMetadata || '',
+      }),
+      'active',
+      wif
+    ),
 };

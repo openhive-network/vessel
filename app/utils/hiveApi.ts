@@ -45,6 +45,10 @@ export const hiveApi = {
 
   getConfig: (): Promise<any> => callRPC('condenser_api.get_config', []),
 
+  // Median witness chain properties — carries `account_creation_fee` (the fee an account_create /
+  // paid claim_account must pay). Returned as the node's own asset string (e.g. "3.000 HIVE").
+  getChainProperties: (): Promise<any> => callRPC('condenser_api.get_chain_properties', []),
+
   getConversionRequests: (account: string): Promise<any[]> =>
     callRPC('condenser_api.get_conversion_requests', [account]),
 };

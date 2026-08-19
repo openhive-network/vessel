@@ -1,3 +1,7 @@
+/// <reference types="vitest/globals" />
+// The line above provides the ambient test globals (describe/it/expect/vi) for the specs that use
+// vitest's `globals: true` without importing from 'vitest'. (Replaces the incidental @types/jest.)
+
 // Type declarations for modules that ship no types and have no installed @types.
 // (redux-persist, react-dom/client, and history ship their own types — stubs removed;
 //  url-parse is replaced by native URL and redux-logger removed in Phase 5.)

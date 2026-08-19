@@ -77,3 +77,6 @@ playwright/.cache/
 .env
 .env.local
 .env.*.local
+
+# Local-only archive of the modernization planning docs (kept off the repo, not shipped).
+/.archive/

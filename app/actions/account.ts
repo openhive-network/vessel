@@ -25,8 +25,6 @@ export const ACCOUNT_DATA_WITHDRAW_ROUTES_UPDATE_PENDING =
 export const ACCOUNT_DATA_WITHDRAW_ROUTES_UPDATE_FAILED =
   'ACCOUNT_DATA_WITHDRAW_ROUTES_UPDATE_FAILED';
 export const ACCOUNT_DATA_WITHDRAW_ROUTES_UPDATE = 'ACCOUNT_DATA_WITHDRAW_ROUTES_UPDATE';
-export const ACCOUNT_GET_TRANSACTIONS = 'ACCOUNT_GET_TRANSACTIONS';
-export const ACCOUNT_GET_TRANSACTIONS_RESOLVED = 'ACCOUNT_GET_TRANSACTIONS_RESOLVED';
 export const ACCOUNT_DELEGATE_VESTING_SHARES_STARTED = 'ACCOUNT_DELEGATE_VESTING_SHARES_STARTED';
 export const ACCOUNT_DELEGATE_VESTING_SHARES_RESOLVED = 'ACCOUNT_DELEGATE_VESTING_SHARES_RESOLVED';
 export const ACCOUNT_DELEGATE_VESTING_SHARES_FAILED = 'ACCOUNT_DELEGATE_VESTING_SHARES_FAILED';
@@ -172,42 +170,6 @@ export function getVestingDelegations(account: any) {
         });
       }
     );
-  };
-}
-
-export function getTransactionsResolved(payload = {}) {
-  return {
-    type: ACCOUNT_GET_TRANSACTIONS_RESOLVED,
-    payload,
-  };
-}
-
-export function getTransactions(accounts: any) {
-  return async (dispatch: any) => {
-    // const { category, author, permlink } = params;
-    const response = await fetch(`http://localhost:5001`);
-    if (response.ok) {
-      const result = await response.json();
-      const payload = {
-        transactions: result.data,
-      };
-      // if(result.forum) {
-      //   payload.breadcrumb.unshift({
-      //     name: result.forum.name,
-      //     link: `/forum/${result.forum._id}`
-      //   })
-      // }
-      // dispatch({
-      //   type: types.SET_STATUS,
-      //   payload: {
-      //     network: result.network
-      //   }
-      // })
-      dispatch(getTransactionsResolved(payload));
-    } else {
-      console.error(response.status);
-      // dispatch(fetchPostResolved())
-    }
   };
 }
 

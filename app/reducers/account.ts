@@ -4,7 +4,6 @@ import {
   ACCOUNT_DATA_UPDATE,
   ACCOUNT_DATA_WITHDRAW_ROUTES_UPDATE,
   ACCOUNT_DATA_VESTING_DELEGATIONS_UPDATE,
-  ACCOUNT_GET_TRANSACTIONS_RESOLVED,
   ACCOUNT_CONTACTS_ADD,
   ACCOUNT_CONTACTS_REMOVE,
 } from '../actions/account';
@@ -20,9 +19,6 @@ const accountSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(ACCOUNT_GET_TRANSACTIONS_RESOLVED, (state: any, action: any) => {
-        return { ...state, transactions: action.payload.transactions };
-      })
       .addCase(ACCOUNT_DATA_MINIMUM_ACCOUNT_DELEGATION, (state: any, action: any) => {
         return { ...state, minimumDelegation: action.payload };
       })

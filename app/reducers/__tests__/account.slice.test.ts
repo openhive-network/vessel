@@ -4,7 +4,6 @@ import {
   ACCOUNT_DATA_UPDATE,
   ACCOUNT_DATA_WITHDRAW_ROUTES_UPDATE,
   ACCOUNT_DATA_VESTING_DELEGATIONS_UPDATE,
-  ACCOUNT_GET_TRANSACTIONS_RESOLVED,
   ACCOUNT_CONTACTS_ADD,
   ACCOUNT_CONTACTS_REMOVE,
 } from '../../actions/account';
@@ -14,19 +13,6 @@ describe('account reducer', () => {
     expect(reducer(undefined, { type: '@@INIT' })).toEqual({
       updated: false,
       accounts: {},
-    });
-  });
-
-  it('ACCOUNT_GET_TRANSACTIONS_RESOLVED stores the transactions payload', () => {
-    const prev = { updated: false, accounts: {} };
-    const next = reducer(prev, {
-      type: ACCOUNT_GET_TRANSACTIONS_RESOLVED,
-      payload: { transactions: [{ trx_id: 'abc' }] },
-    });
-    expect(next).toEqual({
-      updated: false,
-      accounts: {},
-      transactions: [{ trx_id: 'abc' }],
     });
   });
 

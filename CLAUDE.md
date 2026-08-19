@@ -5,7 +5,7 @@
 Vessel is a desktop wallet application for the Hive blockchain. It allows users to manage their Hive accounts, send HIVE/HBD tokens, manage vesting/delegation, and perform other blockchain operations without running a full node. Cross-platform support for macOS, Windows, and Linux via Electron.
 
 **Status**: Experimental lite wallet
-**Version**: 2.0.0
+**Version**: 3.0.0
 **License**: MIT
 
 ## Tech Stack

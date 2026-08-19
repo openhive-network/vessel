@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-// @ts-expect-error untyped module
 import BPromise from 'bluebird';
 import hive from '@hiveio/hive-js';
 import { PublicKey, Transaction } from 'hive-tx';

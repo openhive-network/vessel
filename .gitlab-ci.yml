@@ -1,14 +1,13 @@
-# GitLab CI for Vessel — Phase 2 D11 (replaces .travis.yml).
+# GitLab CI for Vessel (replaces .travis.yml).
 #
 # Pipeline: verify → build (electron-vite) → e2e (Playwright _electron under xvfb) → package (tags only).
 #
 # Notes:
-#  • `npm ci --legacy-peer-deps` mirrors how the mid-modernization dependency tree was installed
-#    (eslint 9 + plugins whose peer ranges lag). Drop the flag once the ecosystem catches up.
-#  • package:* still build via webpack (the `package-*` scripts) until MR-B repoints electron-builder
-#    from dist/ to out/. They are tag-gated, so they never run on ordinary pushes.
-#  • macOS packaging is a manual local `npm run package` step — there is no hosted mac runner
-#    (MODERNIZATION_PLAN Open Question). Add a `package:mac` job here if/when a tagged mac runner exists.
+#  • `npm ci --legacy-peer-deps` is used because a few eslint 9 plugins still declare lagging peer
+#    ranges. Drop the flag once the ecosystem catches up.
+#  • The whole toolchain is electron-vite/vite — everything (dev, build, package) bundles into out/.
+#  • macOS packaging is a manual local `npm run package` step — there is no hosted mac runner.
+#    Add a `package:mac` job here if/when a tagged mac runner exists.
 
 stages:
   - verify
@@ -37,7 +36,7 @@ build:
   stage: build
   interruptible: true
   script:
-    - npm run build:vite
+    - npm run build
   artifacts:
     paths:
       - out/

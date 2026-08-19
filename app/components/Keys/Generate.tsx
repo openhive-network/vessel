@@ -18,7 +18,6 @@ export default function KeysGenerate(props: any) {
     () =>
       _.debounce((value: string) => {
         const name = value.trim();
-        console.log(`[${name}]`);
         if (name === '') {
           setCheckingUsername(false);
           setRequestedName(false);
@@ -59,7 +58,6 @@ export default function KeysGenerate(props: any) {
     let existsTextarea: any = document.getElementById(id);
 
     if (!existsTextarea) {
-      console.log('Creating textarea');
       const textarea: any = document.createElement('textarea');
       textarea.id = id;
       // Place in top-left corner of screen regardless of scroll position.
@@ -83,10 +81,7 @@ export default function KeysGenerate(props: any) {
       // Avoid flash of white box if rendered for any reason.
       textarea.style.background = 'transparent';
       document.querySelector('body')!.appendChild(textarea);
-      console.log('The textarea now exists :)');
       existsTextarea = document.getElementById(id);
-    } else {
-      console.log('The textarea already exists :3');
     }
 
     existsTextarea.value = text;
@@ -97,10 +92,10 @@ export default function KeysGenerate(props: any) {
       if (!status) {
         console.error('Cannot copy text');
       } else {
-        console.log('The text is now on the clipboard');
+        // no-op (copy succeeded)
       }
     } catch (err) {
-      console.log('Unable to copy.');
+      // ignore copy failures
     }
   }
 

@@ -47,7 +47,7 @@ function PromptOperation(props: any) {
     try {
       value = JSON.parse(window.atob(props.query.meta));
     } catch (exception) {
-      console.log(exception);
+      console.error(exception);
     }
     return value;
   });

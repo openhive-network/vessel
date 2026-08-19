@@ -71,8 +71,7 @@ function setError(response: any) {
     }
     return message;
   } catch (e) {
-    console.log(e);
-    console.log(response);
+    console.error('Unable to parse operation error', e, response);
     return 'Unknown Error, check View -> Devtools for more information.';
   }
 }

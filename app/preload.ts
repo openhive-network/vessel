@@ -45,9 +45,10 @@ const electronAPI = {
   },
 };
 
-// contextBridge REQUIRES contextIsolation:true — Phase 3 flips it on. Until then the windows run
-// contextIsolation:false / nodeIntegration:true, so exposing via contextBridge would throw and abort
-// the whole preload. Expose directly on window in that case; switch to contextBridge once isolated.
+// Both windows run contextIsolation:true / nodeIntegration:false / sandbox:true (see main.dev.ts), so
+// contextBridge is the live path. The else-branch is a dead defensive fallback for a non-isolated
+// context (process.contextIsolated is always true here) — kept only so the preload can't crash if the
+// window config ever regresses.
 if (process.contextIsolated) {
   contextBridge.exposeInMainWorld('electronAPI', electronAPI);
 } else {

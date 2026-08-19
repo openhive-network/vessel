@@ -48,16 +48,13 @@ const MenuBar: React.FC<any> = (props) => {
 
   useEffect(() => {
     const timer = () => {
-      // console.log('tick');
       latestRef.current.actions.refreshAccountData(latestRef.current.keys.names);
       latestRef.current.actions.refreshGlobalProps();
-      // actions.getTransactions(account.names);
     };
 
     timer();
     const interval = setInterval(timer, 10000);
     return () => {
-      // console.log('unmounting');
       clearInterval(interval);
     };
   }, []);

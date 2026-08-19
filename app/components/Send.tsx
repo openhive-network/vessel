@@ -300,7 +300,6 @@ const Send: React.FC<any> = (props) => {
     e.preventDefault();
     setSent(false);
     if (!isFormValid()) {
-      console.log('form not valid');
       return;
     }
     const cleaned = memo.trim();

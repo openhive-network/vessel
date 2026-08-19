@@ -33,10 +33,7 @@
     "package-all": "npm run build && electron-builder -mwl",
     "release": "electron-builder -mwl",
     "dist": "electron-builder -mw",
-    "postinstall": "patch-package && electron-builder install-app-deps",
-    "dev:vite": "electron-vite dev",
-    "build:vite": "electron-vite build",
-    "preview:vite": "electron-vite preview"
+    "postinstall": "patch-package && electron-builder install-app-deps"
   },
   "browserslist": "chrome 120",
   "build": {
@@ -119,7 +116,7 @@
     "blockchain",
     "wallet"
   ],
-  "homepage": "https://gitlab.syncad.com/hive/vessel/vessel",
+  "homepage": "https://gitlab.syncad.com/hive/vessel",
   "devDependencies": {
     "@eslint/js": "^9.39.5",
     "@playwright/test": "^1.62.1",
@@ -129,7 +126,10 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^5.2.0",
+    "@hiveio/hive-js": "^2.0.4",
+    "@types/bluebird": "^3.5.42",
     "asar": "^0.13.1",
+    "bluebird": "^3.7.2",
     "chalk": "^4.1.2",
     "core-js": "^3.36.0",
     "cross-env": "^7.0.3",
@@ -158,7 +158,6 @@
   },
   "dependencies": {
     "@fontsource/lato": "^5.3.0",
-    "@hiveio/hive-js": "^2.0.4",
     "@mantine/core": "^8.3.18",
     "@mantine/form": "^8.3.18",
     "@mantine/hooks": "^8.3.18",
@@ -169,13 +168,13 @@
     "@tabler/icons-react": "^3.46.0",
     "electron-debug": "^3.2.0",
     "hive-tx": "^7.2.0",
+    "lodash": "^4.17.21",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-redux": "^9.3.0",
     "react-router": "^8.3.0",
     "redux": "^5.0.1",
     "redux-persist": "^6.0.0",
-    "redux-thunk": "^3.1.0",
     "source-map-support": "^0.5.21"
   },
   "engines": {

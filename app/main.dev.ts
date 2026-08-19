@@ -5,8 +5,7 @@
  * electron renderer process from here and communicate with the other processes
  * through IPC.
  *
- * When running `npm run build` or `npm run build-main`, this file is compiled to
- * `./app/main.prod.js` using webpack. This gives us some performance wins.
+ * `npm run build` (electron-vite) bundles this to `out/main/main.dev.js`.
  */
 import { app, BrowserWindow, ipcMain, nativeImage, session, shell } from 'electron';
 import * as path from 'path';
@@ -16,17 +15,14 @@ import { Keystore } from './main/keystore';
 import { parseSignRequest } from './main/signUri';
 import { WrongPasswordError, InvalidCiphertextError } from './utils/errors';
 
-// Resolve the renderer entry for BOTH build systems until MR-B removes webpack: electron-vite dev
-// server URL, else the electron-vite prod build (out/renderer/index.html), else the legacy webpack
-// app.html. `query` (e.g. the sign-window params) rides on whichever URL we pick.
+// Resolve the renderer entry: the electron-vite dev server URL in dev, else the prod build at
+// out/renderer/index.html. `query` (e.g. the sign-window params) rides on whichever URL we pick.
 const rendererURL = (query = ''): string => {
   if (process.env.ELECTRON_RENDERER_URL) return `${process.env.ELECTRON_RENDERER_URL}${query}`;
-  const viteIndex = path.join(__dirname, '../renderer/index.html');
-  if (fs.existsSync(viteIndex)) return `file://${viteIndex}${query}`;
-  return `file://${path.join(__dirname, 'app.html')}${query}`;
+  return `file://${path.join(__dirname, '../renderer/index.html')}${query}`;
 };
 
-// Same dual-build resolution for the preload script: out/preload under electron-vite, else app/.
+// Preload path: out/preload under electron-vite (falls back to a co-located preload.js just in case).
 const preloadPath = (): string => {
   const vitePreload = path.join(__dirname, '../preload/preload.js');
   return fs.existsSync(vitePreload) ? vitePreload : path.join(__dirname, 'preload.js');

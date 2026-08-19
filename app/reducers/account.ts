@@ -49,7 +49,6 @@ const accountSlice = createSlice({
         return { ...state, contacts };
       })
       .addCase(ACCOUNT_CONTACTS_REMOVE, (state: any, action: any) => {
-        console.log(action.payload);
         let contacts = state.contacts ? state.contacts : [];
         contacts = contacts.filter((itm: any) => itm !== action.payload);
         return { ...state, contacts };

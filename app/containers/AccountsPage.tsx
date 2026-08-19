@@ -9,6 +9,7 @@ import {
   IconLock,
   IconPlus,
   IconSitemap,
+  IconUserPlus,
   IconUsers,
 } from '@tabler/icons-react';
 
@@ -34,6 +35,10 @@ const AccountsPage: React.FC<any> = (props) => {
 
   const handleAddAccount = () => {
     props.actions.addKeyPrompt();
+  };
+
+  const handleCreateAccount = () => {
+    props.actions.createKeyPrompt();
   };
 
   const handleAddAccountCancel = () => {
@@ -204,9 +209,18 @@ const AccountsPage: React.FC<any> = (props) => {
               </Text>
             </Box>
           </Group>
-          <Button color="green" leftSection={<IconPlus size={16} />} onClick={handleAddAccount}>
-            Add account
-          </Button>
+          <Group gap="xs" wrap="nowrap">
+            <Button
+              variant="default"
+              leftSection={<IconUserPlus size={16} />}
+              onClick={handleCreateAccount}
+            >
+              Create new account
+            </Button>
+            <Button color="green" leftSection={<IconPlus size={16} />} onClick={handleAddAccount}>
+              Add account
+            </Button>
+          </Group>
         </Group>
       </Paper>
       <Tabs value={activeItem} onChange={handleItemClick}>

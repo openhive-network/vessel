@@ -189,7 +189,6 @@ export default function KeysCreate(props: any) {
   const handleClaimToken = () => {
     if (!requestedOwner) return;
     const creatorKey = props.keys.permissions[requestedOwner];
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     props.actions.useKey('claimAccountToken', { creator: requestedOwner }, creatorKey);
   };
 
@@ -443,19 +442,19 @@ export default function KeysCreate(props: any) {
                 <Radio value="fee" label={`Pay the creation fee (${creationFee})`} />
               </Stack>
             </Radio.Group>
-            <Group mt="md" justify="space-between" align="center" wrap="nowrap">
-              <Text size="sm" c="dimmed">
-                Claim tokens let you create accounts for free using your Resource Credits.
-              </Text>
-              <Button
-                variant="light"
-                loading={!!props.processing?.account_claim_pending}
-                disabled={!ownerAvailable}
-                onClick={handleClaimToken}
-              >
-                Claim a token
-              </Button>
-            </Group>
+            <Text size="sm" c="dimmed" mt="md">
+              Claim tokens let you create accounts for free using your Resource Credits.
+            </Text>
+            <Button
+              variant="light"
+              fullWidth
+              mt="xs"
+              loading={!!props.processing?.account_claim_pending}
+              disabled={!ownerAvailable}
+              onClick={handleClaimToken}
+            >
+              Claim a token
+            </Button>
             {props.processing?.account_claim_error ? (
               <Alert color="red" icon={<IconAlertTriangle size={18} />} mt="xs">
                 {props.processing.account_claim_error}

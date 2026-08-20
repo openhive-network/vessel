@@ -58,7 +58,7 @@ test.describe('D9b B4 — transaction signing runs in the real main process', ()
     );
 
     const app = await electron.launch({
-      args: [MAIN],
+      args: [...(process.env.CI ? ['--no-sandbox'] : []), MAIN],
       env: { ...process.env, NODE_ENV: 'production', VESSEL_USER_DATA: profile },
     });
     const proc = app.process();
@@ -112,7 +112,7 @@ test.describe('D9b B4 — transaction signing runs in the real main process', ()
     );
 
     const app = await electron.launch({
-      args: [MAIN],
+      args: [...(process.env.CI ? ['--no-sandbox'] : []), MAIN],
       env: { ...process.env, NODE_ENV: 'production', VESSEL_USER_DATA: profile },
     });
     try {

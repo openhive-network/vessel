@@ -27,7 +27,7 @@ test.describe('Task 5 — vessel://sign renderer flow (built app)', () => {
   test('refuses a malformed payload; renders the summary for a valid one', async () => {
     const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'vessel-e2e-sign-ui-'));
     const app = await electron.launch({
-      args: [MAIN],
+      args: [...(process.env.CI ? ['--no-sandbox'] : []), MAIN],
       env: { ...process.env, NODE_ENV: 'production', VESSEL_USER_DATA: profile },
     });
     try {

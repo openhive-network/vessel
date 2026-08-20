@@ -12,7 +12,8 @@ test.beforeAll(async () => {
   // opened. NODE_ENV=production makes the main process load out/renderer/index.html over file://.
   const userDataDir = mkdtempSync(join(tmpdir(), 'vessel-e2e-'));
   app = await electron.launch({
-    args: ['out/main/main.dev.js'],
+    // --no-sandbox in CI: Electron can't run the setuid sandbox as root (the CI image's user).
+    args: [...(process.env.CI ? ['--no-sandbox'] : []), 'out/main/main.dev.js'],
     env: {
       ...process.env,
       NODE_ENV: 'production',

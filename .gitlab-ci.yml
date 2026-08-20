@@ -48,7 +48,7 @@ e2e:
   needs: ['build']
   script:
     - npx playwright install-deps # OS libraries electron/chromium need
-    - apt-get update && apt-get install -y --no-install-recommends xvfb
+    - apt-get update && apt-get install -y --no-install-recommends xvfb xauth # xvfb-run needs xauth
     - xvfb-run --auto-servernum npm run test-e2e
   artifacts:
     when: on_failure

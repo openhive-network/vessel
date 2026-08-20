@@ -32,7 +32,7 @@ test.describe('D9b Stage B — live migration of the real profile copy', () => {
     if (fs.existsSync(KEYSTORE)) fs.rmSync(KEYSTORE); // exercise a real first migration
 
     const app = await electron.launch({
-      args: [MAIN],
+      args: [...(process.env.CI ? ['--no-sandbox'] : []), MAIN],
       env: { ...process.env, NODE_ENV: 'production', VESSEL_USER_DATA: PROFILE },
     });
     try {

@@ -1,0 +1,21 @@
+{
+  "presets": [
+    ["@babel/preset-env", {
+      "targets": { "node": "current" },
+      "modules": "commonjs"
+    }],
+    "@babel/preset-react",
+    "@babel/preset-flow"
+  ],
+  "plugins": ["add-module-exports"],
+  "env": {
+    "production": {
+      "plugins": ["babel-plugin-dev-expression"]
+    },
+    "development": {
+      "plugins": [
+        "react-hot-loader/babel"
+      ]
+    }
+  }
+}

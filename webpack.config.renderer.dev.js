@@ -7,14 +7,13 @@
  * https://webpack.js.org/concepts/hot-module-replacement/
  */
 
-import path from 'path';
-import fs from 'fs';
-import webpack from 'webpack';
-import chalk from 'chalk';
-import merge from 'webpack-merge';
-import { spawn, execSync } from 'child_process';
-import ExtractTextPlugin from 'extract-text-webpack-plugin';
-import baseConfig from './webpack.config.base';
+const path = require('path');
+const fs = require('fs');
+const webpack = require('webpack');
+const chalk = require('chalk');
+const { merge } = require('webpack-merge');
+const { spawn, execSync } = require('child_process');
+const baseConfig = require('./webpack.config.base');
 
 const port = process.env.PORT || 1212;
 const publicPath = `http://localhost:${port}/dist`;
@@ -31,15 +30,15 @@ if (!(fs.existsSync(dll) && fs.existsSync(manifest))) {
   execSync('npm run build-dll');
 }
 
-export default merge.smart(baseConfig, {
+module.exports = merge(baseConfig, {
+  mode: 'development',
+
   devtool: 'inline-source-map',
 
   target: 'electron-renderer',
 
   entry: [
     'react-hot-loader/patch',
-    `webpack-dev-server/client?http://localhost:${port}/`,
-    'webpack/hot/only-dev-server',
     path.join(__dirname, 'app/index.js'),
   ],
 
@@ -59,6 +58,9 @@ export default merge.smart(baseConfig, {
             loader: 'css-loader',
             options: {
               sourceMap: true,
+              // semantic-ui inlines fonts as data: URIs webpack cannot parse;
+              // they need no bundling.
+              url: { filter: url => !url.startsWith('data:') },
             },
           }
         ]
@@ -72,106 +74,54 @@ export default merge.smart(baseConfig, {
           {
             loader: 'css-loader',
             options: {
-              modules: true,
+              modules: {
+                localIdentName: '[name]__[local]__[hash:base64:5]',
+                namedExport: false,
+                exportLocalsConvention: 'as-is',
+              },
               sourceMap: true,
               importLoaders: 1,
-              localIdentName: '[name]__[local]__[hash:base64:5]',
             }
           },
-        ]
-      },
-      // Add SASS support  - compile all .global.scss files and pipe it to style.css
-      {
-        test: /\.global\.scss$/,
-        use: [
-          {
-            loader: 'style-loader'
-          },
-          {
-            loader: 'css-loader',
-            options: {
-              sourceMap: true,
-            },
-          },
-          {
-            loader: 'sass-loader'
-          }
-        ]
-      },
-      // Add SASS support  - compile all other .scss files and pipe it to style.css
-      {
-        test: /^((?!\.global).)*\.scss$/,
-        use: [
-          {
-            loader: 'style-loader'
-          },
-          {
-            loader: 'css-loader',
-            options: {
-              modules: true,
-              sourceMap: true,
-              importLoaders: 1,
-              localIdentName: '[name]__[local]__[hash:base64:5]',
-            }
-          },
-          {
-            loader: 'sass-loader'
-          }
         ]
       },
       // WOFF Font
       {
         test: /\.woff(\?v=\d+\.\d+\.\d+)?$/,
-        use: {
-          loader: 'url-loader',
-          options: {
-            limit: 10000,
-            mimetype: 'application/font-woff',
-          }
-        },
+        type: 'asset',
+        parser: { dataUrlCondition: { maxSize: 10000 } },
+        generator: { dataUrl: { mimetype: 'application/font-woff' } },
       },
       // WOFF2 Font
       {
         test: /\.woff2(\?v=\d+\.\d+\.\d+)?$/,
-        use: {
-          loader: 'url-loader',
-          options: {
-            limit: 10000,
-            mimetype: 'application/font-woff',
-          }
-        }
+        type: 'asset',
+        parser: { dataUrlCondition: { maxSize: 10000 } },
+        generator: { dataUrl: { mimetype: 'application/font-woff' } },
       },
       // TTF Font
       {
         test: /\.ttf(\?v=\d+\.\d+\.\d+)?$/,
-        use: {
-          loader: 'url-loader',
-          options: {
-            limit: 10000,
-            mimetype: 'application/octet-stream'
-          }
-        }
+        type: 'asset',
+        parser: { dataUrlCondition: { maxSize: 10000 } },
+        generator: { dataUrl: { mimetype: 'application/octet-stream' } },
       },
       // EOT Font
       {
         test: /\.eot(\?v=\d+\.\d+\.\d+)?$/,
-        use: 'file-loader',
+        type: 'asset/resource',
       },
       // SVG Font
       {
         test: /\.svg(\?v=\d+\.\d+\.\d+)?$/,
-        use: {
-          loader: 'url-loader',
-          options: {
-            limit: 10000,
-            mimetype: 'image/svg+xml',
-          }
-        }
+        type: 'asset',
+        parser: { dataUrlCondition: { maxSize: 10000 } },
+        generator: { dataUrl: { mimetype: 'image/svg+xml' } },
       },
       // Common Image Formats
       {
         test: /\.(?:ico|gif|png|jpg|jpeg|webp)$/,
-        use: 'url-loader',
+        type: 'asset/inline',
       }
     ]
   },
@@ -182,16 +132,6 @@ export default merge.smart(baseConfig, {
       manifest: require(manifest),
       sourceType: 'var',
     }),
-
-    /**
-     * https://webpack.js.org/concepts/hot-module-replacement/
-     */
-    new webpack.HotModuleReplacementPlugin({
-      // @TODO: Waiting on https://github.com/jantimon/html-webpack-plugin/issues/533
-      // multiStep: true
-    }),
-
-    new webpack.NoEmitOnErrorsPlugin(),
 
     /**
      * Create global constants which can be configured at compile time.
@@ -208,44 +148,45 @@ export default merge.smart(baseConfig, {
     new webpack.DefinePlugin({
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
     }),
-
-    new webpack.LoaderOptionsPlugin({
-      debug: true
-    }),
-
-    new ExtractTextPlugin({
-      filename: '[name].css'
-    }),
   ],
+
+  optimization: {
+    emitOnErrors: false,
+  },
+
+  watchOptions: {
+    aggregateTimeout: 300,
+    poll: 100
+  },
 
   devServer: {
     port,
-    publicPath,
     compress: true,
-    noInfo: true,
-    stats: 'errors-only',
-    inline: true,
-    lazy: false,
     hot: true,
     headers: { 'Access-Control-Allow-Origin': '*' },
-    contentBase: path.join(__dirname, 'dist'),
-    watchOptions: {
-      aggregateTimeout: 300,
-      poll: 100
+    static: path.join(__dirname, 'dist'),
+    devMiddleware: {
+      publicPath,
+      stats: 'errors-only',
+    },
+    // The page is loaded from file://, so the HMR client cannot derive the
+    // server's address from it.
+    client: {
+      webSocketURL: `ws://localhost:${port}/ws`,
     },
     historyApiFallback: {
       verbose: true,
       disableDotRule: false,
     },
-    setup() {
+    onListening() {
       if (process.env.START_HOT) {
         spawn(
           'npm',
           ['run', 'start-hot-renderer'],
           { shell: true, env: process.env, stdio: 'inherit' }
         )
-        .on('close', code => process.exit(code))
-        .on('error', spawnError => console.error(spawnError));
+          .on('close', code => process.exit(code))
+          .on('error', spawnError => console.error(spawnError));
       }
     }
   },

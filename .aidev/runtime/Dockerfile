@@ -10,13 +10,10 @@
 #   install --offline --frozen-lockfile` works in the sandbox;
 # * make and g++ (the base has python3), and node-gyp's Node headers for that Node
 #   in /opt/node-gyp (npm_config_devdir),
-#   so a native module's install script can build without a download;
-# * the lockfile's Electron zip in /opt/electron-cache (ELECTRON_CACHE for
-#   electron-download, electron_config_cache for @electron/get), fetched by
-#   running electron's own install.js (and spectron's electron-chromedriver's
-#   download-chromedriver.js), so their install scripts succeed offline.
-#   The suites never start Electron; ELECTRON_SKIP_BINARY_DOWNLOAD makes an
-#   Electron new enough to honour it skip the binary altogether.
+#   so a native module's install script can build without a download.
+#
+# The suites never start Electron: ELECTRON_SKIP_BINARY_DOWNLOAD makes electron's
+# install script skip the binary, so the image carries no Electron download.
 #
 # Build and pin it with .aidev/runtime/build.sh --push; see .aidev/README.md.
 ARG BASE_IMAGE=registry.gitlab.syncad.com/hive/common-ci-configuration/node-test-tools:develop
@@ -28,8 +25,6 @@ ENV HOME=/tmp \
     DISABLE_OPENCOLLECTIVE=1 \
     ADBLOCK=1 \
     ELECTRON_SKIP_BINARY_DOWNLOAD=1 \
-    ELECTRON_CACHE=/opt/electron-cache \
-    electron_config_cache=/opt/electron-cache \
     HUSKY=0 \
     DO_NOT_TRACK=1
 RUN apt-get update \
@@ -42,10 +37,5 @@ RUN apt-get update \
 COPY package.json yarn.lock /tmp/deps/
 RUN cd /tmp/deps \
     && yarn install --frozen-lockfile --ignore-scripts --ignore-engines --non-interactive \
-    && mkdir -p /opt/electron-cache \
-    && (cd node_modules/electron && ELECTRON_SKIP_BINARY_DOWNLOAD= node install.js) \
-    && (! [ -f node_modules/electron-chromedriver/download-chromedriver.js ] \
-        || (cd node_modules/electron-chromedriver && node download-chromedriver.js)) \
-    && ls /opt/electron-cache \
     && cd / && rm -rf /tmp/deps /tmp/.npm /tmp/.cache \
-    && chmod -R a+rwX /opt/yarn-cache /opt/node-gyp /opt/electron-cache
+    && chmod -R a+rwX /opt/yarn-cache /opt/node-gyp

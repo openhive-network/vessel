@@ -11,7 +11,7 @@ Vessel is a desktop wallet application for the Hive blockchain. It allows users 
 ## Tech Stack
 
 **Core**:
-- Electron 4.2.11 - Desktop framework
+- Electron 44 - Desktop framework (renderer runs with `nodeIntegration`)
 - React 16.4.0 - UI library
 - Redux 4.0.5 - State management
 - Semantic UI React 0.88.2 - UI components
@@ -22,14 +22,14 @@ Vessel is a desktop wallet application for the Hive blockchain. It allows users 
 - crypto-js 3.1.9-1 - Cryptography
 
 **Build**:
-- Webpack 2.7.0 - Module bundler
-- Babel 6 - Transpiler
-- Node.js 6.x (see .nvmrc)
+- Webpack 5 - Module bundler (CommonJS `webpack.config.*.js`)
+- Babel 7 - Transpiler (`babel.config.json`, targets the current Node)
+- Node.js 24 — the hive-wide version from common-ci-configuration; `.nvmrc` and `engines` name only the major
 
 **Quality**:
 - ESLint 6.8.0 (Airbnb config)
 - Flow 0.116.1 - Type checking
-- Jest 19.0.2 - Testing
+- Jest 30 - Testing (`test/**/*.spec.js`, run by `test/runTests.js`)
 
 ## Directory Structure
 
@@ -48,6 +48,8 @@ app/                    # Main application source
 ├── utils/             # Utility functions
 ├── semantic-ui/       # Semantic UI CSS/JS
 └── img/               # Image assets
+
+test/                  # Jest suites (reducers, actions, utils)
 
 assets/                # Build assets (icons for all platforms)
 internals/             # Build helpers and Flow types
@@ -85,7 +87,7 @@ npm run package-linux  # Linux only
 | `app/reducers/index.js` | Root reducer combining all state |
 | `app/actions/account.js` | Core wallet actions (send, delegate, vote) |
 | `webpack.config.base.js` | Base webpack configuration |
-| `.babelrc` | Babel transpilation config |
+| `babel.config.json` | Babel transpilation config (project-wide, so it also covers `app/`) |
 | `.eslintrc` | ESLint rules |
 | `.flowconfig` | Flow type checker config |
 
@@ -129,12 +131,9 @@ npm run package-linux  # Linux only
 
 ## CI/CD Notes
 
-**Travis CI** (`.travis.yml`):
-- Node versions: 6, 7
-- Ubuntu with build tools
-- Pipeline: lint → test → build → e2e → package
-
-**No GitLab CI** configured in this repo.
+**No CI** is configured in this repo (no GitLab CI; the old Travis config was dropped).
+The AIDEV suites (`.aidev/run-checks.sh`) run install → build → test in an image built on
+common-ci-configuration's `node-test-tools`, which carries the hive-wide Node version.
 
 ## Network Configuration
 

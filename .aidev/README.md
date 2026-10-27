@@ -36,31 +36,30 @@ which writes `test-results/<slot>/junit.xml` (one case per step):
 Every run first installs `node_modules` offline from the image's yarn cache (`install`,
 `yarn install --offline --frozen-lockfile` with lifecycle scripts, the root `postinstall`
 included). Steps: `build` is `yarn build` (webpack bundles of the main and renderer
-processes), `test` is `yarn test` (`test/runTests.js`), `lint` is `eslint .` (the `lint`
-script, `.travis.yml`'s first step). The project has no GitLab CI; `.travis.yml` is the only
-CI definition. The suites never start Electron, and `test-e2e` and `package`
-(electron-builder) are not in the slots.
+processes), `test` is `yarn test` (`test/runTests.js`, Jest over `test/**/*.spec.js`), `lint`
+is `eslint .` (the `lint` script). The project has no CI definition of its own (no GitLab CI;
+the dead Travis config was removed). The suites never start Electron, and `package`
+(electron-builder) is not in the slots.
 
-There are no tests: `package.json`'s `test` script runs `test/runTests.js`, and the tree has
-no `test/` directory. Until it has one, the `test` case is recorded as skipped and
-`coverage` measures nothing.
+The tests are smoke tests of the reducers, the key actions (hive-js key derivation,
+crypto-js encryption) and `utils/NumericLabel`: enough that a broken toolchain or
+dependency port fails `test`, not a behavioural suite of the wallet.
 
 ## Test runtime
 
 `.aidev/runtime/Dockerfile` builds on common-ci-configuration's `node-test-tools:develop`,
 which carries the hive-wide Node version (ccc's `NODE_VERSION`); this repository names no
 Node version for it. It adds yarn classic, `make`/`g++`, node-gyp's headers for that Node
-(`/opt/node-gyp`), a yarn cache filled from `yarn.lock` (`/opt/yarn-cache`), and the
-lockfile's Electron and electron-chromedriver zips (`/opt/electron-cache`), so their
-install scripts work offline. Rebuild and re-pin it with `.aidev/runtime/build.sh --push`
+(`/opt/node-gyp`) and a yarn cache filled from `yarn.lock` (`/opt/yarn-cache`);
+`ELECTRON_SKIP_BINARY_DOWNLOAD` keeps electron's install script offline. Rebuild and re-pin it with `.aidev/runtime/build.sh --push`
 when the Dockerfile, `package.json` or `yarn.lock` changes, or ccc's image moves, and put
 the printed `repo@sha256:…` into `environment.image`.
 
-## Known state at onboarding (2026-10-26)
+## Known state after the Node 24 port (2026-10-27)
 
-The runtime is Node v24.22.1, and the application is a Node 6 application (`.nvmrc`
-`v6.9.5`, `.babelrc` targets node 6, Electron 4.2.11, webpack 2). Every slot fails at
-`install`: `node-sass` 6 builds from source with node-gyp 7, which fails on Node 24. With
-install scripts skipped, `yarn build` fails because npm 10 rejects `package.json`'s
-`devEngines.node` (`Invalid property "devEngines.node"`), and `eslint .` reports 87 errors.
-Moving the application to Node 24 is the open port issue.
+The runtime is ccc's Node, and the application is built for it: `.nvmrc` and `engines`
+name only the major (`24`), Babel 7 (`babel.config.json`) targets the current Node,
+Electron 44 (whose own Node is 24) runs the app, and webpack 5 bundles it. `install`,
+`build` and `test` pass. `eslint .` passes; Flow (`yarn flow`, flow-bin 0.116) is not in the
+slots and was not re-checked. The `postinstall`'s `flow-typed install` needs the network and
+is allowed to fail (`|| true`), as before.

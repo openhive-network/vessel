@@ -5,14 +5,12 @@
 #
 # Every run first installs node_modules offline from the image's yarn cache
 # (`yarn install --offline --frozen-lockfile`, lifecycle scripts included: the
-# native modules such as node-sass build here, and the root `postinstall` runs
-# `build-dll`, `electron-builder install-app-deps` and the devEngines check) as
+# root `postinstall` runs `build-dll` and `electron-builder install-app-deps`) as
 # the `install` case. Steps, one junit case each:
 #
-#   test   `yarn test` (test/runTests.js, the package.json `test` script). The
-#          tree has no test/ directory at onboarding: the case is recorded as
-#          skipped until one exists (see .aidev/README.md)
-#   lint   eslint . (package.json `lint`, the first step of .travis.yml)
+#   test   `yarn test` (test/runTests.js, the package.json `test` script: Jest
+#          over test/**/*.spec.js)
+#   lint   eslint . (package.json `lint`)
 #   build  `yarn build`: webpack bundles of the main and renderer processes
 #          (package.json `build`, what `package` builds before electron-builder)
 #
@@ -60,17 +58,9 @@ if ! step install install; then
     exit 1
 fi
 
-unit() {
-    if [ ! -f test/runTests.js ]; then
-        printf 'case\ttest\tskip\t0\tno test/runTests.js in the tree\n' >> "$cases"
-        return 0
-    fi
-    step test yarn run test
-}
-
 for s in "$@"; do
     case "$s" in
-        test) unit ;;
+        test) step test yarn run test ;;
         lint) step lint node_modules/.bin/eslint . ;;
         build) step build yarn run build ;;
         *) printf 'case\t%s\tfail\t0\tunknown step\n' "$s" >> "$cases"; status=1 ;;

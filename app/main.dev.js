@@ -17,6 +17,13 @@ let mainWindow = null;
 let promptWindow = null;
 let customURI
 
+// The renderer uses Node (process.env in app.html, require('electron').shell),
+// which Electron has disabled by default since v5 and v12.
+const webPreferences = {
+  nodeIntegration: true,
+  contextIsolation: false
+};
+
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
   sourceMapSupport.install();
@@ -65,7 +72,8 @@ async function createWindow() {
   mainWindow = new BrowserWindow({
     show: false,
     width: 970,
-    height: 750
+    height: 750,
+    webPreferences
   });
   // mainWindow.webContents.openDevTools()
 
@@ -103,7 +111,8 @@ async function createPrompt(event, url) {
     alwaysOnTop: true,
     show: false,
     width: 500,
-    height: 600
+    height: 600,
+    webPreferences
   });
   const parsed = parse(url, true)
   parsed.query.type = parsed.hostname

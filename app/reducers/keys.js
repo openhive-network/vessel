@@ -6,6 +6,8 @@ import {
   KEY_USE,
   KEY_USE_DECRYPT_PROMPT,
   KEY_USE_DECRYPT_PROMPT_CLOSE,
+  KEY_USE_DECRYPT_FAILED,
+  KEY_REENCRYPTED,
   KEY_ADD_CANCEL,
   KEY_ADD_CONFIRM,
   KEY_ADD_CONFIRMED,
@@ -156,6 +158,26 @@ export default function keys(state: any = defaultState, action: actionType) {
         decrypt: false
       })
       return state;
+    }
+    case KEY_USE_DECRYPT_FAILED: {
+      if (!state.decrypt) {
+        return state;
+      }
+      return Object.assign({}, state, {
+        decrypt: { ...state.decrypt, error: action.payload }
+      });
+    }
+    case KEY_REENCRYPTED: {
+      const { account, key } = action.payload;
+      if (!state.permissions[account]) {
+        return state;
+      }
+      return Object.assign({}, state, {
+        permissions: {
+          ...state.permissions,
+          [account]: { ...state.permissions[account], key }
+        }
+      });
     }
     case KEY_REMOVE_CANCEL: {
       return Object.assign({}, state, {

@@ -2,16 +2,14 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { Modal, Segment } from 'semantic-ui-react';
+import { Message, Modal, Segment } from 'semantic-ui-react';
 import { Form, Input } from 'formsy-semantic-ui-react'
 
 import * as KeysActions from '../actions/keys';
 
-var CryptoJS = require("crypto-js");
-
 const defaultState = {
   password: '',
-  decrypted: false,
+  unlocking: false,
 };
 
 class DecryptPrompt extends Component {
@@ -22,55 +20,30 @@ class DecryptPrompt extends Component {
   }
 
   handleKeyUp = (e) => {
-    if (this.state.decrypted && e.key == 'Enter') {
+    if (this.state.password && !this.state.unlocking && e.key == 'Enter') {
       this.handleSubmit(e);
     }
   }
 
   handlePasswordChange = (e: SyntheticEvent, { value }: { value: string }) => {
-    const { from } = this.state;
-    const { key } = this.props.keys.decrypt.auth;
-    const decrypted = this.decryptKey(key, value);
-    this.setState({
-      password: value,
-      decrypted: decrypted
-    });
+    this.setState({ password: value });
   }
 
-  handleSubmit = (e: SyntheticEvent) => {
+  handleSubmit = async (e: SyntheticEvent) => {
+    e.preventDefault();
     const { operation, params, auth } = this.props.keys.decrypt;
     const { password } = this.state;
-    const { key } = this.props.keys.decrypt.auth;
-    // Extract the WIF key
-    const decrypted = this.decryptKey(key, password);
-    // Modify the auth information with the unencrypted information
-    auth['encrypted'] = false;
-    auth['key'] = decrypted;
-    // Reissue the action with the unencrypted auth information
-    this.props.actions.useKey(operation, params, auth);
-    // Reset to the default state
-    this.state = defaultState;
-    e.preventDefault();
+    this.setState({ unlocking: true });
+    // On success the prompt closes; on failure it stays open with the error.
+    await this.props.actions.unlockKey(operation, params, auth, password);
+    this.setState(defaultState);
   }
 
   handleCancel = (e: SyntheticEvent) => {
     // Close the prompt
     this.props.actions.useKeyRequestDecryptClose();
     // Reset to the default state
-    this.state = defaultState;
-  }
-
-  decryptKey(wif: string, password: string) {
-    try {
-      const bytes = CryptoJS.AES.decrypt(wif, password);
-      const key = bytes.toString(CryptoJS.enc.Utf8);
-      if (key) {
-        return key;
-      }
-    } catch (e) {
-      console.log(e);
-    }
-    return false;
+    this.setState(defaultState);
   }
 
   render() {
@@ -88,6 +61,10 @@ class DecryptPrompt extends Component {
               <p>
                 The wallet requested is encrypted locally. Please type your wallet password to broadcast the transaction to the blockchain.
               </p>
+              {(decrypt.error)
+                ? <Message error content={decrypt.error} />
+                : false
+              }
               <Form>
                 <Input
                   name="password"
@@ -116,7 +93,8 @@ class DecryptPrompt extends Component {
               content: 'Unlock + Broadcast',
               color: 'purple',
               onClick: this.handleSubmit,
-              disabled: !this.state.decrypted
+              loading: this.state.unlocking,
+              disabled: !this.state.password || this.state.unlocking
             }
           ]}
         />

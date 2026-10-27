@@ -7,8 +7,7 @@ import {
   PROCESSING_ACCOUNT_LOADING_COMPLETE,
   PROCESSING_ACCOUNT_LOADING_FAILED
 } from './processing';
-
-var CryptoJS = require("crypto-js");
+import { decryptKey, encryptKey, isLegacyKey, KeyDecryptionError } from '../utils/keyCrypto';
 
 export const KEY_REMOVE_CANCEL = 'KEY_REMOVE_CANCEL';
 export const KEY_REMOVE_CONFIRM = 'KEY_REMOVE_CONFIRM';
@@ -16,6 +15,8 @@ export const KEY_REMOVE_CONFIRMED = 'KEY_REMOVE_CONFIRMED';
 export const KEY_USE = 'KEY_USE';
 export const KEY_USE_DECRYPT_PROMPT = 'KEY_USE_DECRYPT_PROMPT';
 export const KEY_USE_DECRYPT_PROMPT_CLOSE = 'KEY_USE_DECRYPT_PROMPT_CLOSE';
+export const KEY_USE_DECRYPT_FAILED = 'KEY_USE_DECRYPT_FAILED';
+export const KEY_REENCRYPTED = 'KEY_REENCRYPTED';
 export const KEY_ADD_CANCEL = 'KEY_ADD_CANCEL';
 export const KEY_ADD_CONFIRM = 'KEY_ADD_CONFIRM';
 export const KEY_ADD_CONFIRMED = 'KEY_ADD_CONFIRMED';
@@ -97,12 +98,9 @@ export function addKeyConfirmed(
   encrypted: boolean,
   password: string
   ) {
-  return (dispatch: () => void) => {
-    let key = wif;
+  return async (dispatch: () => void) => {
+    const key = encrypted ? await encryptKey(wif, password) : wif;
     const payload = {};
-    if (encrypted) {
-      key = CryptoJS.AES.encrypt(wif, password).toString();
-    }
     payload[account] = {
       account,
       key,
@@ -166,6 +164,36 @@ export function useKey(operation, params, auth) {
       dispatch(callback(auth.key, params));
       dispatch(useKeyRequestDecryptClose());
     }
+  };
+}
+
+// Decrypts an encrypted auth with the password and reissues the operation.
+// A key still in the legacy format is re-encrypted into the current one.
+export function unlockKey(operation, params, auth, password: string) {
+  return async (dispatch: () => void) => {
+    let wif;
+    try {
+      wif = await decryptKey(auth.key, password);
+    } catch (e) {
+      if (!(e instanceof KeyDecryptionError)) {
+        throw e;
+      }
+      dispatch({
+        type: KEY_USE_DECRYPT_FAILED,
+        payload: e.message
+      });
+      return;
+    }
+    if (isLegacyKey(auth.key)) {
+      dispatch({
+        type: KEY_REENCRYPTED,
+        payload: {
+          account: auth.account,
+          key: await encryptKey(wif, password)
+        }
+      });
+    }
+    dispatch(useKey(operation, params, { ...auth, encrypted: false, key: wif }));
   };
 }
 

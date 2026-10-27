@@ -1,0 +1,81 @@
+# Profile for hive/vessel, written by `aidev project scaffold` (#13561)
+# and edited by hand.
+#
+# Schema reference: docs/architecture/project-profile.md
+# Onboarding procedure: the `onboard-external-project` skill.
+# Guide: docs/operations/onboarding-an-external-project.md
+#
+# The generator writes a starting point, not a governed answer: every
+# binding below is the command a maintainer said this project runs, and it
+# is reviewed and edited like any other declaration.
+version: 2
+project: vessel
+
+gitlab:
+  host: "gitlab.syncad.com"
+  path: "hive/vessel"
+  id: 298
+
+# Automated work integrates into aidev/integration (protected; never deleted on
+# merge) and reaches master by the project's own merge requests (`aidev handoff`).
+branches:
+  integration: "aidev/integration"
+  handoff: "master"
+
+# How this project's suites execute (#13892): one kind, stated once.
+# Built by .aidev/runtime/build.sh --push on common-ci-configuration's
+# node-test-tools:develop (the hive-wide Node); see .aidev/README.md.
+environment:
+  kind: "container"
+  image: "registry.gitlab.syncad.com/hive/vessel/aidev-tests@sha256:0f0b0e73e4b331936e9139608ba3ec3344742280ff62b31e69412c4fec492e67"
+  inputs: ["package.json", "yarn.lock"]
+
+issues:
+  intake_label: todo
+  taxonomy: ".aidev/labels.yaml"
+  decompose:
+    # `never` is where an external project starts: nothing marks work
+    # approved on this project's behalf until there is a track record.
+    auto_todo: never
+  # Reports about this project's work are filed against this project.
+  watcher_reports: self
+
+# Verification slots. Each binding is what this project genuinely runs for
+# that slot — never one selection repeated under seven names, which makes
+# seven gates report on the same evidence while claiming to check seven
+# different things. Steps (.aidev/run-checks.sh): build =
+# yarn build (webpack main + renderer), test = yarn test (no tests exist yet: the
+# case is skipped), lint = eslint . (only in static). Every slot fails at install
+# on Node 24 at onboarding: the app is still a Node 6 app (.aidev/README.md).
+verification:
+  quick:
+    adapter: command
+    args: [".aidev/run-checks.sh", "quick", "build", "test"]
+    artifacts: ["test-results/quick/"]
+  full:
+    adapter: command
+    args: [".aidev/run-checks.sh", "full", "build", "test"]
+    artifacts: ["test-results/full/"]
+  baseline:
+    adapter: command
+    args: [".aidev/run-checks.sh", "baseline", "build"]
+    artifacts: ["test-results/baseline/"]
+  canary:
+    adapter: command
+    args: [".aidev/run-checks.sh", "canary", "build", "test"]
+    artifacts: ["test-results/canary/"]
+  static:
+    adapter: command
+    args: [".aidev/run-checks.sh", "static", "lint"]
+    artifacts: ["test-results/static/"]
+  coverage:
+    adapter: command
+    args: [".aidev/run-checks.sh", "coverage", "build", "test"]
+    artifacts: ["test-results/coverage/"]
+  system:
+    adapter: command
+    args: [".aidev/run-checks.sh", "system", "build", "test"]
+    artifacts: ["test-results/system/"]
+
+# Capability grants for target-side code. Empty until this project needs one.
+capabilities: []

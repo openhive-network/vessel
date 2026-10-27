@@ -56,4 +56,3 @@ npm-debug.log.*
 # Temporary Disable until Implemented
 appveyor.yml
 .travis
-/test

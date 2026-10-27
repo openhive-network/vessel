@@ -56,3 +56,27 @@ npm-debug.log.*
 # Temporary Disable until Implemented
 appveyor.yml
 .travis
+/test
+
+# Wallet keystore safety — NEVER commit key material or profile backups.
+# (Backups live outside the repo at ~/Vessel-Keystore-Backups/; these
+#  patterns are a defensive guard in case one is ever copied in.)
+vessel-profile-*.tar.gz
+*keystore*backup*
+*.wif
+Local Storage/
+.phase1-work/
+out/
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Local env — holds the opt-in testnet/mirrornet creds (VESSEL_TESTNET_*). NEVER commit a key.
+.env
+.env.local
+.env.*.local
+
+# Local-only archive of the modernization planning docs (kept off the repo, not shipped).
+/.archive/

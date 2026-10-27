@@ -1,0 +1,35 @@
+diff --git a/node_modules/hive-tx/dist/index.cjs b/node_modules/hive-tx/dist/index.cjs
+index 9f3efc9..0c56b01 100644
+--- a/node_modules/hive-tx/dist/index.cjs
++++ b/node_modules/hive-tx/dist/index.cjs
+@@ -33,7 +33,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
+ let _noble_hashes_utils_js = require("@noble/hashes/utils.js");
+ let _noble_hashes_legacy_js = require("@noble/hashes/legacy.js");
+ let bs58 = require("bs58");
+-bs58 = __toESM(bs58, 1);
++bs58 = __toESM(bs58, 1); if (bs58.default && typeof bs58.default.encode !== "function" && bs58.default.default) bs58 = { default: bs58.default.default };
+ let _noble_curves_secp256k1_js = require("@noble/curves/secp256k1.js");
+ let _noble_hashes_sha2_js = require("@noble/hashes/sha2.js");
+ let _noble_ciphers_aes_js = require("@noble/ciphers/aes.js");
+@@ -1572,7 +1572,7 @@ var Transaction = class Transaction {
+ 		const transactionData = new Uint8Array(buffer.toBuffer());
+ 		const txId = (0, _noble_hashes_utils_js.bytesToHex)((0, _noble_hashes_sha2_js.sha256)(transactionData)).slice(0, 40);
+ 		return {
+-			digest: (0, _noble_hashes_sha2_js.sha256)(new Uint8Array([...chainId, ...transactionData])),
++			digest: (0, _noble_hashes_sha2_js.sha256)(new Uint8Array([...(0, _noble_hashes_utils_js.hexToBytes)(config.chain_id), ...transactionData])),
+ 			txId
+ 		};
+ 	}
+diff --git a/node_modules/hive-tx/dist/index.mjs b/node_modules/hive-tx/dist/index.mjs
+index 2c5674a..8003366 100644
+--- a/node_modules/hive-tx/dist/index.mjs
++++ b/node_modules/hive-tx/dist/index.mjs
+@@ -1540,7 +1540,7 @@ var Transaction = class Transaction {
+ 		const transactionData = new Uint8Array(buffer.toBuffer());
+ 		const txId = bytesToHex(sha256(transactionData)).slice(0, 40);
+ 		return {
+-			digest: sha256(new Uint8Array([...chainId, ...transactionData])),
++			digest: sha256(new Uint8Array([...hexToBytes(config.chain_id), ...transactionData])),
+ 			txId
+ 		};
+ 	}

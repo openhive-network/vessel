@@ -5,74 +5,82 @@
 Vessel is a desktop wallet application for the Hive blockchain. It allows users to manage their Hive accounts, send HIVE/HBD tokens, manage vesting/delegation, and perform other blockchain operations without running a full node. Cross-platform support for macOS, Windows, and Linux via Electron.
 
 **Status**: Experimental lite wallet
-**Version**: 1.0.3
+**Version**: 3.0.0
 **License**: MIT
 
 ## Tech Stack
 
 **Core**:
-- Electron 44 - Desktop framework (renderer runs with `nodeIntegration`)
-- React 16.4.0 - UI library
-- Redux 4.0.5 - State management
-- Semantic UI React 0.88.2 - UI components
+- Electron 44 - Desktop framework (bundles Node 24)
+- React 19.2 - UI library (functional components with hooks only; no class components)
+- Redux 5 + Redux Toolkit 2 - State management (slices via `createSlice`)
+- Redux Persist 6 - State hydration
+- React Router 8 - Client-side routing (declarative `HashRouter` under `file://`)
+- Mantine 8 (`@mantine/core`, `@mantine/hooks`, `@mantine/form`) + `@tabler/icons-react` - UI components
 
 **Blockchain**:
-- @hiveio/hive-js 2.0.4 - Hive API client
-- bip39 2.6.0 - Mnemonic generation
-- crypto-js 3.1.9-1 - Cryptography
+- hive-tx 7 - Hive API client + signing (pure `@noble` crypto; the sole production Hive client)
+- @scure/bip39 - Mnemonic generation
+- @noble/hashes + @noble/ciphers - Cryptography (scrypt + AES-GCM key envelopes)
+- (`@hiveio/hive-js` is a **devDependency**, retained only for the parity/signing test fixtures)
 
 **Build**:
-- Webpack 5 - Module bundler (CommonJS `webpack.config.*.js`)
-- Babel 7 - Transpiler (`babel.config.json`, targets the current Node)
-- Node.js 24 — the hive-wide version from common-ci-configuration; `.nvmrc` and `engines` name only the major
+- electron-vite 5 / Vite 7 - Bundler (main / preload / renderer)
+- TypeScript 5 - Type checking (strict; `noImplicitAny` on)
+- Node.js 24 — the one hive-wide version pinned by common-ci-configuration (ccc); `.nvmrc` and `engines` name only the major
 
 **Quality**:
-- ESLint 6.8.0 (Airbnb config)
-- Flow 0.116.1 - Type checking
-- Jest 30 - Testing (`test/**/*.spec.js`, run by `test/runTests.js`)
+- ESLint 9 (flat config, `eslint.config.mjs`)
+- TypeScript - Static type checking
+- Vitest 4 - Unit tests
+- Playwright (`_electron`) - End-to-end tests against the real packaged app
+- Prettier - Code formatting
 
 ## Directory Structure
 
 ```
 app/                    # Main application source
-├── main.dev.js        # Electron main process entry
-├── index.js           # React entry point
-├── app.js             # Redux provider setup
-├── routes.js          # Route definitions
+├── main.dev.ts        # Electron main process entry (window creation, IPC, URI handlers)
+├── main/              # Main-process modules (keystore.ts key custody, signUri.ts)
+├── preload.ts         # Electron preload script (contextBridge → window.electronAPI)
+├── index.tsx          # React 19 entry point (createRoot)
+├── App.tsx            # Root app with Provider + PersistGate
+├── routes.tsx         # React Router v8 route definitions (HashRouter)
 ├── menu.js            # Electron menu builder
-├── actions/           # Redux action creators
-├── reducers/          # Redux reducers
+├── actions/           # Redux action creators / thunks
+├── reducers/          # RTK slices (account, keys, preferences, hive, processing)
+├── hooks/             # Custom React hooks (redux.ts typed hooks)
+├── types/             # TypeScript type definitions
 ├── containers/        # Redux-connected components (pages)
-├── components/        # Presentational React components
-├── store/             # Redux store configuration
-├── utils/             # Utility functions
-├── semantic-ui/       # Semantic UI CSS/JS
+├── components/        # Presentational React components (Mantine)
+├── store/             # Redux store configuration (configureStore + persist)
+├── utils/             # hiveApi facade, broadcast.ts, keyEnvelope.ts, authorityRoles.ts, …
 └── img/               # Image assets
 
-test/                  # Jest suites (reducers, actions, utils)
-
 assets/                # Build assets (icons for all platforms)
-internals/             # Build helpers and Flow types
-flow-typed/            # Generated Flow type definitions
+build/                 # Packaging helpers (afterPackIcon.js, vessel.icon for macOS 26)
+e2e/                   # Playwright _electron specs
 ```
 
 ## Development Commands
 
 ```bash
 # Development
-npm run dev            # Start with hot reload
-npm run build          # Build main and renderer
-npm run build-dll      # Build DLL cache (faster dev rebuilds)
+npm run dev            # Start electron-vite dev with hot reload
+npm run build          # Bundle main/preload/renderer into out/
 
 # Testing & Quality
-npm test               # Run Jest tests
+npm run verify         # The gate: typecheck && lint && test
+npm test               # Run Vitest unit tests
+npm run test-e2e       # Run Playwright _electron e2e (needs a prior build)
+npm run test:testnet   # Opt-in live mirrornet broadcast smoke (.env creds; see .env.example)
 npm run lint           # ESLint check
 npm run lint-fix       # Auto-fix lint issues
-npm run flow           # Flow type check
+npm run typecheck      # TypeScript type check
 
 # Production
-npm start              # Run production build
-npm run package        # Create installers (all platforms)
+npm start              # Build then run the production build (unpackaged)
+npm run package        # Create installers via electron-builder
 npm run package-win    # Windows only
 npm run package-linux  # Linux only
 ```
@@ -81,65 +89,90 @@ npm run package-linux  # Linux only
 
 | File | Purpose |
 |------|---------|
-| `app/main.dev.js` | Electron main process, window creation, URI handlers |
-| `app/index.js` | React bootstrap and render |
-| `app/routes.js` | Page routing configuration |
-| `app/reducers/index.js` | Root reducer combining all state |
-| `app/actions/account.js` | Core wallet actions (send, delegate, vote) |
-| `webpack.config.base.js` | Base webpack configuration |
-| `babel.config.json` | Babel transpilation config (project-wide, so it also covers `app/`) |
-| `.eslintrc` | ESLint rules |
-| `.flowconfig` | Flow type checker config |
+| `app/main.dev.ts` | Electron main process, window creation, IPC handlers, URI handlers |
+| `app/main/keystore.ts` | Main-process key custody: encrypted-envelope store + sign/memo IPC (renderer never holds a WIF) |
+| `app/preload.ts` | contextBridge exposing `window.electronAPI` (keystore + shell) |
+| `app/index.tsx` | React 19 bootstrap with createRoot |
+| `app/App.tsx` | Redux Provider, PersistGate, MantineProvider |
+| `app/routes.tsx` | React Router v8 page routing (HashRouter) |
+| `app/hooks/redux.ts` | Typed useAppDispatch and useAppSelector hooks |
+| `app/store/configureStore.ts` | RTK store with redux-persist v6 + keystore migration |
+| `app/utils/hiveApi.ts` | Facade over hive-tx (the only module importing the Hive client) |
+| `app/utils/broadcast.ts` | Op construction + sign/broadcast seam (signs via main-process keystore) |
+| `app/utils/keyEnvelope.ts` | scrypt + AES-GCM v2 key envelope (encrypt/decrypt) |
+| `electron.vite.config.ts` | electron-vite build config (main/preload/renderer) |
+| `eslint.config.mjs` | ESLint 9 flat config |
+| `tsconfig.json` | TypeScript compiler config |
+| `.prettierrc` | Prettier formatting config |
 
 ## Coding Conventions
 
 **Style**:
-- ESLint Airbnb configuration
-- 2 spaces indentation (JS/JSON/CSS)
-- Flow type annotations on functions and components
+- ESLint 9 flat config
+- 2 spaces indentation (JS/TS/JSON/CSS)
+- TypeScript for type safety
+- Prettier for consistent formatting
 
 **Redux**:
-- Action constants: `UPPER_SNAKE_CASE`
+- RTK slices (`createSlice`); action constants stay `UPPER_SNAKE_CASE` for the legacy async trio
 - Async actions: suffixed with `_STARTED`, `_RESOLVED`, `_FAILED`
-- Immutable state updates only
+- Immutable state updates (Immer via RTK)
+- Use `useAppDispatch` and `useAppSelector` hooks
 
 **React**:
-- Class components (legacy codebase)
-- PascalCase for component files
-- Semantic UI React for UI elements
+- Functional components with hooks (React 19) — no class components
+- PascalCase for component files (.tsx)
+- Mantine for UI elements
+- Use `useEffect` instead of lifecycle methods
+
+**TypeScript**:
+- Components: `PascalCase.tsx`
+- Types: in `app/types/` directory
+- Use strict mode
 
 **Naming**:
-- Components: `PascalCase.js`
-- Actions/reducers: `camelCase.js`
+- Components: `PascalCase.tsx`
+- Actions/reducers: `camelCase.ts`
+- Hooks: `useXxx.ts`
 
 ## Architecture
 
 **State Management**:
-- Redux store with 5 reducers: `account`, `keys`, `preferences`, `hive`, `processing`
-- Redux-persist for state hydration
-- Redux-thunk for async operations
+- Redux store with 5 slices: `account`, `keys`, `preferences`, `hive`, `processing`
+- Redux-persist v6 for state hydration (PersistGate)
+- Thunks (bundled by RTK) for async operations
+- Typed hooks for dispatch and selectors
+
+**Key custody & security** (the wallet's core invariant):
+- Private keys live as scrypt+AES-GCM v2 envelopes; the **main process** owns the keystore and performs signing/memo crypto — a decrypted WIF never enters the renderer or Redux/localStorage.
+- Post-HF28 authority-role gate: an op is refused unless the loaded key satisfies the required role (recomputed in main from the actual ops).
+- Windows run `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`; strict CSP in production; IPC gated by a sender-frame allowlist.
 
 **Component Structure**:
-- `containers/` - Redux-connected smart components (pages)
+- `containers/` - Page-level (Redux-connected) components
 - `components/` - Presentational components
-- Hierarchy: Root → App → Routes → Page → Components
+- Hierarchy: App → Routes → Page → Components
 
 **Electron**:
 - Single instance lock (prevents multiple windows)
-- Custom URI protocols: `hive://` and `vessel://`
-- Separate main/renderer process builds
+- Custom URI protocols: `hive://` and `vessel://` (sign flow with confirm + unlock)
+- Separate main/preload/renderer builds via electron-vite
 
 ## CI/CD Notes
 
-**No CI** is configured in this repo (no GitLab CI; the old Travis config was dropped).
-The AIDEV suites (`.aidev/run-checks.sh`) run install → build → test in an image built on
-common-ci-configuration's `node-test-tools`, which carries the hive-wide Node version.
+**GitLab CI** (`.gitlab-ci.yml`):
+- Includes ccc's `templates/base.gitlab-ci.yml`; Node jobs run in `${NODE_TEST_TOOLS_IMAGE}` (ccc's Node). No Node version or Node image is named in this repo.
+- Pipeline: verify (typecheck+lint+test) → build (electron-vite) → e2e (Playwright under xvfb) → package (`package:linux` on every pipeline, `package:win` on tags in the wine image with ccc's `NODE_IMAGE_VERSION` installed first)
+- Code signing/notarization is configured but dark until `CSC_*` / `WIN_CSC_*` / `APPLE_*` are provisioned; unsigned packaging still succeeds (`build/signingNotice.js` prints a notice)
+- macOS packaging is a manual local `npm run package` step (no hosted mac runner)
+
+**AIDEV** (`.aidev/`): `.aidev/run-checks.sh` runs `npm ci --legacy-peer-deps` (offline from the image's npm cache, online when the image has none) then typecheck / lint / build / test; see `.aidev/README.md`.
 
 ## Network Configuration
 
 Default Hive nodes configurable in settings:
 - Mainnet: `api.hive.blog`
-- Supports custom nodes, Mirrornet, Testnet
+- Beacon-ranked node picker (`beacon.peakd.com`), plus custom nodes, Mirrornet, and Testnet toggle
 
 ## Key Features
 

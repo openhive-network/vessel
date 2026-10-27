@@ -28,7 +28,7 @@ branches:
 environment:
   kind: "container"
   image: "registry.gitlab.syncad.com/hive/vessel/aidev-tests@sha256:091d8cebcc3727190ee7eb531eacc9953410b8218eecbb859e983d5f722676a7"
-  inputs: ["package.json", "yarn.lock"]
+  inputs: ["package.json", "package-lock.json"]
 
 issues:
   intake_label: todo
@@ -43,9 +43,10 @@ issues:
 # Verification slots. Each binding is what this project genuinely runs for
 # that slot — never one selection repeated under seven names, which makes
 # seven gates report on the same evidence while claiming to check seven
-# different things. Steps (.aidev/run-checks.sh): build =
-# yarn build (webpack main + renderer), test = yarn test (Jest over test/),
-# lint = eslint . (only in static).
+# different things. Steps (.aidev/run-checks.sh): build = npm run build
+# (electron-vite main + preload + renderer), test = npm test (Vitest over
+# app/), typecheck = npm run typecheck (tsc --noEmit; in full and static),
+# lint = npm run lint (only in static).
 verification:
   quick:
     adapter: command
@@ -53,7 +54,7 @@ verification:
     artifacts: ["test-results/quick/"]
   full:
     adapter: command
-    args: [".aidev/run-checks.sh", "full", "build", "test"]
+    args: [".aidev/run-checks.sh", "full", "typecheck", "build", "test"]
     artifacts: ["test-results/full/"]
   baseline:
     adapter: command
@@ -65,7 +66,7 @@ verification:
     artifacts: ["test-results/canary/"]
   static:
     adapter: command
-    args: [".aidev/run-checks.sh", "static", "lint"]
+    args: [".aidev/run-checks.sh", "static", "lint", "typecheck"]
     artifacts: ["test-results/static/"]
   coverage:
     adapter: command

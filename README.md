@@ -4,6 +4,20 @@ Vessel is a lite wallet for the Hive blockchain that you can run on your desktop
 
 **This is experimental and messy software at the moment, please use with caution.**
 
+# Development
+
+Requires Node.js >= 24.
+
+```
+npm install          # install dependencies (postinstall applies patches)
+npm run dev          # start with hot reload (electron-vite)
+npm run verify       # the gate: typecheck + lint + unit tests
+npm run test-e2e     # Playwright end-to-end tests (needs a prior `npm run build`)
+npm start            # build then run the production build (unpackaged)
+```
+
+Stack: Electron 43 · React 19 · Redux Toolkit · React Router 8 · Mantine · hive-tx · electron-vite/Vite · TypeScript · Vitest + Playwright. Private keys are held encrypted in the main process (a decrypted key never enters the renderer).
+
 # Release Instructions
 
 To build for release:

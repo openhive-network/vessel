@@ -26,40 +26,55 @@ Declared in `.aidev/project.yaml` under `verification`, all through `.aidev/run-
 which writes `test-results/<slot>/junit.xml` (one case per step):
 
 - `quick` — `.aidev/run-checks.sh quick build test`
-- `full` — `.aidev/run-checks.sh full build test`
+- `full` — `.aidev/run-checks.sh full typecheck build test`
 - `baseline` — `.aidev/run-checks.sh baseline build`
 - `canary` — `.aidev/run-checks.sh canary build test`
-- `static` — `.aidev/run-checks.sh static lint`
+- `static` — `.aidev/run-checks.sh static lint typecheck`
 - `coverage` — `.aidev/run-checks.sh coverage build test`
 - `system` — `.aidev/run-checks.sh system build test`
 
-Every run first installs `node_modules` offline from the image's yarn cache (`install`,
-`yarn install --offline --frozen-lockfile` with lifecycle scripts, the root `postinstall`
-included). Steps: `build` is `yarn build` (webpack bundles of the main and renderer
-processes), `test` is `yarn test` (`test/runTests.js`, Jest over `test/**/*.spec.js`), `lint`
-is `eslint .` (the `lint` script). The project has no CI definition of its own (no GitLab CI;
-the dead Travis config was removed). The suites never start Electron, and `package`
-(electron-builder) is not in the slots.
-
-The tests are smoke tests of the reducers, the key actions (hive-js key derivation,
-crypto-js encryption) and `utils/NumericLabel`: enough that a broken toolchain or
-dependency port fails `test`, not a behavioural suite of the wallet.
+Every run first installs `node_modules` with `npm ci --legacy-peer-deps` from `package-lock.json`
+(`install`, lifecycle scripts included: the root `postinstall` applies `patches/` with
+patch-package and runs `electron-builder install-app-deps`). It installs offline from the image's
+npm cache (`npm_config_cache=/opt/npm-cache`); when the image has no such cache — the image pinned
+when the project moved to npm was built for yarn — it falls back to an online `npm ci`, so that
+image needs network for the install. Steps: `build` is `npm run build` (electron-vite bundles of
+main, preload and renderer into `out/`), `test` is `npm test` (Vitest over `app/**/*.test.ts`),
+`lint` is `npm run lint` (ESLint 9, `eslint.config.mjs`), `typecheck` is `npm run typecheck`
+(`tsc --noEmit`). The suites never start Electron; the Playwright e2e suite (`npm run test-e2e`,
+under `xvfb-run`) and packaging (`npm run package-linux`) run in the project's GitLab CI, not in
+the slots.
 
 ## Test runtime
 
 `.aidev/runtime/Dockerfile` builds on common-ci-configuration's `node-test-tools:develop`,
 which carries the hive-wide Node version (ccc's `NODE_VERSION`); this repository names no
-Node version for it. It adds yarn classic, `make`/`g++`, node-gyp's headers for that Node
-(`/opt/node-gyp`) and a yarn cache filled from `yarn.lock` (`/opt/yarn-cache`);
-`ELECTRON_SKIP_BINARY_DOWNLOAD` keeps electron's install script offline. Rebuild and re-pin it with `.aidev/runtime/build.sh --push`
-when the Dockerfile, `package.json` or `yarn.lock` changes, or ccc's image moves, and put
-the printed `repo@sha256:…` into `environment.image`.
+Node version for it. It adds `make`/`g++`, node-gyp's headers for that Node (`/opt/node-gyp`)
+and an npm cache filled from `package-lock.json` (`/opt/npm-cache`, the image's
+`npm_config_cache`); `ELECTRON_SKIP_BINARY_DOWNLOAD` keeps electron's install script offline.
+Rebuild and re-pin it with `.aidev/runtime/build.sh --push` when the Dockerfile, `package.json`
+or `package-lock.json` changes, or ccc's image moves, and put the printed `repo@sha256:…` into
+`environment.image`.
 
-## Known state after the Node 24 port (2026-10-27)
+**Operator step after the npm port lands:** the pinned image still carries the old yarn cache, not
+an npm cache, so every install takes the online fallback. Run `.aidev/runtime/build.sh --push` on
+the integration branch and commit the printed digest as `environment.image`; installs are then
+offline again.
 
-The runtime is ccc's Node, and the application is built for it: `.nvmrc` and `engines`
-name only the major (`24`), Babel 7 (`babel.config.json`) targets the current Node,
-Electron 44 (whose own Node is 24) runs the app, and webpack 5 bundles it. `install`,
-`build` and `test` pass. `eslint .` passes; Flow (`yarn flow`, flow-bin 0.116) is not in the
-slots and was not re-checked. The `postinstall`'s `flow-typed install` needs the network and
-is allowed to fail (`|| true`), as before.
+## Code signing (ships dark)
+
+`package.json` `build` configures macOS signing + notarization (hardened runtime) and Windows
+signing, read by electron-builder from the environment: `CSC_LINK` / `CSC_KEY_PASSWORD` (macOS
+Developer ID), `APPLE_ID` / `APPLE_APP_SPECIFIC_PASSWORD` / `APPLE_TEAM_ID` or `APPLE_API_KEY` /
+`APPLE_API_KEY_ID` / `APPLE_API_ISSUER` (notarization), `WIN_CSC_LINK` / `WIN_CSC_KEY_PASSWORD`
+(Windows). No certificates are provisioned yet, so packages are built **unsigned**: packaging
+still succeeds and `build/signingNotice.js` prints which platform is unsigned. Signing switches on
+once those variables are set (as protected CI variables for tag pipelines); no code change is
+needed.
+
+## Known state
+
+The application is !11's (`modernization-2026`) TypeScript / electron-vite / React 19 tree on
+Electron 44 (whose bundled Node is 24.x), merged with this `.aidev/` harness. `.nvmrc` and
+`engines` name only the Node major (`24`); CI (`.gitlab-ci.yml`) includes ccc's base template and
+runs its Node jobs in `${NODE_TEST_TOOLS_IMAGE}`.

@@ -1,0 +1,13 @@
+node_modules/
+app/node_modules/
+# Vendored / generated — do not reformat (deleted in later phases)
+app/semantic-ui/
+app/img/
+dist/
+dll/
+release/
+app/main.prod.js
+app/main.prod.js.map
+app/bundle.js
+*.min.js
+package-lock.json

@@ -1,0 +1,142 @@
+import { test, expect, _electron as electron } from '@playwright/test';
+import * as path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
+import hive from '@hiveio/hive-js';
+import { PrivateKey, PublicKey, Transaction, config as hiveTxConfig } from 'hive-tx';
+import { encryptKey } from '../app/utils/keyEnvelope';
+
+/**
+ * Phase 3 · D9b Stage B4 — SIGNING in the real Electron main process. Companion to memoEncode.spec:
+ * seeds a THROWAWAY key into a temp-profile keystore.json, launches the built app, and signs a
+ * fully-formed transaction via `window.electronAPI.keystore.sign` over IPC. Reframed for the Phase 4
+ * hive-tx swap: hive-tx signs NON-deterministically (F1), so main's signature is not byte-equal to a
+ * local one — instead it must cryptographically VERIFY over the tx digest under the signer's public key.
+ * This proves the money-path signing works in the real main runtime without any manual test.
+ *
+ * SAFE TO AUTO-RUN: it signs locally in main and NEVER broadcasts — no network, no funds, throwaway key.
+ * Requires a prior `npm run build`.
+ */
+const MAIN = path.join(__dirname, '..', 'out', 'main', 'main.dev.js');
+const PW = 'e2e-throwaway-wallet-pw';
+const SEED = 'vessel-e2e-main-sign';
+// Hive mainnet chain id — set identically on both sides so the digests (and thus signatures) match.
+const CHAIN_ID = 'beeab0de00000000000000000000000000000000000000000000000000000000';
+const SIG_HEX = /^[0-9a-f]{130}$/i;
+
+const TX = {
+  ref_block_num: 1234,
+  ref_block_prefix: 5678901,
+  expiration: '2030-01-01T00:00:00',
+  operations: [['transfer', { from: 'alice', to: 'bob', amount: '0.001 HIVE', memo: '' }]],
+  extensions: [],
+};
+
+test.describe('D9b B4 — transaction signing runs in the real main process', () => {
+  test('signs a tx in main with a valid signature that verifies over the digest (no broadcast)', async () => {
+    const activeWif: string = hive.auth.getPrivateKeys(SEED, PW, ['active']).active;
+    const freshTx = () => JSON.parse(JSON.stringify(TX));
+
+    // hive-tx signs non-deterministically (F1), so verify the signature cryptographically rather than
+    // comparing bytes: it must verify over the tx digest (same ops + tapos + chain id) under the pubkey.
+    hiveTxConfig.chain_id = CHAIN_ID;
+    hiveTxConfig.address_prefix = 'STM';
+    const digest = new Transaction({ transaction: { ...freshTx(), signatures: [] } as any })
+      .digest()
+      .digest;
+    const signerPub = PrivateKey.from(activeWif).createPublic('STM').toString();
+
+    const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'vessel-e2e-sign-'));
+    fs.writeFileSync(
+      path.join(profile, 'keystore.json'),
+      JSON.stringify({
+        version: 1,
+        accounts: {
+          [SEED]: { account: SEED, key: await encryptKey(activeWif, PW), encrypted: true, type: 'active' },
+        },
+      })
+    );
+
+    const app = await electron.launch({
+      args: [...(process.env.CI ? ['--no-sandbox'] : []), MAIN],
+      env: { ...process.env, NODE_ENV: 'production', VESSEL_USER_DATA: profile },
+    });
+    const proc = app.process();
+    proc.stdout?.on('data', (d) => process.stdout.write(`[main:out] ${d}`));
+    proc.stderr?.on('data', (d) => process.stdout.write(`[main:err] ${d}`));
+    try {
+      const win = await app.firstWindow();
+      await win.waitForLoadState('domcontentloaded');
+
+      const result = await win.evaluate(
+        async ({ account, password, chainId, tx }) => {
+          const ks = (window as any).electronAPI?.keystore;
+          if (!ks) return { error: 'no keystore bridge' };
+          try {
+            await ks.setChainConfig(chainId); // main defaults to mainnet; be explicit for parity
+            const signed = await ks.sign(account, tx, password);
+            return { ok: true, signatures: signed.signatures };
+          } catch (e: any) {
+            return { error: e && e.message ? e.message : String(e) };
+          }
+        },
+        { account: SEED, password: PW, chainId: CHAIN_ID, tx: freshTx() }
+      );
+
+      expect(result.error, `sign failed in main: ${result.error}`).toBeUndefined();
+      expect(result.ok).toBe(true);
+      expect(result.signatures).toHaveLength(1);
+      expect(result.signatures[0]).toMatch(SIG_HEX); // main produced a real signature
+      // ...which verifies over the digest under the signer pubkey (non-deterministic but valid, F1)
+      expect(PublicKey.fromString(signerPub).verify(digest, result.signatures[0])).toBe(true);
+      // the WIF must never ride back out on the signed tx
+      expect(JSON.stringify(result.signatures)).not.toContain(activeWif);
+    } finally {
+      await app.close();
+      fs.rmSync(profile, { recursive: true, force: true });
+    }
+  });
+
+  test('main REFUSES to sign an active op with a posting key (authority gate, no broadcast)', async () => {
+    const postingWif: string = hive.auth.getPrivateKeys(SEED, PW, ['posting']).posting;
+    const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'vessel-e2e-sign-gate-'));
+    fs.writeFileSync(
+      path.join(profile, 'keystore.json'),
+      JSON.stringify({
+        version: 1,
+        accounts: {
+          // a POSTING key, but the tx below is a transfer (active authority)
+          [SEED]: { account: SEED, key: await encryptKey(postingWif, PW), encrypted: true, type: 'posting' },
+        },
+      })
+    );
+
+    const app = await electron.launch({
+      args: [...(process.env.CI ? ['--no-sandbox'] : []), MAIN],
+      env: { ...process.env, NODE_ENV: 'production', VESSEL_USER_DATA: profile },
+    });
+    try {
+      const win = await app.firstWindow();
+      await win.waitForLoadState('domcontentloaded');
+      const result = await win.evaluate(
+        async ({ account, password, chainId, tx }) => {
+          const ks = (window as any).electronAPI?.keystore;
+          try {
+            await ks.setChainConfig(chainId);
+            const signed = await ks.sign(account, tx, password);
+            return { signed: !!(signed && signed.signatures) };
+          } catch (e: any) {
+            return { error: e && e.message ? e.message : String(e) };
+          }
+        },
+        { account: SEED, password: PW, chainId: CHAIN_ID, tx: JSON.parse(JSON.stringify(TX)) }
+      );
+      // main must refuse — a posting key cannot sign an active transfer, regardless of the renderer.
+      expect(result.signed).toBeUndefined();
+      expect(result.error).toBeTruthy();
+    } finally {
+      await app.close();
+      fs.rmSync(profile, { recursive: true, force: true });
+    }
+  });
+});

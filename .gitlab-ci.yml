@@ -1,0 +1,101 @@
+# GitLab CI for Vessel (replaces .travis.yml).
+#
+# Pipeline: verify → build (electron-vite) → e2e (Playwright _electron under xvfb) → package.
+#
+# Notes:
+#  • Node comes only from common-ci-configuration (ccc): the Node jobs run in ccc's node-test-tools
+#    image (${NODE_TEST_TOOLS_IMAGE}), which carries the hive-wide Node (ccc's docker-bake.hcl
+#    NODE_VERSION, exported as NODE_IMAGE_VERSION). This file names no Node version or Node image.
+#  • `npm ci --legacy-peer-deps` is used because a few eslint 9 plugins still declare lagging peer
+#    ranges. Drop the flag once the ecosystem catches up.
+#  • The whole toolchain is electron-vite/vite — everything (dev, build, package) bundles into out/.
+#  • Code signing ships dark: electron-builder signs/notarizes only when CSC_LINK / CSC_KEY_PASSWORD,
+#    WIN_CSC_LINK / WIN_CSC_KEY_PASSWORD and APPLE_* are set as protected CI variables; without them it
+#    packages unsigned and build/signingNotice.js says so in the job log.
+#  • macOS packaging is a manual local `npm run package` step — there is no hosted mac runner.
+#    Add a `package:mac` job here if/when a tagged mac runner exists.
+
+include:
+  - project: 'hive/common-ci-configuration'
+    ref: develop
+    file: '/templates/base.gitlab-ci.yml'
+
+stages:
+  - verify
+  - build
+  - e2e
+  - package
+
+default:
+  image: ${NODE_TEST_TOOLS_IMAGE}
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - .npm/
+  before_script:
+    - node -v
+    - npm ci --legacy-peer-deps --cache .npm --prefer-offline
+
+verify:
+  stage: verify
+  interruptible: true
+  script:
+    - npm run verify # typecheck && lint && test
+
+build:
+  stage: build
+  interruptible: true
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - out/
+    expire_in: 1 day
+
+e2e:
+  stage: e2e
+  interruptible: true
+  needs: ['build']
+  script:
+    - npx playwright install-deps # OS libraries electron/chromium need
+    - xvfb-run --auto-servernum npm run test-e2e
+  artifacts:
+    when: on_failure
+    paths:
+      - test-results/
+    expire_in: 1 week
+
+package:linux:
+  stage: package
+  needs: ['build']
+  script:
+    - apt-get update && apt-get install -y --no-install-recommends binutils # fpm builds the .deb with `ar`
+    - npm run package-linux
+  artifacts:
+    paths:
+      - release/*.deb
+    expire_in: 1 week
+
+# Windows: electron-builder edits and signs the .exe with rcedit/signtool, which on a Linux runner
+# need wine — node-test-tools has none, so this job keeps electronuserland/builder:wine. That image
+# ships its own Node, so the job first installs ccc's Node (NODE_IMAGE_VERSION, from the included
+# base template) in front of it and fails unless `node -v` reports exactly that version.
+package:win:
+  stage: package
+  image: electronuserland/builder:wine
+  rules:
+    - if: '$CI_COMMIT_TAG'
+  before_script:
+    - curl -fsSL "https://nodejs.org/dist/v${NODE_IMAGE_VERSION}/node-v${NODE_IMAGE_VERSION}-linux-x64.tar.xz" | tar -xJ -C /opt
+    - export PATH="/opt/node-v${NODE_IMAGE_VERSION}-linux-x64/bin:${PATH}"
+    - test "$(node -v)" = "v${NODE_IMAGE_VERSION}"
+    - node -v
+    - npm ci --legacy-peer-deps --cache .npm --prefer-offline
+  script:
+    - npm run package-win
+  artifacts:
+    paths:
+      - release/
+    expire_in: 1 week

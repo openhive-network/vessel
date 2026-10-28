@@ -1,7 +1,7 @@
-diff --git a/node_modules/hive-tx/dist/index.cjs b/node_modules/hive-tx/dist/index.cjs
+diff --git a/dist/index.cjs b/dist/index.cjs
 index 9f3efc9..0c56b01 100644
---- a/node_modules/hive-tx/dist/index.cjs
-+++ b/node_modules/hive-tx/dist/index.cjs
+--- a/dist/index.cjs
++++ b/dist/index.cjs
 @@ -33,7 +33,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
  let _noble_hashes_utils_js = require("@noble/hashes/utils.js");
  let _noble_hashes_legacy_js = require("@noble/hashes/legacy.js");
@@ -20,10 +20,10 @@ index 9f3efc9..0c56b01 100644
  			txId
  		};
  	}
-diff --git a/node_modules/hive-tx/dist/index.mjs b/node_modules/hive-tx/dist/index.mjs
+diff --git a/dist/index.mjs b/dist/index.mjs
 index 2c5674a..8003366 100644
---- a/node_modules/hive-tx/dist/index.mjs
-+++ b/node_modules/hive-tx/dist/index.mjs
+--- a/dist/index.mjs
++++ b/dist/index.mjs
 @@ -1540,7 +1540,7 @@ var Transaction = class Transaction {
  		const transactionData = new Uint8Array(buffer.toBuffer());
  		const txId = bytesToHex(sha256(transactionData)).slice(0, 40);

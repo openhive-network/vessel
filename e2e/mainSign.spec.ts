@@ -15,7 +15,7 @@ import { encryptKey } from '../app/utils/keyEnvelope';
  * This proves the money-path signing works in the real main runtime without any manual test.
  *
  * SAFE TO AUTO-RUN: it signs locally in main and NEVER broadcasts — no network, no funds, throwaway key.
- * Requires a prior `npm run build`.
+ * Requires a prior `pnpm run build`.
  */
 const MAIN = path.join(__dirname, '..', 'out', 'main', 'main.dev.js');
 const PW = 'e2e-throwaway-wallet-pw';

@@ -9,7 +9,7 @@ import * as fs from 'fs';
  * record with byte-identical ciphertext — using the renderer's own localStorage as the independent
  * source-of-truth oracle. Nothing is decrypted; the real profile is never touched (this copy is).
  *
- * Requires: `npm run build` first, and the disposable copy staged by the session. Skips cleanly if the
+ * Requires: `pnpm run build` first, and the disposable copy staged by the session. Skips cleanly if the
  * copy is absent so CI (which has no such profile) does not fail.
  */
 const PROFILE = '/tmp/claude-501/vessel-b3-test-profile';

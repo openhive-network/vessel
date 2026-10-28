@@ -6,14 +6,27 @@ Vessel is a lite wallet for the Hive blockchain that you can run on your desktop
 
 # Development
 
-Requires Node.js >= 24.
+Requires Node.js >= 24 and pnpm >= 10. Clone with `--recurse-submodules` (or run
+`git submodule update --init`): `npm-common-config` is common-ci-configuration, whose shared pnpm
+catalogs pin React, TypeScript and Playwright.
 
 ```
-npm install          # install dependencies (postinstall applies patches)
-npm run dev          # start with hot reload (electron-vite)
-npm run verify       # the gate: typecheck + lint + unit tests
-npm run test-e2e     # Playwright end-to-end tests (needs a prior `npm run build`)
-npm start            # build then run the production build (unpackaged)
+pnpm install          # install dependencies (applies patches/ via pnpm's patchedDependencies)
+pnpm run dev          # start with hot reload (electron-vite)
+pnpm run verify       # the gate: typecheck + lint + unit tests
+pnpm run test-e2e     # Playwright end-to-end tests (needs a prior `pnpm run build`)
+pnpm start            # build then run the production build (unpackaged)
+```
+
+`pnpm-workspace.yaml` holds vessel's pnpm settings (`nodeLinker: hoisted`, which electron-builder
+needs to find the app's dependencies) and, between the `BEGIN`/`END common-ci-configuration
+catalogs` markers, ccc's catalogs. Packages that ccc catalogs are referenced as `catalog:<name>` in
+`package.json`; never write their version here. To take a ccc bump:
+
+```
+git submodule update --remote npm-common-config
+python3 npm-common-config/scripts/python/pnpm-catalog-sync.py   # re-merge ccc's catalogs
+pnpm install                                                     # refresh pnpm-lock.yaml
 ```
 
 Stack: Electron 43 · React 19 · Redux Toolkit · React Router 8 · Mantine · hive-tx · electron-vite/Vite · TypeScript · Vitest + Playwright. Private keys are held encrypted in the main process (a decrypted key never enters the renderer).
@@ -31,9 +44,8 @@ sudo add-apt-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ focal mai
 sudo apt update
 sudo apt install --install-recommends winehq-stable
 
-npm run build
-sudo npm i -g electron-builder
-electron-builder -mwl
+pnpm install
+pnpm run package-all
 ```
 
 Mac releases must be built on a Mac. Can build on intel for M1 thanks to Rosetta.

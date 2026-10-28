@@ -12,7 +12,7 @@ Vessel is a desktop wallet application for the Hive blockchain. It allows users 
 
 **Core**:
 - Electron 44 - Desktop framework (bundles Node 24)
-- React 19.2 - UI library (functional components with hooks only; no class components)
+- React 19 (ccc `react-toolset` catalog) - UI library (functional components with hooks only; no class components)
 - Redux 5 + Redux Toolkit 2 - State management (slices via `createSlice`)
 - Redux Persist 6 - State hydration
 - React Router 8 - Client-side routing (declarative `HashRouter` under `file://`)
@@ -28,6 +28,7 @@ Vessel is a desktop wallet application for the Hive blockchain. It allows users 
 - electron-vite 5 / Vite 7 - Bundler (main / preload / renderer)
 - TypeScript 5 - Type checking (strict; `noImplicitAny` on)
 - Node.js 24 — the one hive-wide version pinned by common-ci-configuration (ccc); `.nvmrc` and `engines` name only the major
+- pnpm (`pnpm-lock.yaml`, `nodeLinker: hoisted` so electron-builder finds dependencies). `react`, `react-dom`, `@types/react*`, `typescript` and `@playwright/test` are `catalog:<name>` references to ccc's catalogs (`npm-common-config` submodule, merged into `pnpm-workspace.yaml` by `npm-common-config/scripts/python/pnpm-catalog-sync.py`); never pin them locally
 
 **Quality**:
 - ESLint 9 (flat config, `eslint.config.mjs`)
@@ -57,6 +58,8 @@ app/                    # Main application source
 ├── utils/             # hiveApi facade, broadcast.ts, keyEnvelope.ts, authorityRoles.ts, …
 └── img/               # Image assets
 
+npm-common-config/     # common-ci-configuration (ccc) submodule: shared pnpm catalogs, CI templates
+patches/               # pnpm patchedDependencies (hive-tx)
 assets/                # Build assets (icons for all platforms)
 build/                 # Packaging helpers (afterPackIcon.js, vessel.icon for macOS 26)
 e2e/                   # Playwright _electron specs
@@ -65,24 +68,27 @@ e2e/                   # Playwright _electron specs
 ## Development Commands
 
 ```bash
+# Setup (pnpm; clone with --recurse-submodules for the ccc catalogs)
+pnpm install           # applies patches/ via pnpm patchedDependencies
+
 # Development
-npm run dev            # Start electron-vite dev with hot reload
-npm run build          # Bundle main/preload/renderer into out/
+pnpm run dev           # Start electron-vite dev with hot reload
+pnpm run build         # Bundle main/preload/renderer into out/
 
 # Testing & Quality
-npm run verify         # The gate: typecheck && lint && test
-npm test               # Run Vitest unit tests
-npm run test-e2e       # Run Playwright _electron e2e (needs a prior build)
-npm run test:testnet   # Opt-in live mirrornet broadcast smoke (.env creds; see .env.example)
-npm run lint           # ESLint check
-npm run lint-fix       # Auto-fix lint issues
-npm run typecheck      # TypeScript type check
+pnpm run verify        # The gate: typecheck && lint && test
+pnpm test              # Run Vitest unit tests
+pnpm run test-e2e      # Run Playwright _electron e2e (needs a prior build)
+pnpm run test:testnet  # Opt-in live mirrornet broadcast smoke (.env creds; see .env.example)
+pnpm run lint          # ESLint check
+pnpm run lint-fix      # Auto-fix lint issues
+pnpm run typecheck     # TypeScript type check
 
 # Production
-npm start              # Build then run the production build (unpackaged)
-npm run package        # Create installers via electron-builder
-npm run package-win    # Windows only
-npm run package-linux  # Linux only
+pnpm start             # Build then run the production build (unpackaged)
+pnpm run package       # Create installers via electron-builder
+pnpm run package-win   # Windows only
+pnpm run package-linux # Linux only
 ```
 
 ## Key Files
@@ -100,6 +106,7 @@ npm run package-linux  # Linux only
 | `app/utils/hiveApi.ts` | Facade over hive-tx (the only module importing the Hive client) |
 | `app/utils/broadcast.ts` | Op construction + sign/broadcast seam (signs via main-process keystore) |
 | `app/utils/keyEnvelope.ts` | scrypt + AES-GCM v2 key envelope (encrypt/decrypt) |
+| `pnpm-workspace.yaml` | pnpm settings + ccc's catalogs (region rewritten by `pnpm-catalog-sync.py`) |
 | `electron.vite.config.ts` | electron-vite build config (main/preload/renderer) |
 | `eslint.config.mjs` | ESLint 9 flat config |
 | `tsconfig.json` | TypeScript compiler config |
@@ -161,12 +168,13 @@ npm run package-linux  # Linux only
 ## CI/CD Notes
 
 **GitLab CI** (`.gitlab-ci.yml`):
-- Includes ccc's `templates/base.gitlab-ci.yml`; Node jobs run in `${NODE_TEST_TOOLS_IMAGE}` (ccc's Node). No Node version or Node image is named in this repo.
+- Includes ccc's `templates/npm_projects.gitlab-ci.yml` (which includes `base.gitlab-ci.yml`); Node jobs run in `${NODE_TEST_TOOLS_IMAGE}` (ccc's Node and pnpm). No Node version or Node image is named in this repo.
+- Submodules are checked out recursively at ccc's `develop` tip (`GIT_SUBMODULE_UPDATE_FLAGS: --remote`); installs use ccc's `.pnpm_install_with_catalog_fallback` (re-merges the catalogs, reinstalls unfrozen on a catalog bump and keeps `pnpm-lock.catalog-refreshed.yaml` as an artifact)
 - Pipeline: verify (typecheck+lint+test) → build (electron-vite) → e2e (Playwright under xvfb) → package (`package:linux` on every pipeline, `package:win` on tags in the wine image with ccc's `NODE_IMAGE_VERSION` installed first)
 - Code signing/notarization is configured but dark until `CSC_*` / `WIN_CSC_*` / `APPLE_*` are provisioned; unsigned packaging still succeeds (`build/signingNotice.js` prints a notice)
-- macOS packaging is a manual local `npm run package` step (no hosted mac runner)
+- macOS packaging is a manual local `pnpm run package` step (no hosted mac runner)
 
-**AIDEV** (`.aidev/`): `.aidev/run-checks.sh` runs `npm ci --legacy-peer-deps` (offline from the image's npm cache, online when the image has none) then typecheck / lint / build / test; see `.aidev/README.md`.
+**AIDEV** (`.aidev/`): `.aidev/run-checks.sh` runs `pnpm install --frozen-lockfile` (offline from the image's pnpm store, online when the image has none) then typecheck / lint / build / test; see `.aidev/README.md`.
 
 ## Network Configuration
 

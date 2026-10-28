@@ -5,7 +5,7 @@
  * electron renderer process from here and communicate with the other processes
  * through IPC.
  *
- * `npm run build` (electron-vite) bundles this to `out/main/main.dev.js`.
+ * `pnpm run build` (electron-vite) bundles this to `out/main/main.dev.js`.
  */
 import { app, BrowserWindow, ipcMain, nativeImage, session, shell } from 'electron';
 import * as path from 'path';
@@ -364,7 +364,7 @@ if (process.defaultApp) {
   app.setAsDefaultProtocolClient('vessel');
 }
 
-// Dev/unpackaged macOS launches (`npm start`, the e2e/profile-copy harness) otherwise show the generic
+// Dev/unpackaged macOS launches (`pnpm start`, the e2e/profile-copy harness) otherwise show the generic
 // Electron dock icon — the packaged app gets its icon from electron-builder (the .icns) and is
 // unaffected. dock-icon.png is the styled macOS "app tile" — the red rounded-square with the white Hive
 // hexagon padded inside and the standard transparent margin, i.e. the SAME artwork baked into icon.icns

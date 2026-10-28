@@ -33,33 +33,28 @@ which writes `test-results/<slot>/junit.xml` (one case per step):
 - `coverage` — `.aidev/run-checks.sh coverage build test`
 - `system` — `.aidev/run-checks.sh system build test`
 
-Every run first installs `node_modules` with `npm ci --legacy-peer-deps` from `package-lock.json`
-(`install`, lifecycle scripts included: the root `postinstall` applies `patches/` with
-patch-package and runs `electron-builder install-app-deps`). It installs offline from the image's
-npm cache (`npm_config_cache=/opt/npm-cache`); when the image has no such cache — the image pinned
-when the project moved to npm was built for yarn — it falls back to an online `npm ci`, so that
-image needs network for the install. Steps: `build` is `npm run build` (electron-vite bundles of
-main, preload and renderer into `out/`), `test` is `npm test` (Vitest over `app/**/*.test.ts`),
-`lint` is `npm run lint` (ESLint 9, `eslint.config.mjs`), `typecheck` is `npm run typecheck`
-(`tsc --noEmit`). The suites never start Electron; the Playwright e2e suite (`npm run test-e2e`,
-under `xvfb-run`) and packaging (`npm run package-linux`) run in the project's GitLab CI, not in
+Every run first installs `node_modules` with `pnpm install --frozen-lockfile` from `pnpm-lock.yaml`
+(`install`; pnpm applies `patches/` through `patchedDependencies` in `pnpm-workspace.yaml` and runs
+the root `postinstall`, `electron-builder install-app-deps`). `pnpm-workspace.yaml` carries ccc's
+catalogs merged in, so the install does not need the `npm-common-config` submodule. It installs
+offline from the image's pnpm store (`npm_config_store_dir=/opt/pnpm-store`); with an image that
+has no such store it installs online. Steps: `build` is `pnpm run build` (electron-vite bundles of
+main, preload and renderer into `out/`), `test` is `pnpm test` (Vitest over `app/**/*.test.ts`),
+`lint` is `pnpm run lint` (ESLint 9, `eslint.config.mjs`), `typecheck` is `pnpm run typecheck`
+(`tsc --noEmit`). The suites never start Electron; the Playwright e2e suite (`pnpm run test-e2e`,
+under `xvfb-run`) and packaging (`pnpm run package-linux`) run in the project's GitLab CI, not in
 the slots.
 
 ## Test runtime
 
 `.aidev/runtime/Dockerfile` builds on common-ci-configuration's `node-test-tools:develop`,
-which carries the hive-wide Node version (ccc's `NODE_VERSION`); this repository names no
-Node version for it. It adds `make`/`g++`, node-gyp's headers for that Node (`/opt/node-gyp`)
-and an npm cache filled from `package-lock.json` (`/opt/npm-cache`, the image's
-`npm_config_cache`); `ELECTRON_SKIP_BINARY_DOWNLOAD` keeps electron's install script offline.
-Rebuild and re-pin it with `.aidev/runtime/build.sh --push` when the Dockerfile, `package.json`
-or `package-lock.json` changes, or ccc's image moves, and put the printed `repo@sha256:…` into
-`environment.image`.
-
-**Operator step after the npm port lands:** the pinned image still carries the old yarn cache, not
-an npm cache, so every install takes the online fallback. Run `.aidev/runtime/build.sh --push` on
-the integration branch and commit the printed digest as `environment.image`; installs are then
-offline again.
+which carries the hive-wide Node version (ccc's `NODE_VERSION`) and pnpm (`PNPM_VERSION`); this
+repository names neither. It adds `make`/`g++`, node-gyp's headers for that Node (`/opt/node-gyp`)
+and a pnpm store filled by `pnpm fetch` from `pnpm-lock.yaml` (`/opt/pnpm-store`, the image's
+`npm_config_store_dir`); `ELECTRON_SKIP_BINARY_DOWNLOAD` keeps electron offline.
+Rebuild and re-pin it with `.aidev/runtime/build.sh --push` when the Dockerfile, `package.json`,
+`pnpm-lock.yaml`, `pnpm-workspace.yaml` (a ccc catalog bump) or `patches/` changes, or ccc's image
+moves, and put the printed `repo@sha256:…` into `environment.image`.
 
 ## Code signing (ships dark)
 
@@ -76,5 +71,7 @@ needed.
 
 The application is !11's (`modernization-2026`) TypeScript / electron-vite / React 19 tree on
 Electron 44 (whose bundled Node is 24.x), merged with this `.aidev/` harness. `.nvmrc` and
-`engines` name only the Node major (`24`); CI (`.gitlab-ci.yml`) includes ccc's base template and
-runs its Node jobs in `${NODE_TEST_TOOLS_IMAGE}`.
+`engines` name only the Node major (`24`); CI (`.gitlab-ci.yml`) includes ccc's npm_projects
+template (and through it the base template), runs its Node jobs in `${NODE_TEST_TOOLS_IMAGE}` and
+installs with ccc's `.pnpm_install_with_catalog_fallback`. React, TypeScript and Playwright come
+from ccc's `react-toolset`, `typescript-toolset` and `playwright-toolset` catalogs.

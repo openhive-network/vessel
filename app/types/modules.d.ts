@@ -34,3 +34,5 @@ declare module '*.svg' {
   const src: string;
   export default src;
 }
+// Side-effect stylesheet imports — Vite bundles them; tsc (TS 6 checks side-effect imports) needs the ambient module.
+declare module '*.css';

@@ -27,6 +27,7 @@ export default tseslint.config(
   {
     ignores: [
       'node_modules/**',
+      'npm-common-config/**', // common-ci-configuration submodule
       'app/node_modules/**',
       'dll/**',
       'dist/**',

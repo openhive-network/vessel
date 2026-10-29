@@ -27,8 +27,8 @@ branches:
 # node-test-tools:develop (the hive-wide Node); see .aidev/README.md.
 environment:
   kind: "container"
-  image: "registry.gitlab.syncad.com/hive/vessel/aidev-tests@sha256:b66ecc881a869eff8499586c9ea1b7673bdae60b401872180205279d2dc44b2e"
-  inputs: ["package.json", "package-lock.json"]
+  image: "registry.gitlab.syncad.com/hive/vessel/aidev-tests@sha256:df570b06a65ffc82af2df2edb1c82ac2867983aec4fbb2c57aa7c1cbc29ec563"
+  inputs: ["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml"]
 
 issues:
   intake_label: todo
@@ -43,10 +43,10 @@ issues:
 # Verification slots. Each binding is what this project genuinely runs for
 # that slot — never one selection repeated under seven names, which makes
 # seven gates report on the same evidence while claiming to check seven
-# different things. Steps (.aidev/run-checks.sh): build = npm run build
-# (electron-vite main + preload + renderer), test = npm test (Vitest over
-# app/), typecheck = npm run typecheck (tsc --noEmit; in full and static),
-# lint = npm run lint (only in static).
+# different things. Steps (.aidev/run-checks.sh): build = pnpm run build
+# (electron-vite main + preload + renderer), test = pnpm test (Vitest over
+# app/), typecheck = pnpm run typecheck (tsc --noEmit; in full and static),
+# lint = pnpm run lint (only in static).
 verification:
   quick:
     adapter: command

@@ -10,7 +10,7 @@ import * as os from 'os';
  *   B) a well-formed payload renders the sign UI with the operation summary.
  *
  * SAFE TO AUTO-RUN: it never selects a signing account and never clicks confirm, so it stops well
- * before any signature or broadcast — no network, no keys. Requires a prior `npm run build`.
+ * before any signature or broadcast — no network, no keys. Requires a prior `pnpm run build`.
  */
 const MAIN = path.join(__dirname, '..', 'out', 'main', 'main.dev.js');
 const b64 = (v: unknown) => Buffer.from(JSON.stringify(v)).toString('base64');

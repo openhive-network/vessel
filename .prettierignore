@@ -10,4 +10,5 @@ app/main.prod.js
 app/main.prod.js.map
 app/bundle.js
 *.min.js
-package-lock.json
+pnpm-lock.yaml
+npm-common-config/

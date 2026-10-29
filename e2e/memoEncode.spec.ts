@@ -15,7 +15,7 @@ import { encryptKey } from '../app/utils/keyEnvelope';
  * Seeds a THROWAWAY key+memo envelope under its own password directly into keystore.json, so no real
  * key or password is involved and the real profile is never touched.
  *
- * Requires a prior `npm run build`.
+ * Requires a prior `pnpm run build`.
  */
 const MAIN = path.join(__dirname, '..', 'out', 'main', 'main.dev.js');
 const PW = 'e2e-throwaway-wallet-pw';

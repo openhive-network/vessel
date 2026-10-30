@@ -37,6 +37,7 @@ stages:
   - package
 
 default:
+  tags: [public-runner-docker]
   image: ${NODE_TEST_TOOLS_IMAGE}
   cache:
     key:
